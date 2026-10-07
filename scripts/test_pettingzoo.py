@@ -1,6 +1,6 @@
 import gymnasium as gym
-import multigrid.envs
-from multigrid.wrappers.external import PettingZooWrapper
+import stable_marl.envs
+from stable_marl.wrappers.external import PettingZooWrapper
 
 env = gym.make('MultiGrid-Empty-16x16-v0', agents=2, render_mode='human')
 env = PettingZooWrapper(env)

@@ -1,8 +1,8 @@
 # export_grid.py — run this in your normal Python environment
 import json
 import numpy as np
-from multigrid.envs.findgoal import FindGoalEnv
-from multigrid.core.constants import Type
+from stable_marl.envs.findgoal import FindGoalEnv
+from stable_marl.core.constants import Type
 
 env = FindGoalEnv(
     width=15,

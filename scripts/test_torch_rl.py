@@ -1,6 +1,6 @@
 import gymnasium as gym
-import multigrid.envs
-from multigrid.wrappers.external import TorchRLPettingZooWrapper
+import stable_marl.envs
+from stable_marl.wrappers.external import TorchRLPettingZooWrapper
 from torchrl.envs.libs.pettingzoo import PettingZooWrapper
 
 env = gym.make('MultiGrid-FindGoal-15x15-v0', agents=2, num_obstacles=6)

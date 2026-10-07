@@ -12,11 +12,11 @@ import numpy as np
 
 warnings.filterwarnings('ignore')
 
-from multigrid.core.actions import Action
-from multigrid.core.constants import Color, Direction, Type
-from multigrid.core.grid import Grid
-from multigrid.core.world_object import Ball, Box, Door, Key, Marker, Wall, WorldObj
-from multigrid.envs import (
+from stable_marl.core.actions import Action
+from stable_marl.core.constants import Color, Direction, Type
+from stable_marl.core.grid import Grid
+from stable_marl.core.world_object import Ball, Box, Door, Key, Marker, Wall, WorldObj
+from stable_marl.envs import (
     BlockedUnlockPickupEnv, EmptyEnv, LockedHallwayEnv, PlaygroundEnv, RedBlueDoorsEnv,
 )
 
@@ -133,7 +133,7 @@ def str_with_marker():
 
 @test
 def envs_export_classes():
-    import multigrid.envs as envs
+    import stable_marl.envs as envs
     assert {'EmptyEnv', 'FindGoalEnv', 'RedBlueDoorsEnv'} <= set(envs.__all__)
 
 
@@ -222,7 +222,7 @@ def box_contents_get_position():
 # ------------------------------------------------------------------ wrappers
 @test
 def grid_recorder_long_episode():
-    from multigrid.wrappers.base import GridRecorder
+    from stable_marl.wrappers.base import GridRecorder
     env = GridRecorder(EmptyEnv(size=16, agents=1, render_mode='rgb_array'), save_root=tempfile.mkdtemp(),
                        auto_save_images=False, auto_save_videos=False)
     env.recording, env.video_scale = True, 1
@@ -238,7 +238,7 @@ def grid_recorder_long_episode():
 
 @test
 def fully_obs_wrapper_shape():
-    from multigrid.wrappers.base import FullyObsWrapper
+    from stable_marl.wrappers.base import FullyObsWrapper
     env = FullyObsWrapper(RedBlueDoorsEnv(agents=2))
     obs, _ = env.reset(seed=0)
     space = env.unwrapped.agents[0].observation_space['image']

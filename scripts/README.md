@@ -22,16 +22,16 @@ For more options, run ``python train.py --help`` and ``python visualize.py --hel
 
 ## Environments
 
-All of the environment configurations registered in [`multigrid.envs`](../multigrid/envs/__init__.py) can also be used with RLlib, and are registered via `import multigrid.rllib`.
+All of the environment configurations registered in [`stable_marl.envs`](../stable_marl/envs/__init__.py) can also be used with RLlib, and are registered via `import stable_marl.rllib`.
 
 To use a specific MultiGrid environment configuration by name:
 
-    >>> import multigrid.rllib
+    >>> import stable_marl.rllib
     >>> from ray.rllib.algorithms.ppo import PPOConfig
     >>> algorithm_config = PPOConfig().environment(env='MultiGrid-Empty-8x8-v0')
 
 To convert a custom `MultiGridEnv` to an RLlib `MultiAgentEnv`:
 
-    >>> from multigrid.rllib import to_rllib_env
+    >>> from stable_marl.rllib import to_rllib_env
     >>> MyRLLibEnvClass = to_rllib_env(MyEnvClass)
     >>> algorithm_config = PPOConfig().environment(env=MyRLLibEnvClass)

@@ -5,8 +5,8 @@ same walls and goal.
 Run:  python tests/test_layout.py
 """
 import gymnasium as gym
-import multigrid.envs
-from multigrid.core.constants import Type
+import stable_marl.envs
+from stable_marl.core.constants import Type
 env = gym.make('MultiGrid-FindGoal-15x15-v0', agents=2, render_mode='rgb_array',
                num_obstacles=6, width=15, height=15)
 

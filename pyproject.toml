@@ -3,7 +3,7 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "multigrid"
+name = "stable-marl"
 dynamic = ["version"]
 description = "Fast and flexible multi-agent gridworld reinforcement learning environments."
 readme = "README.md"
@@ -22,7 +22,7 @@ dependencies = [
     'fastcore',
     'gymnasium',
     'pygame',
-    'hydra-core',           # multigrid.configs, multigrid.utils.env_factory
+    'hydra-core',           # stable_marl.configs, stable_marl.utils.env_factory
     'omegaconf',
 ]
 
@@ -56,19 +56,19 @@ dev = [                     # nbdev: `pip install -e ".[dev]"`
 ]
 
 [project.urls]
-Repository = "https://github.com/Ahmed-Khaled-Saleh/multigrid"
-Documentation = "https://Ahmed-Khaled-Saleh.github.io/multigrid/"
+Repository = "https://github.com/Ahmed-Khaled-Saleh/stable-marl"
+Documentation = "https://Ahmed-Khaled-Saleh.github.io/stable-marl/"
 
 [project.entry-points.nbdev]
-multigrid = "multigrid._modidx:d"
+stable_marl = "stable_marl._modidx:d"
 
 [tool.setuptools.dynamic]
-version = {attr = "multigrid.__version__"}
+version = {attr = "stable_marl.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["multigrid*"]
+include = ["stable_marl*"]
 
 [tool.setuptools.package-data]
-multigrid = ["configs/**/*.yaml"]
+stable_marl = ["configs/**/*.yaml"]
 
 [tool.nbdev]

@@ -5,7 +5,7 @@ requires = ["setuptools >= 61.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "multigrid"
+name = "stable-marl"
 description = "Fast multi-agent gridworld reinforcement learning environments."
 readme = "README.md"
 requires-python = ">= 3.9"
@@ -49,7 +49,7 @@ dynamic = ["version"]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["multigrid*"]
+include = ["stable_marl*"]
 
 # Linters and Test tools #######################################################
 
@@ -60,12 +60,12 @@ safe = true
 atomic = true
 profile = "black"
 append_only = true
-src_paths = ["multigrid"]
+src_paths = ["stable_marl"]
 add_imports = [ "from __future__ import annotations" ]
 
 [tool.pyright]
 include = [
-    "multigrid/**",
+    "stable_marl/**",
 ]
 
 exclude = [

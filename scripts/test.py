@@ -1,5 +1,5 @@
 import gymnasium as gym
-import multigrid.envs
+import stable_marl.envs
 import matplotlib.pyplot as plt
 
 

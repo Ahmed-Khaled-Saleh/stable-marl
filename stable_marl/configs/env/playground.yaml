@@ -1,0 +1,21 @@
+# Default config of stable_marl.envs.PlaygroundEnv
+# Generated from stable_marl.configs.env.PlaygroundEnvConfig (nbs/04_configs.env.ipynb) -- edit the dataclass, not this file.
+_target_: stable_marl.envs.PlaygroundEnv
+_convert_: all
+agents: 1
+agent_view_size: 7
+see_through_walls: false
+allow_agent_overlap: true
+obs_mode: ego
+render_mode: null
+screen_size: 640
+highlight: true
+tile_size: 32
+agent_pov: false
+room_size: 7
+num_rows: 3
+num_cols: 3
+max_steps: 100
+joint_reward: false
+success_termination_mode: any
+failure_termination_mode: all

@@ -1,0 +1,4 @@
+# Default config of stable_marl.wrappers.external.TorchRLPettingZooWrapper
+# Generated from stable_marl.configs.env.TorchRLWrapperConfig (nbs/04_configs.env.ipynb) -- edit the dataclass, not this file.
+_target_: stable_marl.wrappers.external.TorchRLPettingZooWrapper
+env: ???

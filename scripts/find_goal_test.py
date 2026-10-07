@@ -1,10 +1,10 @@
 import gymnasium as gym
-import multigrid.envs
+import stable_marl.envs
 
 env = gym.make('MultiGrid-FindGoal-15x15-v0', agents=2, render_mode='rgb_array', num_obstacles=6, width=15, height=15)
 
 
-from multigrid.utils.misc import valid_positions
+from stable_marl.utils.misc import valid_positions
 
 
 obs, info = env.reset(seed=0)

@@ -2,9 +2,9 @@
 import numpy as np
 
 import gymnasium as gym
-import multigrid.envs
-from multigrid.envs.findgoal import FindGoalEnv
-from multigrid.wrappers.external import TorchRLPettingZooWrapper
+import stable_marl.envs
+from stable_marl.envs.findgoal import FindGoalEnv
+from stable_marl.wrappers.external import TorchRLPettingZooWrapper
 from torchrl.envs.libs import pettingzoo
 
 

@@ -4,11 +4,11 @@ from typing import List, Tuple, Dict, Optional
 
 
 import gymnasium as gym
-import multigrid.envs
-from multigrid.envs.findgoal import FindGoalEnv
-from multigrid.core.actions import NavigationAction
-from multigrid.core.grid import Type
-from multigrid.wrappers.external import TorchRLPettingZooWrapper
+import stable_marl.envs
+from stable_marl.envs.findgoal import FindGoalEnv
+from stable_marl.core.actions import NavigationAction
+from stable_marl.core.grid import Type
+from stable_marl.wrappers.external import TorchRLPettingZooWrapper
 from torchrl.envs.libs import pettingzoo
 
 def heuristic(a: Tuple[int, int], b: Tuple[int, int]) -> float:

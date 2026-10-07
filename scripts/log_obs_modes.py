@@ -28,8 +28,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 
-import multigrid.envs
-from multigrid.core.constants import Type
+import stable_marl.envs
+from stable_marl.core.constants import Type
 
 MODES = ('ego', 'allo', 'global')
 

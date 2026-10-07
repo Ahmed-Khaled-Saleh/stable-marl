@@ -1,8 +1,8 @@
 """
-Check that a scene exported by `multigrid.utils.sionna_export` matches its MultiGrid layout in Sionna RT,
+Check that a scene exported by `stable_marl.utils.sionna_export` matches its MultiGrid layout in Sionna RT,
 and map positions between the two worlds.
 
-Run it in the Python environment that has Sionna RT (multigrid is not needed):
+Run it in the Python environment that has Sionna RT (stable_marl is not needed):
 
     python tests/check_sionna_scene.py sionna_scenes/FindGoal-15x15_seed0 [more scene folders ...]
 
@@ -84,7 +84,7 @@ def check_scene(scene_dir: str, tol: float = 1e-4) -> list[str]:
     with open(os.path.join(scene_dir, 'scene.json')) as f:
         meta = json.load(f)
     if 'layout' not in meta:
-        return ["scene.json has no 'layout' (re-export the scene with the current multigrid.utils.sionna_export)"]
+        return ["scene.json has no 'layout' (re-export the scene with the current stable_marl.utils.sionna_export)"]
     scene = load_scene(os.path.join(scene_dir, 'scene.xml'), merge_shapes=False)
     mapping = GridMapping.from_scene(scene_dir)
     W, H, cs = mapping.width, mapping.height, mapping.cell_size

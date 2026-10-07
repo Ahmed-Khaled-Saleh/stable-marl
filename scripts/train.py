@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
-# import multigrid.rllib
-from multigrid.wrappers.external import RLlibWrapper
+# import stable_marl.rllib
+from stable_marl.wrappers.external import RLlibWrapper
 
 import os
 import random
@@ -13,7 +13,7 @@ import ray.tune
 import torch
 import torch.nn as nn
 
-from multigrid.core.constants import Direction
+from stable_marl.core.constants import Direction
 from pathlib import Path
 from ray.rllib.algorithms import PPOConfig
 from ray.rllib.core.columns import Columns

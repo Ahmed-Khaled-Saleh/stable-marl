@@ -1,8 +1,8 @@
 """
-Tests for `multigrid.utils.sionna_export` that do not need Sionna RT
+Tests for `stable_marl.utils.sionna_export` that do not need Sionna RT
 (the Sionna side is checked by check_sionna_scene.py, see run_all.py --sionna-python).
 
-Checks the command line (`python -m multigrid.utils.sionna_export`), unique output folders and
+Checks the command line (`python -m stable_marl.utils.sionna_export`), unique output folders and
 overwrite protection, material validation, the grid -> world mapping and headings, the layout
 stored in scene.json, the XML / PLY files, and (if a Blender is available) the .blend.
 
@@ -24,9 +24,9 @@ import numpy as np
 warnings.filterwarnings('ignore')
 
 import gymnasium as gym
-import multigrid.envs  # noqa: F401
-from multigrid.core.constants import Direction
-from multigrid.utils.sionna_export import (
+import stable_marl.envs  # noqa: F401
+from stable_marl.core.constants import Direction
+from stable_marl.utils.sionna_export import (
     ITU_MATERIALS, SceneConfig, check_materials, default_out_dir, export_scene, grid_to_world, world_heading,
 )
 
@@ -47,7 +47,7 @@ def make_env(env_id='MultiGrid-RedBlueDoors-8x8-v0', seed=0, **kwargs):
 
 
 def cli(*args):
-    return subprocess.run([sys.executable, '-m', 'multigrid.utils.sionna_export', *args],
+    return subprocess.run([sys.executable, '-m', 'stable_marl.utils.sionna_export', *args],
                           capture_output=True, text=True, cwd=TMP)
 
 

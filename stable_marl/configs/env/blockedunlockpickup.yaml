@@ -1,0 +1,18 @@
+# Default config of stable_marl.envs.BlockedUnlockPickupEnv
+# Generated from stable_marl.configs.env.BlockedUnlockPickupEnvConfig (nbs/04_configs.env.ipynb) -- edit the dataclass, not this file.
+_target_: stable_marl.envs.BlockedUnlockPickupEnv
+_convert_: all
+agents: 1
+agent_view_size: 7
+see_through_walls: false
+allow_agent_overlap: true
+obs_mode: ego
+render_mode: null
+screen_size: 640
+highlight: true
+tile_size: 32
+agent_pov: false
+room_size: 6
+max_steps: null
+joint_reward: true
+failure_termination_mode: all

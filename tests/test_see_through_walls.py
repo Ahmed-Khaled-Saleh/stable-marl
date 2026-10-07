@@ -20,10 +20,10 @@ Run:  python tests/test_see_through_walls.py [--save]
 import argparse
 import numpy as np
 
-from multigrid.envs.base import MultiGridEnv
-from multigrid.core.grid import Grid
-from multigrid.core.world_object import Goal
-from multigrid.core.constants import Type, Direction
+from stable_marl.envs.base import MultiGridEnv
+from stable_marl.core.grid import Grid
+from stable_marl.core.world_object import Goal
+from stable_marl.core.constants import Type, Direction
 
 VIEW = 7
 GOAL_POS = (6, 4)

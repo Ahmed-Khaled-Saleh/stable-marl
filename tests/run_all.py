@@ -1,7 +1,7 @@
 """
-Run every test of the multigrid repo.
+Run every test of the stable-marl repo.
 
-    python tests/run_all.py                         # all multigrid tests (no Sionna needed)
+    python tests/run_all.py                         # all stable-marl tests (no Sionna needed)
     python tests/run_all.py --quick                 # skip the slow RLlib training test
     python tests/run_all.py --sionna-python /path/to/python
         # also export scenes of several envs and check them in Sionna RT with that interpreter
@@ -59,7 +59,7 @@ def main():
     parser.add_argument('--sionna-python', default=None, help="Python interpreter with sionna-rt installed")
     args = parser.parse_args()
 
-    print("multigrid tests")
+    print("stable-marl tests")
     results = []
     for name, script in TESTS:
         extra = ['--skip-rllib-training'] if args.quick and script[0] == 'test_external_wrappers.py' else []
@@ -71,7 +71,7 @@ def main():
             folders = []
             for folder, cli in SIONNA_SCENES:
                 out = os.path.join(tmp, folder)
-                ok = run(f"export {folder}", [sys.executable, '-m', 'multigrid.utils.sionna_export', *cli, '--out', out])
+                ok = run(f"export {folder}", [sys.executable, '-m', 'stable_marl.utils.sionna_export', *cli, '--out', out])
                 results.append(ok)
                 if ok:
                     folders.append(out)

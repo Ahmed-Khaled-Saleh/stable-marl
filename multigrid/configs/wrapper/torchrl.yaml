@@ -1,4 +1,0 @@
-# Default config of multigrid.wrappers.external.TorchRLPettingZooWrapper
-# Generated from multigrid.configs.env.TorchRLWrapperConfig (nbs/04_configs.env.ipynb) -- edit the dataclass, not this file.
-_target_: multigrid.wrappers.external.TorchRLPettingZooWrapper
-env: ???

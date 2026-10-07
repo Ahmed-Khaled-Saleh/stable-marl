@@ -1,11 +1,11 @@
 """
-Test the MultiGrid Hydra configs (multigrid/configs, nbs/04_configs.env.ipynb).
+Test the MultiGrid Hydra configs (stable_marl/configs, nbs/04_configs.env.ipynb).
 
 Checks, for every env config:
   1. each default matches the env's constructor default (or MultiGridEnv's, for pass-through args)
   2. the generated YAML file is identical to the dataclass
   3. instantiating the config gives the same env as constructing it with no arguments
-  4. composing with Hydra works both ways: YAML via `pkg://multigrid.configs`
+  4. composing with Hydra works both ways: YAML via `pkg://stable_marl.configs`
      and dataclasses via `register_configs()`, including overrides and wrappers
 
 Run:  python tests/test_hydra_configs.py
@@ -22,8 +22,8 @@ from hydra import compose, initialize_config_dir
 from hydra.utils import get_class, instantiate
 from omegaconf import OmegaConf
 
-from multigrid.configs.env import CONFIG_DIR, ENV_CONFIGS, register_configs
-from multigrid.envs.base import MultiGridEnv
+from stable_marl.configs.env import CONFIG_DIR, ENV_CONFIGS, register_configs
+from stable_marl.envs.base import MultiGridEnv
 
 HYDRA_KEYS = {'_target_', '_convert_'}
 
@@ -90,7 +90,7 @@ def test_compose_yaml_searchpath():
         write_primary_config(conf_dir, """
 hydra:
   searchpath:
-    - pkg://multigrid.configs
+    - pkg://stable_marl.configs
 defaults:
   - env: findgoal
   - wrapper: pettingzoo
