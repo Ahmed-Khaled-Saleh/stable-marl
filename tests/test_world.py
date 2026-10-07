@@ -6,13 +6,13 @@ Tests of the World / EnvPool / policy / dataset pipeline (stable_marl.world, .po
 import sys
 import tempfile
 import traceback
-from functools import partial
 
 import numpy as np
 
 import stable_marl as sm
 from stable_marl.envs.multigrid import GoToGoalPolicy
 from stable_marl.world import EnvPool
+from stable_marl.wrappers.default import MegaWrapper
 
 TESTS = []
 def test(fn):
@@ -118,7 +118,7 @@ def world_options():
 
 @test
 def pool_mask_and_reset():
-    pool = EnvPool([partial(sm.make, 'MultiGrid-Empty-6x6-v0', agents=2)] * 3)
+    pool = EnvPool([lambda: MegaWrapper(sm.make('MultiGrid-Empty-6x6-v0', agents=2))] * 3)
     try:
         pool.reset(seed=0, mask=np.array([True, False, False]))
         raise AssertionError("a partial first reset must fail")
@@ -129,6 +129,21 @@ def pool_mask_and_reset():
     _, infos = pool.reset(seed=[0, 0, 9], mask=np.array([False, False, True]))
     assert list(pool.seeds) == [5, 6, 9] and np.array_equal(infos['image'][:2], before[:2])
     assert list(infos['seed'][:, 0]) == [5, 6, 9]
+
+
+@test
+def single_env_info_matches_world():
+    """A single env wrapped with MegaWrapper gives the info rows the World records."""
+    with tempfile.TemporaryDirectory() as tmp:
+        ds = collect(f'{tmp}/d.h5', num_envs=1, episodes=1, seed=4)
+        ep = episode_columns(ds, 0)
+        env = MegaWrapper(sm.make('MultiGrid-Empty-6x6-v0', agents=2))
+        _, info = env.reset(seed=4)
+        for t in range(len(ep['step_idx'])):
+            for col in ds.column_names:
+                assert np.array_equal(ep[col][t], info[col], equal_nan=True) or col == 'action', (t, col)
+            if t + 1 < len(ep['step_idx']):
+                _, _, _, _, info = env.step({a: int(ep['action'][t, a]) for a in range(2)})
 
 
 @test
