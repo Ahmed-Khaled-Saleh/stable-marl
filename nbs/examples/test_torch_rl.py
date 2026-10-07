@@ -1,38 +1,23 @@
 import gymnasium as gym
 import multigrid.envs
 from multigrid.wrappers.external import TorchRLPettingZooWrapper
-from torchrl.envs.libs import pettingzoo
+from torchrl.envs.libs.pettingzoo import PettingZooWrapper
 
-env = gym.make('MultiGrid-FindGoal-8x8-v0', agents=2, render_mode='human')
-env = TorchRLPettingZooWrapper(env)
-env = pettingzoo.PettingZooWrapper(
+env = gym.make('MultiGrid-FindGoal-15x15-v0', agents=2, num_obstacles=6)
+env = TorchRLPettingZooWrapper(env)   # string agent ids ('agent_0', ...) for TorchRL
+env = PettingZooWrapper(
     env=env,
     return_state=False,
-    group_map=None,
+    group_map=None,      # default: all agents in one group 'agent'
+    use_mask=True,       # agents can finish at different times (success_termination_mode='all')
 )
-
-# TorchRL returns a TensorDict, not a tuple
-tensordict = env.reset()
 print(env)
-# print(tensordict)
 
-while not env.is_done():  # you may need to check TorchRL's done API
-    tensordict = env.rand_action(tensordict)  # sample random actions
-    tensordict = env.step(tensordict)         # returns a TensorDict
-    print(tensordict)
+# TorchRL works with TensorDicts: run one episode with random actions
+env.set_seed(0)
+tensordict = env.rollout(max_steps=300)   # stops when the episode is done
+print(tensordict)
+print("steps:", tensordict.batch_size[0],
+      "| total reward per agent:", tensordict["next", "agent", "reward"].sum(0).squeeze(-1).tolist())
 
 env.close()
-
-
-# tensordict = env.reset()
-
-# while True:
-#     # Sample actions via TorchRL's API
-#     tensordict = env.rand_action(tensordict)
-#     tensordict = env.step(tensordict)
-    
-#     # Check if done
-#     if tensordict.get("done").any():
-#         break
-
-# env.close()

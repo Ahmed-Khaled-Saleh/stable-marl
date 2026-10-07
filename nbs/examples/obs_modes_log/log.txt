@@ -1,0 +1,1659 @@
+env=MultiGrid-FindGoal-15x15-v0 agents=2 seed=0 see_through_walls=False kwargs={'num_obstacles': 6}
+legend: ? unseen  . empty  W wall  D door  K key  A ball  B box  G goal  V lava  @ agent
+image grids are printed with row = y (top to bottom), column = x (left to right)
+
+======================================================================
+step 0
+======================================================================
+agent 0 (red): pos=(5, 9) dir=up terminated=False
+agent 1 (blue): pos=(2, 8) dir=left terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=43 unseen=6
+    . . . W ? ? ?
+    W . . W W W W
+    . . . . . . .
+    W . . . . W .
+    W . . . . . .
+    @ . . . . . .
+    ? ? W . . W ?
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=15 unseen=34
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    W W W W W ? ?
+    . . W . W ? ?
+    . . . . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=49 unseen=0
+    W . . . . W .
+    W . . . . . .
+    @ . . . . . .
+    . . W @ . W .
+    . . . . . . .
+    . . . . . . W
+    . . . . . G W
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=40 unseen=9
+    ? W . . . . .
+    ? ? ? W . . .
+    ? W W W . . .
+    ? W . @ . . .
+    ? W W . . W @
+    ? W . . . . .
+    ? W . . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W . @ . . . . . . . . . . . W
+    W W . . W @ . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W . @ . . . . . . . . . . . W
+    W W . . W @ . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 1
+======================================================================
+actions: {0: 'done', 1: 'forward'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(5, 9) dir=up terminated=False
+agent 1 (blue): pos=(1, 8) dir=left terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=43 unseen=6
+    . . . W ? ? ?
+    W . . W W W W
+    . . . . . . .
+    W . . . . W .
+    W . . . . . .
+    . . . . . . .
+    ? ? W . . W ?
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=6 unseen=43
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? W W W ? ?
+    ? ? W . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=49 unseen=0
+    W . . . . W .
+    W . . . . . .
+    . . . . . . .
+    . . W @ . W .
+    . . . . . . .
+    . . . . . . W
+    . . . . . G W
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . . . . . . . . . . W
+    W W . . W @ . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . . . . . . . . . . W
+    W W . . W @ . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 2
+======================================================================
+actions: {0: 'forward', 1: 'right'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(5, 8) dir=up terminated=False
+agent 1 (blue): pos=(1, 8) dir=up terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=46 unseen=3
+    . . . . . . W
+    . . . W ? ? ?
+    W . . W W W W
+    . . . . . . .
+    W . . . . W .
+    W . . . . . .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=33 unseen=16
+    ? ? W W . . .
+    ? ? W . . . .
+    ? ? W . W . .
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W . . . .
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=49 unseen=0
+    . . . . . . .
+    W . . . . W .
+    W . . . . . .
+    . . . @ . . .
+    . . W . . W .
+    . . . . . . .
+    . . . . . . W
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . @ . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . @ . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 3
+======================================================================
+actions: {0: 'right', 1: 'left'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(5, 8) dir=right terminated=False
+agent 1 (blue): pos=(1, 8) dir=left terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=49 unseen=0
+    . . . . W W .
+    W . . . W W .
+    . . . . . . W
+    . . . . . . W
+    . W . . W . .
+    . . . . . . .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=6 unseen=43
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? W W W ? ?
+    ? ? W . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=49 unseen=0
+    . . . . . . .
+    W . . . . W .
+    W . . . . . .
+    . . . @ . . .
+    . . W . . W .
+    . . . . . . .
+    . . . . . . W
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=0 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . @ . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . @ . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 4
+======================================================================
+actions: {0: 'left', 1: 'left'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(5, 8) dir=up terminated=False
+agent 1 (blue): pos=(1, 8) dir=down terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=46 unseen=3
+    . . . . . . W
+    . . . W ? ? ?
+    W . . W W W W
+    . . . . . . .
+    W . . . . W .
+    W . . . . . .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=35 unseen=14
+    W W W W W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    W . . W W ? ?
+    . . . . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=49 unseen=0
+    . . . . . . .
+    W . . . . W .
+    W . . . . . .
+    . . . @ . . .
+    . . W . . W .
+    . . . . . . .
+    . . . . . . W
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . @ . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=1 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . @ . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 5
+======================================================================
+actions: {0: 'left', 1: 'done'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(5, 8) dir=left terminated=False
+agent 1 (blue): pos=(1, 8) dir=down terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=42 unseen=7
+    ? ? ? ? ? ? ?
+    W W W W W W W
+    . . W @ W W .
+    . . . . W W .
+    . . . . . . .
+    . . W . . . .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=35 unseen=14
+    W W W W W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    W . . W W ? ?
+    . . . . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=49 unseen=0
+    . . . . . . .
+    W . . . . W .
+    W . . . . . .
+    . . . @ . . .
+    . . W . . W .
+    . . . . . . .
+    . . . . . . W
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . @ . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=1 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . . @ . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 6
+======================================================================
+actions: {0: 'forward', 1: 'done'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(4, 8) dir=left terminated=False
+agent 1 (blue): pos=(1, 8) dir=down terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=33 unseen=16
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    W W W W W W W
+    . . W @ W W .
+    . . . . W W .
+    . . . . . . .
+    ? ? W . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=35 unseen=14
+    W W W W W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    W . . W W ? ?
+    @ . . . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=49 unseen=0
+    . . . . . . .
+    W W . . . . W
+    W W . . . . .
+    @ . . @ . . .
+    W . . W . . W
+    . . . . . . .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . . @
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . @ . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=1 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . . @ . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 7
+======================================================================
+actions: {0: 'forward', 1: 'forward'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(3, 8) dir=left terminated=False
+agent 1 (blue): pos=(1, 8) dir=down terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=28 unseen=21
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    W W W W W W W
+    . . W @ W W .
+    . . . . W W .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=35 unseen=14
+    W W W W W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    W . . W W ? ?
+    . @ . . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=49 unseen=0
+    W . . . . . .
+    W W W . . . .
+    W W W . . . .
+    W @ . @ . . .
+    W W . . W . .
+    W . . . . . .
+    W . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . @ .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=1 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 8
+======================================================================
+actions: {0: 'done', 1: 'forward'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(3, 8) dir=left terminated=False
+agent 1 (blue): pos=(1, 8) dir=down terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=28 unseen=21
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    W W W W W W W
+    . . W @ W W .
+    . . . . W W .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=35 unseen=14
+    W W W W W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    W . . W W ? ?
+    . @ . . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=49 unseen=0
+    W . . . . . .
+    W W W . . . .
+    W W W . . . .
+    W @ . @ . . .
+    W W . . W . .
+    W . . . . . .
+    W . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . @ .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=1 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 9
+======================================================================
+actions: {0: 'forward', 1: 'forward'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(2, 8) dir=left terminated=False
+agent 1 (blue): pos=(1, 8) dir=down terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=15 unseen=34
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    W W W W W ? ?
+    . . W @ W ? ?
+    . . . . W ? ?
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=35 unseen=14
+    W W W W W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    W . . W W ? ?
+    . . @ . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=40 unseen=9
+    ? W . . . . .
+    ? ? ? W . . .
+    ? W W W . . .
+    ? W @ @ . . .
+    ? W W . . W .
+    ? W . . . . .
+    ? W . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ @ . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=1 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 10
+======================================================================
+actions: {0: 'forward', 1: 'done'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(2, 8) dir=left terminated=False
+agent 1 (blue): pos=(1, 8) dir=down terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=15 unseen=34
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    W W W W W ? ?
+    . . W @ W ? ?
+    . . . . W ? ?
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=35 unseen=14
+    W W W W W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    W . . W W ? ?
+    . . @ . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=40 unseen=9
+    ? W . . . . .
+    ? ? ? W . . .
+    ? W W W . . .
+    ? W @ @ . . .
+    ? W W . . W .
+    ? W . . . . .
+    ? W . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ @ . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=1 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 11
+======================================================================
+actions: {0: 'right', 1: 'done'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(2, 8) dir=up terminated=False
+agent 1 (blue): pos=(1, 8) dir=down terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=40 unseen=9
+    ? W W . . . .
+    ? W . . . . W
+    ? W . W . . W
+    ? W . . . . .
+    ? ? ? W . . .
+    ? W W W . . .
+    ? W @ . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=35 unseen=14
+    W W W W W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    . . . . W ? ?
+    W . . W W ? ?
+    . . @ . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=40 unseen=9
+    ? W . . . . .
+    ? ? ? W . . .
+    ? W W W . . .
+    ? W @ @ . . .
+    ? W W . . W .
+    ? W . . . . .
+    ? W . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ @ . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=1 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 12
+======================================================================
+actions: {0: 'forward', 1: 'left'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(2, 8) dir=up terminated=False
+agent 1 (blue): pos=(1, 8) dir=right terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=40 unseen=9
+    ? W W . . . .
+    ? W . . . . W
+    ? W . W . . W
+    ? W . . . . .
+    ? ? ? W . . .
+    ? W W W . . .
+    ? W @ . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=43 unseen=6
+    . W . . W . .
+    . . . . . . .
+    . . . . . . .
+    . . . . W . .
+    . . . . . . .
+    ? ? W @ . . .
+    ? ? W . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=40 unseen=9
+    ? W . . . . .
+    ? ? ? W . . .
+    ? W W W . . .
+    ? W @ @ . . .
+    ? W W . . W .
+    ? W . . . . .
+    ? W . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ @ . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=0 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 13
+======================================================================
+actions: {0: 'right', 1: 'done'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(2, 8) dir=right terminated=False
+agent 1 (blue): pos=(1, 8) dir=right terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=47 unseen=2
+    . . . . . . W
+    . W . . W . .
+    . . . . . . .
+    . . . . . . .
+    . . . . W . .
+    . . . . . . .
+    ? ? W . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=43 unseen=6
+    . W . . W . .
+    . . . . . . .
+    . . . . . . .
+    . . . . W . .
+    . . . . . . .
+    ? ? W @ . . .
+    ? ? W . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=40 unseen=9
+    ? W . . . . .
+    ? ? ? W . . .
+    ? W W W . . .
+    ? W @ @ . . .
+    ? W W . . W .
+    ? W . . . . .
+    ? W . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ @ . .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=0 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=0 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ @ . . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 14
+======================================================================
+actions: {0: 'forward', 1: 'left'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(3, 8) dir=right terminated=False
+agent 1 (blue): pos=(1, 8) dir=up terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=49 unseen=0
+    . . . . . . W
+    . . . . . . W
+    . W . . W . .
+    . . . . . . .
+    . . . . . . .
+    . . . . W . .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=33 unseen=16
+    ? ? W W . . .
+    ? ? W . . . .
+    ? ? W . W . .
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W . . @ .
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=49 unseen=0
+    W . . . . . .
+    W W W . . . .
+    W W W . . . .
+    W @ . @ . . .
+    W W . . W . .
+    W . . . . . .
+    W . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . @ .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=0 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 15
+======================================================================
+actions: {0: 'done', 1: 'forward'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(3, 8) dir=right terminated=False
+agent 1 (blue): pos=(1, 8) dir=up terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=49 unseen=0
+    . . . . . . W
+    . . . . . . W
+    . W . . W . .
+    . . . . . . .
+    . . . . . . .
+    . . . . W . .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=33 unseen=16
+    ? ? W W . . .
+    ? ? W . . . .
+    ? ? W . W . .
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W . . @ .
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=49 unseen=0
+    W . . . . . .
+    W W W . . . .
+    W W W . . . .
+    W @ . @ . . .
+    W W . . W . .
+    W . . . . . .
+    W . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . @ .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=0 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 16
+======================================================================
+actions: {0: 'done', 1: 'left'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(3, 8) dir=right terminated=False
+agent 1 (blue): pos=(1, 8) dir=left terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=49 unseen=0
+    . . . . . . W
+    . . . . . . W
+    . W . . W . .
+    . . . . . . .
+    . . . . . . .
+    . . . . W . .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=6 unseen=43
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? W W W ? ?
+    ? ? W . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=49 unseen=0
+    W . . . . . .
+    W W W . . . .
+    W W W . . . .
+    W @ . @ . . .
+    W W . . W . .
+    W . . . . . .
+    W . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . @ .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=0 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 17
+======================================================================
+actions: {0: 'left', 1: 'done'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(3, 8) dir=up terminated=False
+agent 1 (blue): pos=(1, 8) dir=left terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=46 unseen=3
+    W W . . . . .
+    W . . . . W ?
+    W . W . . W W
+    W . . . . . .
+    ? ? W . . . .
+    W W W . . . .
+    W @ . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=6 unseen=43
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? W W W ? ?
+    ? ? W . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=49 unseen=0
+    W . . . . . .
+    W W W . . . .
+    W W W . . . .
+    W @ . @ . . .
+    W W . . W . .
+    W . . . . . .
+    W . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . @ .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 18
+======================================================================
+actions: {0: 'left', 1: 'forward'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(3, 8) dir=left terminated=False
+agent 1 (blue): pos=(1, 8) dir=left terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=28 unseen=21
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    W W W W W W W
+    . . W @ W W .
+    . . . . W W .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=6 unseen=43
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? W W W ? ?
+    ? ? W . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=49 unseen=0
+    W . . . . . .
+    W W W . . . .
+    W W W . . . .
+    W @ . @ . . .
+    W W . . W . .
+    W . . . . . .
+    W . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . @ .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 19
+======================================================================
+actions: {0: 'left', 1: 'right'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(3, 8) dir=down terminated=False
+agent 1 (blue): pos=(1, 8) dir=up terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=49 unseen=0
+    W W W W W W W
+    W . . . . . W
+    . . . . . . W
+    . . . . . . W
+    . . . . . . W
+    . . W . . W W
+    . . . . . @ W
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=33 unseen=16
+    ? ? W W . . .
+    ? ? W . . . .
+    ? ? W . W . .
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W . . @ .
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=1 visible=49 unseen=0
+    W . . . . . .
+    W W W . . . .
+    W W W . . . .
+    W @ . @ . . .
+    W W . . W . .
+    W . . . . . .
+    W . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=3 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . @ .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=1 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=3 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+
+======================================================================
+step 20
+======================================================================
+actions: {0: 'right', 1: 'right'}
+rewards: {0: 0.0, 1: 0.0}
+terminated: {0: False, 1: False} | truncated: {0: False, 1: False}
+agent 0 (red): pos=(3, 8) dir=left terminated=False
+agent 1 (blue): pos=(1, 8) dir=right terminated=False
+
+--- obs_mode='ego' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=28 unseen=21
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    ? ? ? ? ? ? ?
+    W W W W W W W
+    . . W @ W W .
+    . . . . W W .
+    . . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=43 unseen=6
+    . W . . W . .
+    . . . . . . .
+    . . . . . . .
+    . . . . W . .
+    . . . @ . . .
+    ? ? W . . . .
+    ? ? W . W ? ?
+
+--- obs_mode='allo' ---
+agent 0: image (7, 7, 3) pov (224, 224, 3) direction=2 visible=49 unseen=0
+    W . . . . . .
+    W W W . . . .
+    W W W . . . .
+    W @ . @ . . .
+    W W . . W . .
+    W . . . . . .
+    W . . . . . .
+agent 1: image (7, 7, 3) pov (224, 224, 3) direction=0 visible=33 unseen=16
+    ? ? W . . . .
+    ? ? ? ? W . .
+    ? ? W W W . .
+    ? ? W @ . @ .
+    ? ? W W . . W
+    ? ? W . . . .
+    ? ? W . . . .
+
+--- obs_mode='global' ---
+agent 0: image (15, 15, 3) pov (480, 480, 3) direction=2 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W
+agent 1: image (15, 15, 3) pov (480, 480, 3) direction=0 visible=225 unseen=0
+    W W W W W W W W W W W W W W W
+    W W W . . . W . W W . . . . W
+    W W . . . . . . W W . . . . W
+    W . . . . W W W W . . . . . W
+    W . W . . W W W W . . . . . W
+    W . . . . . . . . . W . . . W
+    W W W . . . . W . . . . . . W
+    W W W . . . . . . . . . . . W
+    W @ . @ . . . . . . . . . . W
+    W W . . W . . W . . W W W . W
+    W . . . . . . . . . W W W . W
+    W . . . . . . . W W . . . . W
+    W . . . . . . G W W . . . . W
+    W . . . . . W . . . . W . . W
+    W W W W W W W W W W W W W W W

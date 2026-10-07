@@ -25,7 +25,11 @@ from ..core.constants import Type, TILE_PIXELS
 from ..core.grid import Grid
 from ..core.mission import MissionSpace
 from ..core.world_object import WorldObj
-from ..utils.obs import gen_obs_grid_encoding, gen_obs_grid_image
+from multigrid.utils.obs import (
+    gen_obs_grid_encoding, gen_obs_grid_image,
+    gen_obs_grid_encoding_allo, gen_obs_grid_image_allo,
+    gen_obs_grid_encoding_global, gen_obs_grid_image_global,
+)
 from ..utils.random import RandomMixin
 
 
@@ -106,7 +110,8 @@ class MultiGridEnv(gym.Env, RandomMixin, ABC):
         screen_size: int | None = 640,
         highlight: bool = True,
         tile_size: int = TILE_PIXELS,
-        agent_pov: bool = False):
+        agent_pov: bool = False,
+        obs_mode: Literal['ego', 'allo', 'global'] = 'ego'):
         """
         Parameters
         ----------
@@ -143,7 +148,13 @@ class MultiGridEnv(gym.Env, RandomMixin, ABC):
         highlight : bool
             Whether to highlight the view of each agent when rendering
         tile_size : int
-            Width and height of each grid tiles (in pixels)
+            Width and height of each grid tile (in pixels), used for rendering
+            and for the 'pov' observation
+        obs_mode : 'ego', 'allo' or 'global'
+            Frame of the 'image' and 'pov' observations:
+            * 'ego': partial view in front of the agent, rotated so the agent faces up
+            * 'allo': partial view centred on the agent, world-aligned (no rotation)
+            * 'global': the whole grid, fully observable, identical for every agent
         """
         gym.Env.__init__(self)
         RandomMixin.__init__(self, self.np_random)
@@ -186,6 +197,13 @@ class MultiGridEnv(gym.Env, RandomMixin, ABC):
         else:
             raise ValueError(f"Invalid argument for agents: {agents}")
 
+        # Observations are generated for all agents in one vectorized call,
+        # so all agents must share the same view settings
+        assert len({agent.view_size for agent in self.agents}) == 1, \
+            "All agents must have the same view_size"
+        assert len({agent.see_through_walls for agent in self.agents}) == 1, \
+            "All agents must have the same see_through_walls setting"
+
         # Action enumeration for this environment
         self.actions = Action
 
@@ -212,6 +230,11 @@ class MultiGridEnv(gym.Env, RandomMixin, ABC):
         self.joint_reward = joint_reward
         self.success_termination_mode = success_termination_mode
         self.failure_termination_mode = failure_termination_mode
+
+        # Observation frame
+        assert obs_mode in ('ego', 'allo', 'global'), f"Invalid obs_mode: {obs_mode}"
+        self.obs_mode = obs_mode
+        self._set_obs_spaces()
 
 
     @abstractmethod
@@ -282,16 +305,23 @@ def reset(
     """
     # super().reset(seed=seed, **kwargs)
     gym.Env.reset(self, seed=seed, **kwargs)
-    # Reset agents
+
+    # gym.Env.reset replaces self.np_random when seeded,
+    # so re-bind the RandomMixin helpers (_rand_int, etc.) to the new generator
+    RandomMixin.__init__(self, self.np_random)
+
+    # Reset agents (keeps the joint agent state, so custom agent colors are preserved)
     self.mission_space.seed(seed)
     self.mission = self.mission_space.sample()
-    self.agent_states = AgentState(self.num_agents)
     for agent in self.agents:
-        agent.state = self.agent_states[agent.index]
         agent.reset(mission=self.mission)
 
     # Generate a new random grid at the start of each episode
     self._gen_grid(self.width, self.height)
+
+    # Envs may set the mission while generating the grid: keep the agents in sync
+    for agent in self.agents:
+        agent.mission = self.mission
 
     # These fields should be defined by _gen_grid
     assert np.all(self.agent_states.pos >= 0)
@@ -312,7 +342,7 @@ def reset(
     if self.render_mode == 'human':
         self.render()
 
-    return observations, defaultdict(dict)
+    return observations, {agent.index: {} for agent in self.agents}
 
 
 
@@ -361,15 +391,72 @@ def step(
     if self.render_mode == 'human':
         self.render()
 
-    return observations, rewards, terminations, truncations, {'action': None}#defaultdict(dict)
+    infos = {agent.index: {} for agent in self.agents}
+    return observations, rewards, terminations, truncations, infos
 
+
+
+# %% ../../nbs/02a_envs.base.ipynb #5c2e8f17
+@patch
+def _set_obs_spaces(self: MultiGridEnv):
+    """
+    Set each agent's 'image' / 'pov' observation spaces for the current
+    `obs_mode` and `tile_size` ('pov' is rendered with `tile_size` pixels per cell),
+    and the 'position' space for the grid size.
+    Subclasses that re-create their agents, or code that changes `tile_size`
+    after construction, must call this again.
+    """
+    for agent in self.agents:
+        if self.obs_mode == 'global':
+            image_shape = (self.width, self.height, WorldObj.dim)
+            pov_shape = (self.height * self.tile_size, self.width * self.tile_size, 3)
+        else:
+            image_shape = (agent.view_size, agent.view_size, WorldObj.dim)
+            pov_shape = (agent.view_size * self.tile_size, agent.view_size * self.tile_size, 3)
+        agent.observation_space['image'] = spaces.Box(low=0, high=255, shape=image_shape, dtype=int)
+        agent.observation_space['pov'] = spaces.Box(low=0, high=255, shape=pov_shape, dtype=np.uint8)
+        agent.observation_space['position'] = spaces.Box(
+            low=0, high=np.array([self.width - 1, self.height - 1]), shape=(2,), dtype=int)
+
+
+@patch
+def _obs_encoding(self: MultiGridEnv) -> ndarray[np.int_]:
+    """
+    Symbolic 'image' observation of every agent, in the frame given by `obs_mode`.
+    """
+    view_size, see_through_walls = self.agents[0].view_size, self.agents[0].see_through_walls
+    if self.obs_mode == 'ego':
+        return gen_obs_grid_encoding(self.grid.state, self.agent_states, view_size, see_through_walls)
+    if self.obs_mode == 'allo':
+        return gen_obs_grid_encoding_allo(self.grid.state, self.agent_states, view_size, see_through_walls)
+    return gen_obs_grid_encoding_global(self.grid.state, self.agent_states)
+
+
+@patch
+def _obs_pov(
+    self: MultiGridEnv,
+    agents: list[Agent] | None = None,
+    see_through_walls: bool | None = None) -> ndarray[np.uint8]:
+    """
+    RGB 'pov' observation of the given agents (default: all), in the frame given by `obs_mode`.
+    `see_through_walls=None` uses each agent's own setting.
+    """
+    agents = self.agents if agents is None else agents
+    view_size = self.agents[0].view_size
+    if self.obs_mode == 'ego':
+        return gen_obs_grid_image(self.grid, agents, self.agent_states, view_size,
+                                  tile_size=self.tile_size, see_through_walls=see_through_walls)
+    if self.obs_mode == 'allo':
+        return gen_obs_grid_image_allo(self.grid, agents, view_size,
+                                       tile_size=self.tile_size, see_through_walls=see_through_walls)
+    return gen_obs_grid_image_global(self.grid, agents, tile_size=self.tile_size)
 
 
 # %% ../../nbs/02a_envs.base.ipynb #472dc938
 @patch
 def gen_obs(self: MultiGridEnv) -> dict[AgentID, ObsType]:
     """
-    Generate observations for each agent (partially observable, low-res encoding).
+    Generate observations for each agent, in the frame given by `obs_mode`.
 
     Returns
     -------
@@ -377,22 +464,13 @@ def gen_obs(self: MultiGridEnv) -> dict[AgentID, ObsType]:
         Mapping from agent ID to observation dict, containing:
             * 'image': partially observable view of the environment
             * 'direction': agent's direction / orientation (acting as a compass)
+            * 'position': agent's (x, y) cell in the grid
             * 'mission': textual mission string (instructions for the agent)
     """
     direction = self.agent_states.dir
-    image = gen_obs_grid_encoding(
-        self.grid.state,
-        self.agent_states,
-        self.agents[0].view_size,
-        self.agents[0].see_through_walls,
-    )
-    rgb = gen_obs_grid_image(
-            grid= self.grid,
-            agents = self.agents,
-            agents_states= self.agent_states,
-            agent_view_size = self.agents[0].view_size,
-            tile_size = 32#self.tile_size,
-        )
+    position = np.array(self.agent_states.pos)
+    image = self._obs_encoding()
+    rgb = self._obs_pov()
 
     observations = {}
     for i in range(self.num_agents):
@@ -400,6 +478,7 @@ def gen_obs(self: MultiGridEnv) -> dict[AgentID, ObsType]:
             'image': image[i],
             'pov': rgb[i],
             'direction': direction[i],
+            'position': position[i],
             'mission': self.agents[i].mission,
         }
 
@@ -498,8 +577,14 @@ def handle_actions(
             fwd_pos = agent.front_pos
             fwd_obj = self.grid.get(*fwd_pos)
 
-            if fwd_obj is not None:
+            # Don't toggle an object another agent is standing on (e.g. close a door on it)
+            occupied = any(
+                not other.state.terminated and tuple(other.state.pos) == tuple(fwd_pos)
+                for other in self.agents)
+
+            if fwd_obj is not None and not occupied:
                 fwd_obj.toggle(self, agent, fwd_pos)
+                self.on_toggle(agent, fwd_obj, fwd_pos, rewards)
 
         # Done action (not used by default)
         elif action == Action.done:
@@ -578,6 +663,35 @@ def on_failure(
 
 
 
+# %% ../../nbs/02a_envs.base.ipynb #b7e1c0a4
+@patch
+def on_toggle(
+    self: MultiGridEnv,
+    agent: Agent,
+    obj: WorldObj,
+    pos: tuple[int, int],
+    rewards: dict[AgentID, SupportsFloat]):
+    """
+    Callback for when an agent toggles an object (no-op by default).
+
+    Called inside `handle_actions` right after `obj.toggle(...)`, in the same
+    (randomized) agent order, so subclasses can react to toggles (e.g. doors,
+    switches) before the next agent acts and before observations are generated.
+
+    Parameters
+    ----------
+    agent : Agent
+        Agent that toggled the object
+    obj : WorldObj
+        Object that was toggled
+    pos : tuple[int, int]
+        Position of the toggled object
+    rewards : dict[AgentID, SupportsFloat]
+        Reward dictionary to be updated
+    """
+    pass
+
+
 # %% ../../nbs/02a_envs.base.ipynb #e546d258
 @patch
 def is_done(self: MultiGridEnv) -> bool:
@@ -607,6 +721,7 @@ def __str__(self: MultiGridEnv):
             'box': 'B',
             'goal': 'G',
             'lava': 'V',
+            'marker': 'M',
         }
 
         # Map agent's direction to short string
@@ -641,7 +756,7 @@ def __str__(self: MultiGridEnv):
                         output += 'D' + tile.color[0].upper()
                     continue
 
-                output += OBJECT_TO_STR[tile.type] + tile.color[0].upper()
+                output += OBJECT_TO_STR.get(tile.type, '?') + tile.color[0].upper()
 
             if j < self.grid.height - 1:
                 output += '\n'
@@ -779,15 +894,27 @@ def get_full_render(self: MultiGridEnv, highlight: bool, tile_size: int):
     Render a non-partial observation for visualization.
     """
     # Compute agent visibility masks
-    obs_shape = self.agents[0].observation_space['image'].shape[:-1]
-    vis_masks = np.zeros((self.num_agents, *obs_shape), dtype=bool)
-    for i, agent_obs in self.gen_obs().items():
-        vis_masks[i] = (agent_obs['image'][..., 0] != Type.unseen.to_index())
+    # (from the grid encoding only, to avoid re-rendering every agent's POV image)
+    vis_masks = (self._obs_encoding()[..., 0] != Type.unseen.to_index())
 
     # Mask of which cells to highlight
     highlight_mask = np.zeros((self.width, self.height), dtype=bool)
 
     for agent in self.agents:
+        # Fully observable: nothing to highlight
+        if self.obs_mode == 'global':
+            break
+
+        # Allocentric view: world-aligned window centred on the agent
+        if self.obs_mode == 'allo':
+            r = agent.view_size // 2
+            for vis_i, vis_j in np.argwhere(vis_masks[agent.index]):
+                abs_i = agent.state.pos[0] - r + vis_i
+                abs_j = agent.state.pos[1] - r + vis_j
+                if 0 <= abs_i < self.width and 0 <= abs_j < self.height:
+                    highlight_mask[abs_i, abs_j] = True
+            continue
+
         # Compute the world coordinates of the bottom-left corner
         # of the agent's view area
         f_vec = agent.state.dir.to_vec()
@@ -860,13 +987,13 @@ def render(self: MultiGridEnv):
     """
     Render the environment.
     """
-    img = self.get_frame(self.highlight, self.tile_size)
+    img = self.get_frame(self.highlight, self.tile_size, self.agent_pov)
 
     if self.render_mode == 'human':
         img = np.transpose(img, axes=(1, 0, 2))
         screen_size = (
-            self.screen_size * min(img.shape[0] / img.shape[1], 1.0),
-            self.screen_size * min(img.shape[1] / img.shape[0], 1.0),
+            int(self.screen_size * min(img.shape[0] / img.shape[1], 1.0)),
+            int(self.screen_size * min(img.shape[1] / img.shape[0], 1.0)),
         )
         if self.render_size is None:
             self.render_size = img.shape[:2]
@@ -885,7 +1012,6 @@ def render(self: MultiGridEnv):
         bg = pygame.Surface(
             (int(surf.get_size()[0] + offset), int(surf.get_size()[1] + offset))
         )
-        bg.convert()
         bg.fill((255, 255, 255))
         bg.blit(surf, (offset / 2, 0))
 
@@ -927,4 +1053,6 @@ def close(self: MultiGridEnv):
     """
     if self.window:
         pygame.quit()
+        self.window = None
+        self.clock = None
 

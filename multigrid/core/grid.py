@@ -170,6 +170,8 @@ def horz_wall(
     """
     length = self.width - x if length is None else length
     self.state[x:x+length, y] = obj_type()
+    for i in range(x, x + length):
+        self.world_objects.pop((i, y), None) # drop stale cached objects
 
 # %% ../../nbs/01f_core.grid.ipynb #32ca954b
 @patch
@@ -194,6 +196,8 @@ def vert_wall(
     """
     length = self.height - y if length is None else length
     self.state[x, y:y+length] = obj_type()
+    for j in range(y, y + length):
+        self.world_objects.pop((x, j), None) # drop stale cached objects
 
 # %% ../../nbs/01f_core.grid.ipynb #d3110f08
 @patch
@@ -351,7 +355,8 @@ def encode(self: Grid, vis_mask: ndarray[np.bool_] | None = None) -> ndarray[np.
         vis_mask = np.ones((self.width, self.height), dtype=bool)
 
     encoding = self.state.copy()
-    encoding[~vis_mask][..., WorldObj.TYPE] = Type.unseen.to_index()
+    encoding[~vis_mask] = 0
+    encoding[~vis_mask, WorldObj.TYPE] = Type.unseen.to_index()
     return encoding
 
 

@@ -183,7 +183,9 @@ def _gen_grid(self: EmptyEnv, width, height):
 
         # Place the agent
         for agent in self.agents:
-            if self.agent_start_pos is not None and self.agent_start_dir is not None:
+            # (without agent overlap, only the first agent uses the fixed start position)
+            fixed_start = self.agent_start_pos is not None and self.agent_start_dir is not None
+            if fixed_start and (self.allow_agent_overlap or agent.index == 0):
                 agent.state.pos = self.agent_start_pos
                 agent.state.dir = self.agent_start_dir
             else:
@@ -196,7 +198,7 @@ def get_goal_state(
     agent: Agent,
     agent_view_size: int,
     tile_size: int = 32,
-    see_through_walls: bool = False,
+    see_through_walls: bool | None = None, # None: use the agent's own setting
 ) -> ndarray:
     """
     Returns the goal state RGB image for the given agent.
@@ -256,13 +258,10 @@ def get_goal_state(
     agent.state.dir = goal_agent_dir
 
     # Generate the observation image
-    goal_image = gen_obs_grid_image(
-        self.grid,
+    # (same frame and tile size as the 'pov' observation, see `obs_mode`)
+    goal_image = self._obs_pov(
         [goal_agent],
-        self.agent_states,  # uses modified agent state
-        agent_view_size,
-        tile_size=tile_size,
-        see_through_walls=see_through_walls,
+        see_through_walls=agent.see_through_walls if see_through_walls is None else see_through_walls,
     )[0]
 
     # Restore original agent state

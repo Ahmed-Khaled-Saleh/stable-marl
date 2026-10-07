@@ -184,14 +184,18 @@ def _gen_grid(self: LockedHallwayEnv, width, height):
         self.remove_wall(HALLWAY, row, Direction.down)
 
     # Add doors
+    # (colors repeat when num_rooms > len(Color): a key then opens every door of its color,
+    #  so keys only need to be placed in one room per color)
     self.rooms: dict[Color, Room] = {}
+    self.locked_doors: list[Door] = []
     door_colors = self._rand_perm(color_sequence)
     for row in range(self.num_rows):
         for col, dir in ((LEFT, Direction.right), (RIGHT, Direction.left)):
             color = door_colors.pop()
-            self.rooms[color] = self.get_room(col, row)
-            self.add_door(
+            self.rooms.setdefault(color, self.get_room(col, row))
+            door, _ = self.add_door(
                 col, row, dir=dir, color=color, locked=True, rand_pos=False)
+            self.locked_doors.append(door)
 
     # Place keys in hallway
     num_hallway_keys = self._rand_int(1, self.max_hallway_keys + 1)
@@ -225,29 +229,22 @@ def reset(self: LockedHallwayEnv, **kwargs):
 
 # %% ../../nbs/02f_envs.locked_hallway.ipynb #5b8cc1e1
 @patch
-def step(self: LockedHallwayEnv, actions):
+def on_toggle(self: LockedHallwayEnv, agent, obj, pos, rewards):
     """
     :meta private:
+
+    Reward agents for unlocking each locked door (once per door), and end the
+    episode once every door has been unlocked.
     """
-    observations, rewards, terminations, truncations, infos = RoomGrid.step(self, actions) #super().step(actions)
+    if obj in self.locked_doors and not obj.is_locked and obj not in self.unlocked_doors:
+        self.unlocked_doors.append(obj)
+        if self.joint_reward:
+            for i in rewards:
+                rewards[i] += self._reward()
+        else:
+            rewards[agent.index] += self._reward()
 
-    # Reward for unlocking doors
-    for agent_id, action in actions.items():
-        if action == Action.toggle:
-            fwd_obj = self.grid.get(*self.agents[agent_id].front_pos)
-            if isinstance(fwd_obj, Door) and not fwd_obj.is_locked:
-                if fwd_obj not in self.unlocked_doors:
-                    self.unlocked_doors.append(fwd_obj)
-                    if self.joint_reward:
-                        for k in rewards:
-                            rewards[k] += self._reward()
-                    else:
-                        rewards[agent_id] += self._reward()
-
-    # Check if all doors are unlocked
-    if len(self.unlocked_doors) == len(self.rooms):
-        for agent in self.agents:
-            terminations[agent.index] = True
-
-    return observations, rewards, terminations, truncations, infos
+        # All doors unlocked: success for every agent
+        if len(self.unlocked_doors) == len(self.locked_doors):
+            self.agent_states.terminated = True
 

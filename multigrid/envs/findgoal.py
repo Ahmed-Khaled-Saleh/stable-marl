@@ -97,6 +97,8 @@ class FindGoalEnv(MultiGridEnv):
             agent.state = self.agent_states[i]
             self.agents.append(agent)
 
+        self._set_obs_spaces() # re-apply obs_mode shapes to the new agents
+
         # Action enumeration for this environment
         self.actions = NavigationAction
 
@@ -105,7 +107,12 @@ class FindGoalEnv(MultiGridEnv):
         self.grid = Grid(width, height)
         self.grid.wall_rect(0, 0, width, height)
 
+        # Goal cell when the goal is not randomized (must not be covered by walls)
+        fixed_goal = None if self.randomize_goal else (width - 2, height - 2)
+
         # 2. Scatter rectangular wall obstacles
+        #    (rejecting any obstacle that would split the free space, so every
+        #     free cell -- goal and agent spawns included -- stays reachable)
         obstacles_placed = 0
         max_attempts = 1000
 
@@ -116,12 +123,9 @@ class FindGoalEnv(MultiGridEnv):
             ox = self.np_random.integers(1, width  - obs_w - 1)
             oy = self.np_random.integers(1, height - obs_h - 1)
 
-            conflict = any(
-                self.grid.get(ox + dx, oy + dy) is not None
-                for dx in range(obs_w)
-                for dy in range(obs_h)
-            )
-            if conflict:
+            cells = [(ox + dx, oy + dy) for dx in range(obs_w) for dy in range(obs_h)]
+            conflict = any(self.grid.get(*cell) is not None for cell in cells)
+            if conflict or fixed_goal in cells or not self._keeps_connected(cells):
                 continue
 
             for dx in range(obs_w):
@@ -142,9 +146,14 @@ class FindGoalEnv(MultiGridEnv):
             self.put_obj(Goal(), width - 2, height - 2)
         self.goal_pos = goal_pos
 
-        # 4. Extra single-cell clutter
+        # 4. Extra single-cell clutter (also must not split the free space;
+        #    best effort: stop when no valid cell is found in a dense grid)
         for _ in range(self.n_clutter):
-            self.place_obj(Wall(), max_tries=100)
+            try:
+                self.place_obj(Wall(), top=(1, 1), size=(width - 2, height - 2), max_tries=100,
+                               reject_fn=lambda env, pos: not env._keeps_connected([pos]))
+            except RecursionError:
+                break
 
         # 5. Place agents
         def reject_spawn_fn(env, pos):
@@ -161,8 +170,39 @@ class FindGoalEnv(MultiGridEnv):
 
         return goal_pos
 
+    def _keeps_connected(self, cells) -> bool:
+        """
+        Whether all free cells (empty or overlappable, e.g. the goal) remain
+        4-connected if `cells` are turned into walls.
+        """
+        blocked = set(map(tuple, cells))
+        free = {
+            (x, y)
+            for x in range(self.grid.width)
+            for y in range(self.grid.height)
+            if (x, y) not in blocked
+            and ((obj := self.grid.get(x, y)) is None or obj.can_overlap())
+        }
+        if not free:
+            return False
+
+        # Flood fill from any free cell
+        start = next(iter(free))
+        seen, stack = {start}, [start]
+        while stack:
+            x, y = stack.pop()
+            for nxt in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if nxt in free and nxt not in seen:
+                    seen.add(nxt)
+                    stack.append(nxt)
+        return len(seen) == len(free)
+
     def reset(self, seed=None, **kwargs):
         self._last_obs = {}   # clear frozen obs cache
+        # Seed the goal RNG from the reset seed so layouts are fully reproducible.
+        # [seed, 1] gives a stream independent of gym's np_random (seeded with `seed`).
+        if seed is not None:
+            self._goal_rng = np.random.default_rng([seed, 1])
         return super().reset(seed=seed, **kwargs)
 
 
@@ -311,7 +351,8 @@ def step(
     if self.render_mode == 'human':
         self.render()
 
-    return observations, rewards, terminations, truncations, {'action': None}#defaultdict(dict)
+    infos = {agent.index: {} for agent in self.agents}
+    return observations, rewards, terminations, truncations, infos
 
 # %% ../../nbs/02h_envs.find_goal.ipynb #715d3532
 @patch
@@ -422,26 +463,15 @@ def on_success(
         if not hasattr(self, '_last_obs'):
             self._last_obs = {}
 
-        image_all = gen_obs_grid_encoding(
-            self.grid.state,
-            self.agent_states,
-            self.agents[0].view_size,      # ← same as gen_obs
-            self.agents[0].see_through_walls,  # ← same as gen_obs
-        )
-        rgb_all = gen_obs_grid_image(
-            grid=self.grid,
-            agents=self.agents,            # ← ALL agents, same as gen_obs
-            agents_states=self.agent_states,
-            agent_view_size=self.agents[0].view_size,
-            tile_size=self.tile_size,
-        )
+        image_all = self._obs_encoding() # ← same as gen_obs
+        rgb_all = self._obs_pov()        # ← same as gen_obs
 
         self._last_obs[agent.index] = {
             'image':      image_all[agent.index],  # ← index by agent.index
             'pov':        rgb_all[agent.index],    # ← index by agent.index
             'direction':  agent.state.dir,
+            'position':   np.array(agent.state.pos), # goal cell (cached before moving off grid)
             'mission':    agent.mission,
-            'terminated': True,
         }
 
         # Move off grid AFTER caching
@@ -466,22 +496,13 @@ def gen_obs(self: FindGoalEnv) -> dict[AgentID, ObsType]:
         Mapping from agent ID to observation dict, containing:
             * 'image': partially observable view of the environment
             * 'direction': agent's direction / orientation (acting as a compass)
+            * 'position': agent's (x, y) cell in the grid
             * 'mission': textual mission string (instructions for the agent)
     """
     direction = self.agent_states.dir
-    image = gen_obs_grid_encoding(
-        self.grid.state,
-        self.agent_states,
-        self.agents[0].view_size,
-        self.agents[0].see_through_walls,
-    )
-    rgb = gen_obs_grid_image(
-            grid= self.grid,
-            agents = self.agents,
-            agents_states= self.agent_states,
-            agent_view_size = self.agents[0].view_size,
-            tile_size = self.tile_size,
-        )
+    position = np.array(self.agent_states.pos)
+    image = self._obs_encoding()
+    rgb = self._obs_pov()
 
     observations = {}
     for i in range(self.num_agents):
@@ -495,6 +516,7 @@ def gen_obs(self: FindGoalEnv) -> dict[AgentID, ObsType]:
             'image':     image[i],
             'pov':       rgb[i],
             'direction': direction[i],
+            'position':  position[i],
             'mission':   self.agents[i].mission,
         }
 
@@ -516,7 +538,7 @@ def get_goal_state(
     agent: NavigationAgent,
     agent_view_size: int,
     tile_size: int = 32,
-    see_through_walls: bool = False,
+    see_through_walls: bool | None = None, # None: use the agent's own setting
 ) -> ndarray:
     """
     Returns the goal state RGB image for the given agent.
@@ -555,14 +577,8 @@ def get_goal_state(
     agent.state.dir = goal_agent_dir
 
     # Generate observation from ON the goal cell
-    goal_image = gen_obs_grid_image(
-        self.grid,
-        [agent],
-        self.agent_states,
-        agent_view_size,
-        tile_size=self.tile_size,
-        see_through_walls=see_through_walls,
-    )[0]
+    # (same frame and tile size as the 'pov' observation, see `obs_mode`)
+    goal_image = self._obs_pov([agent], see_through_walls=see_through_walls)[0]
 
     # Restore
     agent.state.pos = original_pos

@@ -159,8 +159,12 @@ class WorldObj(np.ndarray, metaclass=WorldObjMeta):
 
         if type_idx in WorldObj._TYPE_IDX_TO_CLASS:
             cls = WorldObj._TYPE_IDX_TO_CLASS[type_idx]
-            obj = cls.__new__(cls)
-            obj[...] = arr
+            # Build the array directly instead of calling `cls.__new__`, which may return
+            # a shared cached instance (e.g. `Wall`) that would then be overwritten
+            obj = np.array(arr, dtype=int).view(cls)
+            obj.contains = None
+            obj.init_pos = None
+            obj.cur_pos = None
             return obj
 
         raise ValueError(f'Unknown object type: {arr[WorldObj.TYPE]}')
@@ -632,6 +636,8 @@ class Box(WorldObj):
         """
         # Replace the box by its contents
         env.grid.set(*pos, self.contains)
+        if self.contains is not None:
+            self.contains.cur_pos = pos
         return True
 
     def render(self, img):

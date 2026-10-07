@@ -6,7 +6,9 @@
 __all__ = ['WALL_ENCODING', 'UNSEEN_ENCODING', 'ENCODE_DIM', 'GRID_ENCODING_IDX', 'AGENT_DIR_IDX', 'AGENT_POS_IDX',
            'AGENT_TERMINATED_IDX', 'AGENT_CARRYING_IDX', 'AGENT_ENCODING_IDX', 'TYPE', 'STATE', 'WALL', 'DOOR', 'OPEN',
            'CLOSED', 'LOCKED', 'RIGHT', 'LEFT', 'UP', 'DOWN', 'see_behind', 'get_view_exts', 'get_see_behind_mask',
-           'get_vis_mask', 'gen_obs_grid', 'gen_obs_grid_encoding', 'get_agent_obs_grid', 'gen_obs_grid_image']
+           'get_vis_mask', 'gen_obs_grid', 'gen_obs_grid_encoding', 'get_agent_obs_grid', 'gen_obs_grid_image',
+           'gen_obs_grid_allo', 'get_vis_mask_allo', 'gen_obs_grid_encoding_allo', 'gen_obs_grid_encoding_global',
+           'gen_obs_grid_image_allo', 'gen_obs_grid_image_global']
 
 # %% ../../nbs/00e_utils.obs.ipynb #51b170e3
 from typing import Any
@@ -384,11 +386,21 @@ def gen_obs_grid_image(
     agents_states: AgentState,
     agent_view_size: int,
     tile_size: int = 32,
-    see_through_walls: bool = False,    
+    see_through_walls: bool | None = None,
 ) -> ndarray:
-    
-    
+    """
+    Render the RGB point-of-view image of each agent.
+
+    Cells hidden from an agent (same visibility rule as `gen_obs_grid_encoding`)
+    are blacked out, unless the agent can see through walls.
+    `see_through_walls=None` uses each agent's own `see_through_walls` setting.
+    """
     num_agents = len(agents)
+
+    # Visibility masks, computed from each agent's own state
+    # (agents may be temporary copies, e.g. in get_goal_state)
+    own_states = np.stack([agent.state._view for agent in agents])
+    vis_masks = get_vis_mask(gen_obs_grid(grid.state, own_states, agent_view_size))
     obs_images = np.zeros(
         (num_agents, agent_view_size * tile_size, agent_view_size * tile_size, 3),
         dtype=np.uint8
@@ -410,12 +422,228 @@ def gen_obs_grid_image(
         #             if not vis_mask[agent_idx, i, j]:
         #                 obs_grid.set(i, j, unseen_obj)
             
-        # Place ego agent at bottom center facing up
+        # Other (non-terminated) agents inside the view, in view coordinates
+        # (same rule as `gen_obs_grid`, which only encodes non-terminated agents)
+        view_agents = []
+        top_x, top_y = get_view_exts(
+            np.array([agent.state.dir]), np.array([agent.state.pos]), agent_view_size)[0]
+        num_left_rotations = (agent.state.dir + 1) % 4
+        for other in agents:
+            if other is agent or other.state.terminated:
+                continue
+            i, j = other.state.pos[0] - top_x, other.state.pos[1] - top_y
+            if not (0 <= i < agent_view_size and 0 <= j < agent_view_size):
+                continue
+            for _ in range(num_left_rotations): # rotate like `get_agent_obs_grid`
+                i, j = j, agent_view_size - i - 1
+            view_agent = Agent(index=other.index)
+            view_agent.state.pos = (i, j)
+            view_agent.state.dir = (other.state.dir - num_left_rotations) % 4
+            view_agent.state.color = other.state.color.name
+            view_agents.append(view_agent)
+
+        # Place ego agent at bottom center facing up (last, so it is drawn on top)
         ego_agent = Agent(index=agent_idx)
         ego_agent.state.pos = np.array([agent_view_size // 2, agent_view_size - 1])
         ego_agent.state.dir = Direction.up
         ego_agent.state.color = agent.state.color.name
 
-        obs_images[agent_idx] = obs_grid.render(tile_size, agents=[ego_agent])
+        obs_images[agent_idx] = obs_grid.render(tile_size, agents=[*view_agents, ego_agent])
+
+        # Black out cells the agent cannot see
+        agent_see_through = agent.see_through_walls if see_through_walls is None else see_through_walls
+        if not agent_see_through:
+            for i, j in np.argwhere(~vis_masks[agent_idx]):
+                obs_images[agent_idx,
+                           j * tile_size:(j + 1) * tile_size,
+                           i * tile_size:(i + 1) * tile_size] = 0
 
     return obs_images
+
+# %% ../../nbs/00e_utils.obs.ipynb #3f6a9d2e
+def _world_encoding(
+    grid_state: ndarray[np.int_],
+    agent_state: ndarray[np.int_]) -> ndarray[np.int_]:
+    """
+    Grid encoding of shape (width, height, encode_dim) with all
+    non-terminated agents inserted (same rule as `gen_obs_grid`).
+    """
+    agent_state = np.asarray(agent_state)
+    encoding = np.array(grid_state[..., GRID_ENCODING_IDX])
+    for state in agent_state:
+        if not state[AGENT_TERMINATED_IDX]:
+            x, y = state[AGENT_POS_IDX]
+            encoding[x, y] = state[AGENT_ENCODING_IDX]
+    return encoding
+
+
+def gen_obs_grid_allo(
+    grid_state: ndarray[np.int_],
+    agent_state: ndarray[np.int_],
+    agent_view_size: int) -> ndarray[np.int_]:
+    """
+    Generate the allocentric sub-grid observed by each agent (WITHOUT visibility mask):
+    a world-aligned (north up, no rotation) window centred on the agent.
+
+    Returns
+    -------
+    obs_grid : ndarray[int] of shape (num_agents, view_size, view_size, encode_dim)
+        Indexed [i, j] like the world grid; the agent is at (view_size // 2, view_size // 2)
+    """
+    agent_state = np.asarray(agent_state)
+    encoding = _world_encoding(grid_state, agent_state)
+    width, height = encoding.shape[:2]
+    r = agent_view_size // 2
+
+    obs_grid = np.empty((len(agent_state), agent_view_size, agent_view_size, ENCODE_DIM), dtype=np.int_)
+    for agent, state in enumerate(agent_state):
+        x, y = state[AGENT_POS_IDX]
+        xs, ys = np.arange(x - r, x + r + 1), np.arange(y - r, y + r + 1)
+        valid_x, valid_y = (0 <= xs) & (xs < width), (0 <= ys) & (ys < height)
+        obs_grid[agent] = WALL_ENCODING # out of bounds cells are walls (as in `gen_obs_grid`)
+        obs_grid[agent][np.ix_(valid_x, valid_y)] = encoding[np.ix_(xs[valid_x], ys[valid_y])]
+
+    return obs_grid
+
+
+def get_vis_mask_allo(obs_grid: ndarray[np.int_]) -> ndarray[np.bool_]:
+    """
+    Visibility mask for allocentric (agent-centred) observation grids.
+
+    Applies the egocentric `get_vis_mask` rule to the four half-windows
+    (one per direction) around the centre, and combines them.
+
+    Returns
+    -------
+    vis_mask : ndarray[bool] of shape (num_agents, view_size, view_size)
+    """
+    num_agents, view_size = obs_grid.shape[:2]
+    half = view_size // 2 + 1 # rows from the window edge up to the agent's row
+    vis_mask = np.zeros((num_agents, view_size, view_size), dtype=bool)
+    for k in range(4):
+        rotated = np.rot90(obs_grid, k, axes=(1, 2))
+        half_mask = np.zeros((num_agents, view_size, view_size), dtype=bool)
+        half_mask[:, :, :half] = get_vis_mask(np.ascontiguousarray(rotated[:, :, :half]))
+        vis_mask |= np.rot90(half_mask, -k, axes=(1, 2))
+
+    return vis_mask
+
+
+def gen_obs_grid_encoding_allo(
+    grid_state: ndarray[np.int_],
+    agent_state: ndarray[np.int_],
+    agent_view_size: int,
+    see_through_walls: bool) -> ndarray[np.int_]:
+    """
+    Allocentric encoding of the sub-grid observed by each agent (including visibility mask).
+
+    Returns
+    -------
+    img : ndarray[int] of shape (num_agents, view_size, view_size, encode_dim)
+    """
+    obs_grid = gen_obs_grid_allo(grid_state, agent_state, agent_view_size)
+    if not see_through_walls:
+        obs_grid[~get_vis_mask_allo(obs_grid)] = UNSEEN_ENCODING
+
+    return obs_grid
+
+
+def gen_obs_grid_encoding_global(
+    grid_state: ndarray[np.int_],
+    agent_state: ndarray[np.int_]) -> ndarray[np.int_]:
+    """
+    Global (fully observable) encoding of the whole grid, identical for every agent.
+
+    Returns
+    -------
+    img : ndarray[int] of shape (num_agents, width, height, encode_dim)
+    """
+    encoding = _world_encoding(grid_state, agent_state)
+    return np.repeat(encoding[None], len(agent_state), axis=0)
+
+
+def _copy_agent(agent: Agent, pos, dir) -> Agent:
+    """
+    Lightweight copy of an agent (for rendering only) at a given position / direction.
+    """
+    copy = Agent(index=agent.index)
+    copy.state.pos = pos
+    copy.state.dir = dir
+    copy.state.color = agent.state.color.name
+    return copy
+
+
+def gen_obs_grid_image_allo(
+    grid: Grid,
+    agents: list[Agent],
+    agent_view_size: int,
+    tile_size: int = 32,
+    see_through_walls: bool | None = None,
+) -> ndarray:
+    """
+    Render the allocentric RGB view of each agent: a world-aligned window
+    centred on the agent, with every agent drawn at its true heading.
+
+    Hidden cells are blacked out unless the agent can see through walls.
+    `see_through_walls=None` uses each agent's own `see_through_walls` setting.
+    """
+    r = agent_view_size // 2
+    own_states = np.stack([agent.state._view for agent in agents])
+    vis_masks = get_vis_mask_allo(gen_obs_grid_allo(grid.state, own_states, agent_view_size))
+    obs_images = np.zeros(
+        (len(agents), agent_view_size * tile_size, agent_view_size * tile_size, 3),
+        dtype=np.uint8
+    )
+
+    for agent_idx, agent in enumerate(agents):
+        x0, y0 = agent.state.pos[0] - r, agent.state.pos[1] - r
+
+        # World-aligned window (out of bounds cells are walls)
+        obs_grid = Grid(agent_view_size, agent_view_size)
+        for i in range(agent_view_size):
+            for j in range(agent_view_size):
+                x, y = x0 + i, y0 + j
+                if 0 <= x < grid.width and 0 <= y < grid.height:
+                    obs_grid.set(i, j, grid.get(x, y))
+                else:
+                    obs_grid.set(i, j, Wall())
+
+        # Other non-terminated agents in the window, then the agent itself (drawn on top)
+        view_agents = []
+        for other in agents:
+            if other is agent or other.state.terminated:
+                continue
+            i, j = other.state.pos[0] - x0, other.state.pos[1] - y0
+            if 0 <= i < agent_view_size and 0 <= j < agent_view_size:
+                view_agents.append(_copy_agent(other, (i, j), other.state.dir))
+        view_agents.append(_copy_agent(agent, (r, r), agent.state.dir))
+
+        obs_images[agent_idx] = obs_grid.render(tile_size, agents=view_agents)
+
+        # Black out cells the agent cannot see
+        agent_see_through = agent.see_through_walls if see_through_walls is None else see_through_walls
+        if not agent_see_through:
+            for i, j in np.argwhere(~vis_masks[agent_idx]):
+                obs_images[agent_idx,
+                           j * tile_size:(j + 1) * tile_size,
+                           i * tile_size:(i + 1) * tile_size] = 0
+
+    return obs_images
+
+
+def gen_obs_grid_image_global(
+    grid: Grid,
+    agents: list[Agent],
+    tile_size: int = 32,
+) -> ndarray:
+    """
+    Render the whole grid (fully observable) with all non-terminated agents,
+    identical for every agent.
+
+    Returns
+    -------
+    img : ndarray[uint8] of shape (num_agents, height * tile_size, width * tile_size, 3)
+    """
+    image = grid.render(tile_size, agents=[a for a in agents if not a.state.terminated])
+    return np.repeat(image[None], len(agents), axis=0)
+

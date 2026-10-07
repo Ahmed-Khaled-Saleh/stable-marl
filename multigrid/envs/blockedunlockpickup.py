@@ -151,10 +151,39 @@ class BlockedUnlockPickupEnv(RoomGrid):
 
     @staticmethod
     def _gen_mission(color: str, obj_type: str):
-        return f"pick up the {color} {obj_type}"
+        return f"pick up the {Color(color).value} {Type(obj_type).value}"
 
     def _gen_grid(self, width, height):
         pass
+
+# %% ../../nbs/02e_envs.blockedunlockpickup.ipynb #c8daf676
+@patch
+def _gen_grid(self: BlockedUnlockPickupEnv, width, height):
+    """
+    :meta private:
+    """
+    # super()
+    RoomGrid._gen_grid(self, width, height)
+
+    # Add a box to the room on the right
+    self.obj, _ = self.add_object(1, 0, kind=Type.box)
+
+    # Make sure the two rooms are directly connected by a locked door
+    door, pos = self.add_door(0, 0, Direction.right, locked=True)
+
+    # Block the door with a ball
+    self.grid.set(pos[0] - 1, pos[1], Ball(color=self._rand_color()))
+
+    # Add a key to unlock the door
+    self.add_object(0, 0, Type.key, door.color)
+
+    # Place agents in the left room
+    for agent in self.agents:
+        self.place_agent(agent, 0, 0)
+
+    self.mission = self.mission_space.get((
+        list(Color).index(self.obj.color), [Type.box, Type.key].index(self.obj.type)))
+
 
 # %% ../../nbs/02e_envs.blockedunlockpickup.ipynb #16b13f48
 @patch
@@ -168,4 +197,17 @@ def step(self: BlockedUnlockPickupEnv, actions):
             self.on_success(agent, reward, terminated)
 
     return obs, reward, terminated, truncated, info
+
+
+# %% ../../nbs/02e_envs.blockedunlockpickup.ipynb #4b9e2f7a
+@patch
+def on_toggle(self: BlockedUnlockPickupEnv, agent, obj, pos, rewards):
+    """
+    :meta private:
+
+    Opening the target box replaces it by its (empty) contents, after which the
+    task can no longer be solved: end the episode (failure) for every agent.
+    """
+    if obj is self.obj:
+        self.agent_states.terminated = True
 

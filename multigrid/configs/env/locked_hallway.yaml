@@ -1,5 +1,22 @@
+# Default config of multigrid.envs.LockedHallwayEnv
+# Generated from multigrid.configs.env.LockedHallwayEnvConfig (nbs/04_configs.env.ipynb) -- edit the dataclass, not this file.
 _target_: multigrid.envs.LockedHallwayEnv
-agents: 2
-grid_size: 8
-max_steps: 200
-render_mode: human
+_convert_: all
+agents: 1
+agent_view_size: 7
+see_through_walls: false
+allow_agent_overlap: true
+obs_mode: ego
+render_mode: null
+screen_size: 640
+highlight: true
+tile_size: 32
+agent_pov: false
+num_rooms: 6
+room_size: 5
+max_hallway_keys: 1
+max_keys_per_room: 2
+max_steps: null
+joint_reward: true
+success_termination_mode: any
+failure_termination_mode: all

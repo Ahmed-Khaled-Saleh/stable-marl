@@ -8,7 +8,7 @@ from __future__ import annotations
 from fastcore.utils import patch
 
 from .base import MultiGridEnv
-from ..core import Action, Grid, MissionSpace
+from ..core import Grid, MissionSpace
 from ..core.constants import Color
 from ..core.world_object import Door
 
@@ -186,22 +186,19 @@ def _gen_grid(self: RedBlueDoorsEnv, width, height):
     self.grid.set(x, y, self.blue_door)
 
 # %% ../../nbs/02c_envs.redbluedoors.ipynb #a54b8308
-@patch  
-def step(self: RedBlueDoorsEnv, actions):
+@patch
+def on_toggle(self: RedBlueDoorsEnv, agent, obj, pos, rewards):
     """
     :meta private:
+
+    Called right after `agent` toggles `obj` (see `MultiGridEnv.on_toggle`),
+    so the door order is checked in the order agents actually acted.
     """
-    obs, reward, terminated, truncated, info = MultiGridEnv.step(self, actions)#super().step(actions)
+    if obj is self.blue_door and self.blue_door.is_open:
+        if self.red_door.is_open:
+            self.on_success(agent, rewards, {})
+        else:
+            self.on_failure(agent, rewards, {})
+            self.blue_door.is_open = False # close the door again
+            self.grid.update(*pos)         # keep the grid encoding in sync
 
-    for agent_id, action in actions.items():
-        if action == Action.toggle:
-            agent = self.agents[agent_id]
-            fwd_obj = self.grid.get(*agent.front_pos)
-            if fwd_obj == self.blue_door and self.blue_door.is_open:
-                if self.red_door.is_open:
-                    self.on_success(agent, reward, terminated)
-                else:
-                    self.on_failure(agent, reward, terminated)
-                    self.blue_door.is_open = False # close the door again
-
-    return obs, reward, terminated, truncated, info

@@ -77,4 +77,7 @@ version = {attr = "multigrid.__version__"}
 [tool.setuptools.packages.find]
 include = ["multigrid"]
 
+[tool.setuptools.package-data]
+multigrid = ["configs/**/*.yaml"]
+
 [tool.nbdev]

@@ -8,25 +8,27 @@ from __future__ import annotations
 import gymnasium as gym
 
 from gymnasium import spaces
-from pettingzoo import ParallelEnv
 from typing import Any
-
-from ..envs.base import AgentID, MultiGridEnv
-
-
-import gymnasium as gym
-
-from ray.rllib.env import MultiAgentEnv
-from ray.tune.registry import register_env
 
 from ..envs.base import MultiGridEnv
 from ..envs import CONFIGURATIONS
-from .base import OneHotObsWrapper
+
+# Optional dependencies: each wrapper only needs its own library installed
+try:
+    from pettingzoo import ParallelEnv
+except ImportError:
+    ParallelEnv = object
+
+try:
+    from ray.rllib.env import MultiAgentEnv
+    from ray.tune.registry import register_env
+except ImportError:
+    MultiAgentEnv, register_env = object, None
 
 
 # %% auto #0
 __all__ = ['AgentID', 'ObsType', 'ActionType', 'PettingZooWrapper', 'to_pettingzoo_env', 'TorchRLPettingZooWrapper',
-           'RLlibWrapper', 'to_rllib_env']
+           'RLlibWrapper', 'to_rllib_env', 'register_rllib_envs']
 
 # %% ../../nbs/03b_wrappers.external.ipynb #53cd2e2e
 from typing import Any, TypeVar
@@ -43,27 +45,38 @@ class PettingZooWrapper(ParallelEnv):
     """
     Wrapper for a ``MultiGridEnv`` environment that implements the
     PettingZoo ``ParallelEnv`` interface.
+
+    Agent IDs are the agent indices (subclasses can map them, see `_agent_id`).
+    Agents that terminated in an earlier step are removed from `agents` and from
+    every dict returned by `step`, as required by the ParallelEnv API.
     """
 
     def __init__(self, env: MultiGridEnv):
         self.env = env
-        # self.reset = self.env.reset
-        # self.step = self.env.step
-        # self.render = self.env.render
-        # self.close = self.env.close
         self.metadata = {}
 
-    # @property
+    # Agent ID <-> agent index mapping (identity; overridden by TorchRLPettingZooWrapper)
+    def _agent_id(self, index: int) -> AgentID:
+        return index
+
+    def _agent_index(self, agent_id: AgentID) -> int:
+        return agent_id
+
+    def _remap(self, d: dict) -> dict:
+        return {self._agent_id(i): v for i, v in d.items()}
+
     def is_done(self) -> bool:
         return self.env.unwrapped.is_done()
-    
+
     def reset(
         self,
         seed: int | None = None,
         options: dict | None = None,
     ) -> tuple[dict[AgentID, ObsType], dict[AgentID, dict]]:
-        return self.env.reset(seed=seed, options=options)
-    
+        observations, infos = self.env.reset(seed=seed, options=options)
+        infos = {i: infos.get(i, {}) for i in observations} # one info dict per agent
+        return self._remap(observations), self._remap(infos)
+
     def step(
         self, actions: dict[AgentID, ActionType]
     ) -> tuple[
@@ -73,41 +86,59 @@ class PettingZooWrapper(ParallelEnv):
         dict[AgentID, bool],
         dict[AgentID, dict[str, Any]],
     ]:
-        return self.env.step(actions)
-    
+        # Only agents that are still active act and are reported
+        live = [self._agent_index(agent_id) for agent_id in self.agents]
+        env_actions = {
+            self._agent_index(agent_id): action
+            for agent_id, action in actions.items()
+            if self._agent_index(agent_id) in live
+        }
+        observations, rewards, terminations, truncations, infos = self.env.step(env_actions)
+
+        def keep(d: dict, cast=lambda v: v) -> dict:
+            return {self._agent_id(i): cast(d[i]) for i in live}
+
+        return (
+            keep(observations),
+            keep(rewards, float),
+            keep(terminations, bool),
+            keep(truncations, bool),
+            keep(infos),
+        )
+
     def render(self) -> None | np.ndarray | str | list:
         return self.env.render()
-    
+
     def close(self) -> None:
         return self.env.close()
-    
+
     @property
     def agents(self) -> list[AgentID]:
         if self.env.unwrapped.is_done():
             return []
-        return [agent.index for agent in self.env.unwrapped.agents if not agent.terminated]
+        return [self._agent_id(agent.index) for agent in self.env.unwrapped.agents if not agent.terminated]
 
     @property
     def possible_agents(self) -> list[AgentID]:
-        return [agent.index for agent in self.env.unwrapped.agents]
+        return [self._agent_id(agent.index) for agent in self.env.unwrapped.agents]
 
     @property
     def observation_spaces(self) -> dict[AgentID, spaces.Space]:
-        return dict(self.env.observation_space)
+        return self._remap(dict(self.env.observation_space))
 
     @property
     def action_spaces(self) -> dict[AgentID, spaces.Space]:
-        return dict(self.env.action_space)
+        return self._remap(dict(self.env.action_space))
 
     @property
     def render_mode(self) -> str | None:
         return self.env.render_mode
 
     def observation_space(self, agent_id: AgentID) -> spaces.Space:
-        return self.env.observation_space[agent_id]
+        return self.env.observation_space[self._agent_index(agent_id)]
 
     def action_space(self, agent_id: AgentID) -> spaces.Space:
-        return self.env.action_space[agent_id]
+        return self.env.action_space[self._agent_index(agent_id)]
 
 
 # %% ../../nbs/03b_wrappers.external.ipynb #c527053f
@@ -150,40 +181,12 @@ def to_pettingzoo_env(
 # %% ../../nbs/03b_wrappers.external.ipynb #fda9038e
 class TorchRLPettingZooWrapper(PettingZooWrapper):
     """
-    Extends PettingZooWrapper with string agent IDs required by TorchRL.
+    PettingZooWrapper with string agent IDs (``'agent_0'``, ``'agent_1'``, ...),
+    as required by TorchRL's ``torchrl.envs.libs.pettingzoo.PettingZooWrapper``.
+
+    Use ``use_mask=True`` in TorchRL when agents can terminate at different times
+    (e.g. ``success_termination_mode='all'``).
     """
-    def __init__(self, env: MultiGridEnv):
-        # Don't call super().__init__() — we don't want the instance attribute assignments
-        self.env = env
-        self.metadata = {}
-
-    def _remap_keys(self, d: dict) -> dict:
-        """Convert integer agent keys to string agent IDs."""
-        return {self._agent_id(k): v for k, v in d.items()}
-
-    def reset(self, seed=None, options=None):
-        observations, infos = self.env.reset(seed=seed, options=options)
-        obs_remapped = self._remap_keys(observations)
-        
-        # TorchRL expects {agent_id: {}} for each agent, not just {}
-        if not infos:
-            infos_remapped = {self._agent_id(i): {} for i in range(len(observations))}
-        else:
-            infos_remapped = self._remap_keys(infos)
-        
-        return obs_remapped, infos_remapped
-    
-    def step(self, actions):
-        # Remap string agent IDs back to integer keys for the underlying env
-        int_actions = {self._agent_index(k): v for k, v in actions.items()}
-        observations, rewards, terminations, truncations, infos = self.env.step(int_actions)
-        return (
-            self._remap_keys(observations),
-            self._remap_keys(rewards),
-            self._remap_keys(terminations),
-            self._remap_keys(truncations),
-            self._remap_keys(infos),
-        )
 
     def _agent_id(self, index: int) -> str:
         return f"agent_{index}"
@@ -191,69 +194,126 @@ class TorchRLPettingZooWrapper(PettingZooWrapper):
     def _agent_index(self, agent_id: str) -> int:
         return int(agent_id.split("_")[1])
 
-    @property
-    def agents(self) -> list[AgentID]:
-        if self.env.unwrapped.is_done():
-            return []
-        return [self._agent_id(agent.index) 
-                for agent in self.env.unwrapped.agents 
-                if not agent.terminated]
-
-    @property
-    def possible_agents(self) -> list[AgentID]:
-        return [self._agent_id(agent.index) 
-                for agent in self.env.unwrapped.agents]
-
-    @property
-    def observation_spaces(self) -> dict[AgentID, spaces.Space]:
-        return {self._agent_id(i): space 
-                for i, space in dict(self.env.observation_space).items()}
-
-    @property
-    def action_spaces(self) -> dict[AgentID, spaces.Space]:
-        return {self._agent_id(i): space 
-                for i, space in dict(self.env.action_space).items()}
-
-    def observation_space(self, agent_id: AgentID) -> spaces.Space:
-        return self.env.observation_space[self._agent_index(agent_id)]
-
-    def action_space(self, agent_id: AgentID) -> spaces.Space:
-        return self.env.action_space[self._agent_index(agent_id)]
 
 # %% ../../nbs/03b_wrappers.external.ipynb #553cea40
 class RLlibWrapper(MultiAgentEnv):
     """
     Wrapper for a ``MultiGridEnv`` environment that implements the
     RLlib ``MultiAgentEnv`` interface.
+
+    Agents that terminated in an earlier step are removed from `agents` and from
+    every dict returned by `step`, as required by RLlib.
     """
 
-    def __init__(self, env: MultiGridEnv):
+    def __init__(
+        self,
+        env: MultiGridEnv,
+        obs_keys: tuple[str, ...] = ('image', 'direction'),
+        flatten: bool = True):
+        """
+        Parameters
+        ----------
+        env : MultiGridEnv
+            Environment to wrap
+        obs_keys : tuple[str, ...]
+            Observation entries to keep ('image', 'pov', 'direction', 'position');
+            the text 'mission' is not supported by RLlib
+        flatten : bool
+            Concatenate the kept entries into one float32 vector (Box entries flattened,
+            Discrete entries one-hot), which RLlib's default models accept.
+            Otherwise a single entry is returned as is, and several as a Dict.
+        """
         super().__init__()
+        assert 'mission' not in obs_keys, "RLlib does not support the text 'mission' observation"
         self.env = env
-        self.agents = list(range(len(env.unwrapped.agents)))
-        self.possible_agents = self.agents[:]
+        self.obs_keys = tuple(obs_keys)
+        self.flatten = flatten
 
-    def reset(self, *args, **kwargs):
-        return self.env.reset(*args, **kwargs)
+        base_agents = env.unwrapped.agents
+        self._raw_obs_spaces = {agent.index: agent.observation_space for agent in base_agents}
+        self.possible_agents = [agent.index for agent in base_agents]
+        self.agents = list(self.possible_agents)
+        self.observation_spaces = {i: self._convert_space(s) for i, s in self._raw_obs_spaces.items()}
+        self.action_spaces = {agent.index: agent.action_space for agent in base_agents}
+        self.observation_space = spaces.Dict(self.observation_spaces)
+        self.action_space = spaces.Dict(self.action_spaces)
 
-    def step(self, *args, **kwargs):
-        obs, rewards, terminations, truncations, infos = self.env.step(*args, **kwargs)
-        terminations['__all__'] = all(terminations.values())
-        truncations['__all__'] = all(truncations.values())
-        return obs, rewards, terminations, truncations, infos
+    def _convert_space(self, space: spaces.Dict) -> spaces.Space:
+        parts = [space[key] for key in self.obs_keys]
+        if not self.flatten:
+            return parts[0] if len(parts) == 1 else spaces.Dict(dict(zip(self.obs_keys, parts)))
 
-    def get_observation_space(self, agent_index: int):
-        return self.env.unwrapped.agents[agent_index].observation_space
+        lows, highs = [], []
+        for part in parts:
+            if isinstance(part, spaces.Discrete):
+                lows.append(np.zeros(part.n, dtype=np.float32))
+                highs.append(np.ones(part.n, dtype=np.float32))
+            else:
+                lows.append(np.asarray(part.low, dtype=np.float32).ravel())
+                highs.append(np.asarray(part.high, dtype=np.float32).ravel())
+        return spaces.Box(np.concatenate(lows), np.concatenate(highs), dtype=np.float32)
 
-    def get_action_space(self, agent_index: int):
-        return self.env.unwrapped.agents[agent_index].action_space
-    
+    def _convert_obs(self, index: int, obs: dict) -> Any:
+        if not self.flatten:
+            if len(self.obs_keys) == 1:
+                return obs[self.obs_keys[0]]
+            return {key: obs[key] for key in self.obs_keys}
+
+        vector = []
+        for key in self.obs_keys:
+            space = self._raw_obs_spaces[index][key]
+            if isinstance(space, spaces.Discrete):
+                one_hot = np.zeros(space.n, dtype=np.float32)
+                one_hot[int(obs[key])] = 1
+                vector.append(one_hot)
+            else:
+                vector.append(np.asarray(obs[key], dtype=np.float32).ravel())
+        return np.concatenate(vector)
+
+    def reset(self, *, seed: int | None = None, options: dict | None = None):
+        observations, infos = self.env.reset(seed=seed, options=options)
+        self.agents = list(self.possible_agents)
+        return (
+            {i: self._convert_obs(i, observations[i]) for i in self.agents},
+            {i: infos.get(i, {}) for i in self.agents},
+        )
+
+    def step(self, action_dict: dict[AgentID, ActionType]):
+        # Only agents that are still active act and are reported
+        live = list(self.agents)
+        actions = {i: action for i, action in action_dict.items() if i in live}
+        observations, rewards, terminations, truncations, infos = self.env.step(actions)
+
+        obs = {i: self._convert_obs(i, observations[i]) for i in live}
+        rewards = {i: float(rewards[i]) for i in live}
+        terminateds = {i: bool(terminations[i]) for i in live}
+        truncateds = {i: bool(truncations[i]) for i in live}
+        infos = {i: infos[i] for i in live}
+
+        terminateds['__all__'] = all(terminateds[i] for i in live)
+        truncateds['__all__'] = all(truncateds[i] for i in live)
+        self.agents = [i for i in live if not (terminateds[i] or truncateds[i])]
+        return obs, rewards, terminateds, truncateds, infos
+
+    def render(self):
+        return self.env.render()
+
+    def close(self):
+        return self.env.close()
+
+    def get_observation_space(self, agent_index: int) -> spaces.Space:
+        return self.observation_spaces[agent_index]
+
+    def get_action_space(self, agent_index: int) -> spaces.Space:
+        return self.action_spaces[agent_index]
+
 
 # %% ../../nbs/03b_wrappers.external.ipynb #08f57dbe
 def to_rllib_env(
     env_cls: type[MultiGridEnv],
     *wrappers: gym.Wrapper,
-    default_config: dict = {}) -> type[MultiAgentEnv]:
+    default_config: dict = {},
+    **rllib_kwargs) -> type[MultiAgentEnv]:
     """
     Convert a ``MultiGridEnv`` environment class to an RLLib ``MultiAgentEnv`` class.
 
@@ -268,6 +328,8 @@ def to_rllib_env(
         Gym wrappers to apply to the environment
     default_config : dict
         Default configuration for the environment
+    rllib_kwargs
+        Extra arguments for :class:`.RLlibWrapper` (``obs_keys``, ``flatten``)
 
     Returns
     -------
@@ -280,9 +342,24 @@ def to_rllib_env(
             env = env_cls(**config)
             for wrapper in wrappers:
                 env = wrapper(env)
-            super().__init__(env)
+            super().__init__(env, **rllib_kwargs)
 
     RLlibEnv.__name__ = f"RLlib_{env_cls.__name__}"
     return RLlibEnv
 
+
+def register_rllib_envs(**rllib_kwargs):
+    """
+    Register every environment configuration in :data:`multigrid.envs.CONFIGURATIONS`
+    with RLlib, under the same name (e.g. ``'MultiGrid-Empty-8x8-v0'``).
+    The RLlib ``env_config`` is passed to the environment as keyword arguments.
+
+    Parameters
+    ----------
+    rllib_kwargs
+        Extra arguments for :class:`.RLlibWrapper` (``obs_keys``, ``flatten``)
+    """
+    assert register_env is not None, "ray[rllib] is required to register RLlib environments"
+    for name, (env_cls, config) in CONFIGURATIONS.items():
+        register_env(name, to_rllib_env(env_cls, default_config=config, **rllib_kwargs))
 

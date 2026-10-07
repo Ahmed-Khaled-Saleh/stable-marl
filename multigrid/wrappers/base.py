@@ -48,18 +48,21 @@ class FullyObsWrapper(ObservationWrapper):
         """
         super().__init__(env)
 
-        # Update agent observation spaces
-        for agent in self.env.agents:
+        # Update agent observation spaces ('image' is indexed [x, y], like the grid)
+        base = env.unwrapped
+        for agent in base.agents:
             agent.observation_space['image'] = spaces.Box(
-                low=0, high=255, shape=(env.height, env.width, WorldObj.dim), dtype=int)
+                low=0, high=255, shape=(base.width, base.height, WorldObj.dim), dtype=int)
 
     def observation(self, obs: dict[AgentID, ObsType]) -> dict[AgentID, ObsType]:
         """
         :meta private:
         """
-        img = self.env.grid.encode()
-        for agent in self.env.agents:
-            img[agent.state.pos] = agent.encode()
+        base = self.env.unwrapped
+        img = base.grid.encode()
+        for agent in base.agents:
+            if not agent.state.terminated: # (terminated agents may be off the grid)
+                img[tuple(agent.state.pos)] = agent.encode()
 
         for agent_id in obs:
             obs[agent_id]['image'] = img
@@ -252,7 +255,6 @@ class SingleAgentWrapper(gym.Wrapper):
 import gymnasium as gym
 import numpy as np
 import os
-import tqdm
 
 def export_video(X, outfile, fps=30, rescale_factor=2):
 
@@ -300,12 +302,13 @@ def render_frames(X, path, ext="png"):
     if not os.path.isdir(path):
         os.makedirs(path)
 
+    import tqdm
+
     for k, frame in tqdm.tqdm(enumerate(X), total=len(X)):
         Image.fromarray(frame, "RGB").save(os.path.join(path, f"frame_{k}.{ext}"))
 
 
 # %% ../../nbs/03a_wrappers.base.ipynb #85b79cdd
-import cv2
 class GridRecorder(gym.core.Wrapper):
     default_max_len = 1000
     default_video_kwargs = {
@@ -316,7 +319,7 @@ class GridRecorder(gym.core.Wrapper):
             self,
             env,
             save_root,
-            max_steps=1000,
+            max_steps=None, # None: the env's max_steps
             auto_save_images=True,
             auto_save_videos=True,
             auto_save_interval=None,
@@ -325,7 +328,7 @@ class GridRecorder(gym.core.Wrapper):
             ):
         super().__init__(env)
         self.agents = env.agents
-        self.get_goal_state = env.get_goal_state
+        self.get_goal_state = getattr(env, 'get_goal_state', None) # only some envs define it
         self.get_layout = env.get_layout
         self.frames = None
         self.ptr = 0
@@ -345,8 +348,8 @@ class GridRecorder(gym.core.Wrapper):
 
         if max_steps is None:
 
-            if hasattr(env, "max_steps") and env.max_steps != 0:
-                self.max_steps = env.max_steps + 1
+            if getattr(env.unwrapped, "max_steps", 0):
+                self.max_steps = env.unwrapped.max_steps + 1
             else:
                 self.max_steps = self.default_max_len + 1
         else:
@@ -413,6 +416,7 @@ class GridRecorder(gym.core.Wrapper):
                 new_frame = new_frame[0]
 
             if self.video_scale != 1:
+                import cv2
                 new_frame = cv2.resize(new_frame, None,
                                        fx=self.video_scale,
                                        fy=self.video_scale,
@@ -423,6 +427,8 @@ class GridRecorder(gym.core.Wrapper):
                     (self.max_steps, *new_frame.shape), dtype=new_frame.dtype
                 )
 
+            if self.ptr >= len(self.frames): # longer episode than expected: grow the buffer
+                self.frames = np.concatenate([self.frames, np.zeros_like(self.frames)])
             self.frames[self.ptr] = new_frame
             self.ptr += 1
             # if self.ptr < len(self.frames):

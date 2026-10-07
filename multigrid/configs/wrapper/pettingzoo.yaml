@@ -1,0 +1,4 @@
+# Default config of multigrid.wrappers.external.PettingZooWrapper
+# Generated from multigrid.configs.env.PettingZooWrapperConfig (nbs/04_configs.env.ipynb) -- edit the dataclass, not this file.
+_target_: multigrid.wrappers.external.PettingZooWrapper
+env: ???

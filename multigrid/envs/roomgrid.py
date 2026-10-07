@@ -99,7 +99,8 @@ def locked(self: Room) -> bool:
     """
     Return whether this room is behind a locked door.
     """
-    return any(door and door.is_locked for door in self.doors.values())
+    # (`remove_wall` marks open connections with `True` instead of a door)
+    return any(isinstance(door, Door) and door.is_locked for door in self.doors.values())
 
 
 # %% ../../nbs/02d_envs.roomgrid.ipynb #ddd36dc0
@@ -349,6 +350,7 @@ def add_door(
     # Need to make sure that there is a neighbor along this wall
     # and that there is not already a door
     if dir is None:
+        dir = self._rand_elem(Direction)
         while room.neighbors[dir] is None or room.doors[dir] is not None:
             dir = self._rand_elem(Direction)
     else:
@@ -524,6 +526,15 @@ def add_distractors(
     room_objs = (obj for row in self.room_grid for room in row for obj in room.objs)
     room_obj_keys = {(obj.type, obj.color) for obj in room_objs}  
 
+    # With all_unique, fail early instead of looping forever when there are not
+    # enough unused (type, color) combinations left
+    kinds = [Type.key, Type.ball, Type.box]
+    available = {(kind, color) for kind in kinds for color in Color} - room_obj_keys
+    if all_unique and num_distractors > len(available):
+        raise ValueError(
+            f"cannot add {num_distractors} unique distractors: only {len(available)} "
+            "unused (type, color) combinations left")
+
     # Add distractors
     distractors = []
     while len(distractors) < num_distractors:
@@ -534,11 +545,11 @@ def add_distractors(
             continue
 
         # Add the object to a random room if no room specified
-        col = col if col is not None else self._rand_int(0, self.num_cols)
-        row = row if row is not None else self._rand_int(0, self.num_rows)
-        distractor, _ = self.add_object(col, row, kind=type, color=color)
+        obj_col = col if col is not None else self._rand_int(0, self.num_cols)
+        obj_row = row if row is not None else self._rand_int(0, self.num_rows)
+        distractor, _ = self.add_object(obj_col, obj_row, kind=type, color=color)
 
-        room_obj_keys.append((type, color))
+        room_obj_keys.add((type, color))
         distractors.append(distractor)
 
     return distractors
