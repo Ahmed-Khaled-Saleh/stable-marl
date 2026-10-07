@@ -4,15 +4,19 @@
 
 # %% auto #0
 __all__ = ['ShootingCostEvaluator', 'default_goal_encode', 'flat_goal_encode', 'ControlPenalty', 'GoalMSE', 'WeightedSum',
-           'PLANNING_MODES', 'CategoricalCEMSolver', 'CategoricalMPPISolver', 'Solver', 'Constrainable', 'Costable',
-           'Dynamics', 'Objective']
+           'PLANNING_MODES', 'Solver', 'CategoricalCEMSolver', 'CategoricalMPPISolver', 'PGDSolver', 'CEMSolver',
+           'ICEMSolver', 'MPPISolver', 'PredictiveSamplingSolver', 'GradientSolver', 'LagrangianSolver',
+           'Constrainable', 'Costable', 'Dynamics', 'Objective']
 
 # %% ../../nbs/planning/03_init.ipynb #14e061fa
 from .evaluator import ShootingCostEvaluator, default_goal_encode, flat_goal_encode
 from .objective import ControlPenalty, GoalMSE, WeightedSum
-from .solver import PLANNING_MODES, CategoricalCEMSolver, CategoricalMPPISolver, Solver
+from .solver import (
+    PLANNING_MODES, Solver, CategoricalCEMSolver, CategoricalMPPISolver, PGDSolver,
+    CEMSolver, ICEMSolver, MPPISolver, PredictiveSamplingSolver, GradientSolver, LagrangianSolver)
 from ..protocols import Constrainable, Costable, Dynamics, Objective
 
 _all_ = ['ShootingCostEvaluator', 'default_goal_encode', 'flat_goal_encode', 'ControlPenalty', 'GoalMSE',
-         'WeightedSum', 'PLANNING_MODES', 'CategoricalCEMSolver', 'CategoricalMPPISolver', 'Solver',
+         'WeightedSum', 'PLANNING_MODES', 'Solver', 'CategoricalCEMSolver', 'CategoricalMPPISolver', 'PGDSolver',
+         'CEMSolver', 'ICEMSolver', 'MPPISolver', 'PredictiveSamplingSolver', 'GradientSolver', 'LagrangianSolver',
          'Constrainable', 'Costable', 'Dynamics', 'Objective']

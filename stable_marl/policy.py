@@ -15,7 +15,8 @@ from .envs.base import MultiAgentEnv
 from .protocols import Actionable, Transformable
 
 # %% auto #0
-__all__ = ['Policy', 'BasePolicy', 'RandomPolicy', 'ExpertPolicy', 'FeedForwardPolicy', 'PlanConfig', 'WorldModelPolicy']
+__all__ = ['ACTION_HISTORY_KEY', 'Policy', 'BasePolicy', 'RandomPolicy', 'ExpertPolicy', 'FeedForwardPolicy', 'PlanConfig',
+           'WorldModelPolicy']
 
 # %% ../nbs/02_policy.ipynb #b086ed28
 class BasePolicy:
@@ -170,11 +171,11 @@ class PlanConfig:
     receding_horizon : int
         Steps of each plan executed before replanning
     history_len : int
-        Context steps given to the world model (only 1 is supported for now)
+        Context frames given to the world model (one every ``action_block`` env steps)
     history_max_len : int, optional
         Capacity of the context buffer
     action_block : int
-        Times each action is repeated (only 1 is supported for now)
+        Env steps per planning step (each planned action covers ``action_block`` env steps)
     warm_start : bool
         Whether the rest of the previous plan is passed to the solver
     """
@@ -197,15 +198,24 @@ class PlanConfig:
         return self.horizon * self.action_block
 
 # %% ../nbs/02_policy.ipynb #f42df439
+ACTION_HISTORY_KEY = 'action_history'   # info key of the actions executed between the context frames
+
+
 class WorldModelPolicy(BasePolicy):
     """
-    Model-predictive control: plans the actions of all agents with a solver (e.g. a
-    :class:`CategoricalCEMSolver` over a world model), executes the first ``receding_horizon``
-    steps of the plan, then replans. Each env replans on its own schedule, and from scratch when
-    it starts a new episode (``_needs_flush``).
+    Model-predictive control: plans the actions of all agents with a solver (over a world model),
+    executes the first ``receding_horizon`` planning steps (each ``action_block`` env steps), then
+    replans. Each env replans on its own schedule, and from scratch when it starts an episode
+    (``_needs_flush``). Works with discrete and continuous actions; centralised or decentralised
+    planning is chosen by the solver's ``mode`` and the objective (joint or per-agent cost).
+    Continuous actions are clipped to the action space, so the recorded actions are the executed ones.
 
-    Centralised or decentralised planning is chosen by the solver's ``mode`` and the objective
-    (joint or per-agent cost).
+    With ``history_len > 1``, the solver gets the last ``history_len`` frames of the
+    `history_keys` (one every ``action_block`` env steps, oldest first, e.g. ``pov``
+    ``(n, history_len, num_agents, ...)``) and the actions executed between them under
+    ``'action_history'`` ``(n, history_len - 1, num_agents, action_block * D)``. Early in an
+    episode the context is shorter; it is padded (copies of the oldest frame, zero actions) only
+    when envs at different fill levels replan together.
     """
     def __init__(
         self,
@@ -222,33 +232,58 @@ class WorldModelPolicy(BasePolicy):
         self.history_keys = tuple(history_keys)
         self._action_buffer: list[deque] | None = None
         self._next_init = None
+        self._history_buffer = None
 
     @property
     def flatten_receding_horizon(self) -> int:
-        "Executed steps of a plan, in env steps."
+        "Executed env steps of a plan."
         return self.cfg.receding_horizon * self.cfg.action_block
 
     def set_env(self, env: Any):
+        from stable_marl.buffer import HistoryBuffer
         from stable_marl.planning.solver import Solver
-        if self.cfg.history_len != 1 or self.cfg.action_block != 1:
-            raise NotImplementedError("WorldModelPolicy supports history_len=1 and action_block=1 for now")
         self.env = env
         self.solver.configure(action_space=env.single_action_space, n_envs=env.num_envs, config=self.cfg)
         if not isinstance(self.solver, Solver):   # checked once configured, as its properties need the config
             raise TypeError("The solver must implement the Solver protocol")
         self._action_buffer = [deque(maxlen=self.flatten_receding_horizon) for _ in range(env.num_envs)]
         self._next_init = None
+        self._history_buffer = None
+        if self.cfg.history_len > 1:
+            max_len = self.cfg.history_max_len or (self.cfg.history_len - 1) * self.cfg.action_block + 1
+            self._history_buffer = HistoryBuffer(env.num_envs, max_len, self.cfg.action_block, block_keys=('action',))
+
+    @property
+    def _discrete(self) -> bool:
+        return 'Discrete' in type(self.env.single_action_space).__name__
+
+    def _env_steps(self, plan):
+        """
+        Planned actions ``(n, rh, A, X)`` -> one action per env step ``(n, rh * action_block, A, *shape)``:
+        X is ``action_block`` indices (discrete) or ``action_block * D`` values (continuous).
+        """
+        n, rh, A = plan.shape[:3]
+        ab = self.cfg.action_block
+        if self._discrete:
+            return plan.reshape(n, rh, A, ab).transpose(2, 3).reshape(n, rh * ab, A)
+        shape = tuple(self.env.single_action_space.shape[1:])
+        return plan.reshape(n, rh, A, ab, -1).transpose(2, 3).reshape(n, rh * ab, A, *shape)
 
     def get_action(self, info_dict: dict, **kwargs: Any) -> np.ndarray:
         import torch
-        n_envs, A = self.env.num_envs, self.env.num_agents
+        n_envs = self.env.num_envs
         needs_flush = info_dict.pop('_needs_flush', None)
         if needs_flush is not None:
-            for i in np.flatnonzero(needs_flush):
+            flush = [int(i) for i in np.flatnonzero(needs_flush)]
+            for i in flush:
                 self._action_buffer[i].clear()
                 if self._next_init is not None:
                     self._next_init[i] = 0
+            if self._history_buffer is not None and flush:
+                self._history_buffer.reset(flush)
         info = self._prepare_info(info_dict)
+        if self._history_buffer is not None:
+            self._history_buffer.append({k: info[k] for k in (*self.history_keys, 'action') if k in info})
 
         terminated = info.get('terminated')
         dead = (np.asarray(terminated).reshape(n_envs, -1).all(axis=1) if terminated is not None
@@ -259,8 +294,16 @@ class WorldModelPolicy(BasePolicy):
             sliced = {k: v[idx] if torch.is_tensor(v) else v[replan] if isinstance(v, np.ndarray)
                       else [v[i] for i in replan] if isinstance(v, list) else v
                       for k, v in info.items()}
+            if self._history_buffer is not None:
+                n_frames = min(self.cfg.history_len, max(self._history_buffer.num_strided(replan)))
+                history = self._history_buffer.get(n_frames, env_ids=replan)
+                for k in self.history_keys:
+                    if k in history:
+                        sliced[k] = history[k]
+                if 'action' in history:
+                    sliced[ACTION_HISTORY_KEY] = history['action']
             init = self._next_init[idx] if self._next_init is not None else None
-            actions = self.solver(sliced, init_action=init)['actions']          # (n, horizon, A)
+            actions = self.solver(sliced, init_action=init)['actions']          # (n, horizon, A, X)
             keep = self.cfg.receding_horizon
             plan, rest = actions[:, :keep], actions[:, keep:]
             if self.cfg.warm_start and rest.shape[1] > 0:
@@ -269,15 +312,20 @@ class WorldModelPolicy(BasePolicy):
                 self._next_init[idx] = rest
             elif not self.cfg.warm_start:
                 self._next_init = None
+            steps = self._env_steps(plan)
             for row, i in enumerate(replan):
-                self._action_buffer[i].extend(plan[row].reshape(self.flatten_receding_horizon, A))
+                self._action_buffer[i].extend(steps[row])
 
-        action = np.zeros((n_envs, A), dtype=np.int64)
+        shape = (n_envs, *self.env.single_action_space.shape)
+        action = np.zeros(shape, np.int64) if self._discrete else np.full(shape, np.nan, np.float32)
         for i in range(n_envs):
             if not dead[i]:
                 action[i] = np.asarray(self._action_buffer[i].popleft())
         if 'action' in self.process:
             action = self.process['action'].inverse_transform(action)
+        space = self.env.single_action_space
+        if not self._discrete and hasattr(space, 'low'):   # solvers may plan beyond the bounds: execute (and record) valid actions
+            action = np.clip(action, space.low, space.high)
         return action
 
 

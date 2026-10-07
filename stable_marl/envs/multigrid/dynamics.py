@@ -28,8 +28,14 @@ def walkable(state: torch.Tensor) -> torch.Tensor:
 class NavigationDynamics(torch.nn.Module):
     """
     Exact MultiGrid navigation model (``Dynamics`` protocol). Reads the infos ``position``
-    (..., num_agents, 2), ``direction`` (..., num_agents) and ``state`` (..., W, H, 3).
+    (..., num_agents, 2), ``direction`` (..., num_agents) and ``state`` (..., W, H, 3), at the
+    last context frame (it is Markovian: earlier frames and ``action_history`` are not needed).
+    Each planning step covers `action_block` env steps.
     """
+    def __init__(self, action_block: int = 1):
+        super().__init__()
+        self.action_block = action_block
+
     def encode(self, x: dict) -> dict:
         "Embedding: the agents' positions, ``emb`` (..., num_agents, 2)."
         x['emb'] = x['position'].float()
@@ -37,11 +43,16 @@ class NavigationDynamics(torch.nn.Module):
 
     def rollout(self, info_dict: dict, action_candidates: torch.Tensor) -> dict:
         """
-        Roll the candidates ``(B, S, horizon, num_agents, K)`` (one-hot, or action indices
-        ``(B, S, horizon, num_agents)``) out from the last context step. Adds ``predicted_emb``
-        ``(B, S, 1 + horizon, num_agents, 2)``: the positions, the current one first.
+        Roll the candidates out from the last context frame: one-hot ``(B, S, horizon, num_agents,
+        action_block * K)``, or action indices ``(B, S, horizon, num_agents[, action_block])``. Adds
+        ``predicted_emb`` ``(B, S, 1 + horizon, num_agents, 2)``: the positions after each planning
+        step, the current one first.
         """
-        actions = action_candidates.argmax(-1) if action_candidates.is_floating_point() else action_candidates
+        ab = self.action_block
+        if action_candidates.is_floating_point():
+            actions = action_candidates.reshape(*action_candidates.shape[:-1], ab, -1).argmax(-1)
+        else:
+            actions = action_candidates if action_candidates.ndim == 5 else action_candidates.unsqueeze(-1)
         pos = info_dict['position'][:, :, -1].long()                     # (B, S, A, 2)
         direction = info_dict['direction'][:, :, -1].long()               # (B, S, A)
         free = walkable(info_dict['state'][:, :, -1])                     # (B, S, W, H)
@@ -52,14 +63,15 @@ class NavigationDynamics(torch.nn.Module):
         dir_to_vec = _DIR_TO_VEC.to(pos.device)
         trajectory = [pos]
         for t in range(actions.shape[2]):
-            a = actions[:, :, t]
-            direction = torch.where(a == int(Action.left), (direction - 1) % 4,
-                                    torch.where(a == int(Action.right), (direction + 1) % 4, direction))
-            target = pos + dir_to_vec[direction]
-            inside = (target[..., 0] >= 0) & (target[..., 0] < W) & (target[..., 1] >= 0) & (target[..., 1] < H)
-            tx, ty = target[..., 0].clamp(0, W - 1), target[..., 1].clamp(0, H - 1)
-            move = (a == int(Action.forward)) & inside & free[b, s, tx, ty]
-            pos = torch.where(move[..., None], target, pos)
+            for j in range(actions.shape[4]):
+                a = actions[:, :, t, :, j]
+                direction = torch.where(a == int(Action.left), (direction - 1) % 4,
+                                        torch.where(a == int(Action.right), (direction + 1) % 4, direction))
+                target = pos + dir_to_vec[direction]
+                inside = (target[..., 0] >= 0) & (target[..., 0] < W) & (target[..., 1] >= 0) & (target[..., 1] < H)
+                tx, ty = target[..., 0].clamp(0, W - 1), target[..., 1].clamp(0, H - 1)
+                move = (a == int(Action.forward)) & inside & free[b, s, tx, ty]
+                pos = torch.where(move[..., None], target, pos)
             trajectory.append(pos)
         info_dict['predicted_emb'] = torch.stack(trajectory, dim=2).float()
         return info_dict
