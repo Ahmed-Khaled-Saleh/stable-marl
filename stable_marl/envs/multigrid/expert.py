@@ -9,7 +9,7 @@ from collections import deque
 
 import numpy as np
 
-from ...policy.base import ExpertPolicy
+from ...policy import ExpertPolicy
 from .base import MultiGridEnv
 from .core.actions import Action
 from .core.constants import Direction

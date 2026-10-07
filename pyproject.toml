@@ -32,11 +32,13 @@ dependencies = [
     'pygame',
     'hydra-core',           # stable_marl.configs, stable_marl.envs.registry.make_env
     'omegaconf',
+    'h5py',                 # stable_marl.data: the hdf5 dataset format
 ]
 
 [project.optional-dependencies]
 pettingzoo = ['pettingzoo']
 torchrl = ['pettingzoo', 'torch', 'torchrl>=0.10,<0.12']
+train = ['torch']           # reading datasets as tensors (stable_marl.data.Dataset), FeedForwardPolicy
 rllib = ['ray[rllib]']
 render = [                  # GridRecorder videos / frames, plotting in tests and examples
     'pillow>=11.3.0',
