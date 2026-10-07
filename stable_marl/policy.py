@@ -10,6 +10,7 @@ from typing import Any, Callable
 import numpy as np
 
 from .envs.base import MultiAgentEnv
+from .protocols import Actionable, Transformable
 
 # %% auto #0
 __all__ = ['BasePolicy', 'RandomPolicy', 'ExpertPolicy', 'FeedForwardPolicy']
@@ -127,10 +128,12 @@ class FeedForwardPolicy(BasePolicy):
     """
     def __init__(
         self,
-        model: Any,
-        process: dict[str, Any] | None = None,
+        model: Actionable,
+        process: dict[str, Transformable] | None = None,
         transform: dict[str, Callable] | None = None,
         **kwargs: Any):
+        if not isinstance(model, Actionable):
+            raise TypeError(f"FeedForwardPolicy needs a model with `get_action` (Actionable), got {type(model).__name__}")
         super().__init__(**kwargs)
         self.type = 'feed_forward'
         self.model = model.eval()
