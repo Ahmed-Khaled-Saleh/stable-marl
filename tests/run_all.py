@@ -28,6 +28,7 @@ TESTS = [
     ('external wrappers', ['test_external_wrappers.py']),
     ('sionna export', ['test_sionna_export.py']),
     ('world / data', ['test_world.py']),
+    ('variations / goals', ['test_variations.py']),
 ]
 
 # scenes exported for the Sionna RT check: (folder, CLI arguments)

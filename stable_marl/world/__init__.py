@@ -5,7 +5,7 @@
 # %% auto #0
 __all__ = ['EnvPool', 'episode_done', 'World']
 
-# %% ../../nbs/world/02_init.ipynb #b20e59d8
+# %% ../../nbs/world/02_init.ipynb #1c624b11
 from .env_pool import EnvPool, episode_done
 from .world import World
 

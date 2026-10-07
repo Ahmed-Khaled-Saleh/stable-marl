@@ -20,6 +20,7 @@ import gymnasium as gym
 from gymnasium import spaces
 
 from .base import MultiGridEnv
+from ... import spaces as vspaces
 from .roomgrid import RoomGrid
 from ...utils.random import RandomMixin
 from .core import Grid
@@ -116,7 +117,8 @@ class FindGoalEnv(MultiGridEnv):
         obstacles_placed = 0
         max_attempts = 1000
 
-        while obstacles_placed < self.num_obstacles and max_attempts > 0:
+        num_obstacles = int(self._variation('obstacles.number'))
+        while obstacles_placed < num_obstacles and max_attempts > 0:
             max_attempts -= 1
             obs_w = self.np_random.integers(2, 5)
             obs_h = self.np_random.integers(1, 3)
@@ -148,7 +150,7 @@ class FindGoalEnv(MultiGridEnv):
 
         # 4. Extra single-cell clutter (also must not split the free space;
         #    best effort: stop when no valid cell is found in a dense grid)
-        for _ in range(self.n_clutter):
+        for _ in range(int(self._variation('clutter.number'))):
             try:
                 self.place_obj(Wall(), top=(1, 1), size=(width - 2, height - 2), max_tries=100,
                                reject_fn=lambda env, pos: not env._keeps_connected([pos]))
@@ -156,6 +158,7 @@ class FindGoalEnv(MultiGridEnv):
                 break
 
         # 5. Place agents
+        min_goal_spawn_distance = int(self._variation('goal.min_spawn_distance'))
         def reject_spawn_fn(env, pos):
             """Reject positions too close to goal (where goal might be visible)"""
             print("Rejecting spawn positions too close to goal")
@@ -163,7 +166,7 @@ class FindGoalEnv(MultiGridEnv):
             # dist = abs(pos[0] - goal_pos[0]) + abs(pos[1] - goal_pos[1])
             # another way of doing the same as above is through manhattan distance: dist = np.sum(np.abs(np.array(pos) - goal_pos))
             dist = np.linalg.norm(np.array(pos) - goal_pos, ord=1)
-            return dist < self.min_goal_spawn_distance
+            return dist < min_goal_spawn_distance
         
         for agent in self.agents:
             self.place_agent(agent, top=(1, 1), size=(width - 2, height - 2), reject_fn= reject_spawn_fn)
@@ -205,6 +208,24 @@ class FindGoalEnv(MultiGridEnv):
             self._goal_rng = np.random.default_rng([seed, 1])
         return super().reset(seed=seed, **kwargs)
 
+
+# %% ../../../nbs/envs/multigrid/09_findgoal.ipynb #e5f6a7b8
+@patch
+def _variation_factors(self: FindGoalEnv) -> dict:
+    """
+    :meta public:
+
+    The MultiGrid factors, plus ``goal.color``, ``goal.min_spawn_distance``, ``obstacles.number``
+    and ``clutter.number`` (each from 0 to twice the constructor's value).
+    """
+    factors = MultiGridEnv._variation_factors(self)
+    factors['goal'] = {
+        'color': vspaces.Discrete(len(Color), init_value=Color.green.to_index()),
+        'min_spawn_distance': vspaces.Discrete(2 * self.min_goal_spawn_distance + 1, init_value=self.min_goal_spawn_distance),
+    }
+    factors['obstacles'] = {'number': vspaces.Discrete(2 * self.num_obstacles + 1, init_value=self.num_obstacles)}
+    factors['clutter'] = {'number': vspaces.Discrete(2 * self.n_clutter + 1, init_value=self.n_clutter)}
+    return factors
 
 # %% ../../../nbs/envs/multigrid/09_findgoal.ipynb #fc33fe01
 @patch
@@ -351,7 +372,7 @@ def step(
     if self.render_mode == 'human':
         self.render()
 
-    infos = {agent.index: {} for agent in self.agents}
+    infos = self._infos()
     return observations, rewards, terminations, truncations, infos
 
 # %% ../../../nbs/envs/multigrid/09_findgoal.ipynb #715d3532

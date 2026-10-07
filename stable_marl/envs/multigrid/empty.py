@@ -10,6 +10,7 @@ import numpy as np
 from numpy.typing import NDArray as ndarray
 
 from .base import MultiGridEnv
+from ... import spaces as vspaces
 from .core import Grid
 from .core.constants import Direction
 from .core.world_object import Goal
@@ -190,6 +191,14 @@ def _gen_grid(self: EmptyEnv, width, height):
                 agent.state.dir = self.agent_start_dir
             else:
                 self.place_agent(agent)
+
+# %% ../../../nbs/envs/multigrid/03_empty.ipynb #f9a0b1c2
+@patch
+def _variation_factors(self: EmptyEnv) -> dict:
+    ":meta public: The MultiGrid factors, plus ``goal.color``."
+    factors = MultiGridEnv._variation_factors(self)
+    factors['goal'] = {'color': vspaces.Discrete(len(Color), init_value=Color.green.to_index())}
+    return factors
 
 # %% ../../../nbs/envs/multigrid/03_empty.ipynb #0f940248
 @patch

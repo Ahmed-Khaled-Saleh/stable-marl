@@ -21,6 +21,7 @@ from fastcore.utils import patch
 
 from ...types import AgentID, ObsType
 from ..base import MultiAgentEnv
+from ... import spaces as vspaces
 from .core.actions import Action
 from .core.agent import Agent, AgentState
 from .core.constants import Color, Type, TILE_PIXELS
@@ -108,7 +109,8 @@ class MultiGridEnv(MultiAgentEnv, RandomMixin):
         highlight: bool = True,
         tile_size: int = TILE_PIXELS,
         agent_pov: bool = False,
-        obs_mode: Literal['ego', 'allo', 'global'] = 'ego'):
+        obs_mode: Literal['ego', 'allo', 'global'] = 'ego',
+        init_value: dict | None = None):
         """
         Parameters
         ----------
@@ -152,6 +154,8 @@ class MultiGridEnv(MultiAgentEnv, RandomMixin):
             * 'ego': partial view in front of the agent, rotated so the agent faces up
             * 'allo': partial view centred on the agent, world-aligned (no rotation)
             * 'global': the whole grid, fully observable, identical for every agent
+        init_value : dict, optional
+            Initial values of factors of the :attr:`variation_space`, e.g. ``{'wall.color': 0}``
         """
         gym.Env.__init__(self)
         RandomMixin.__init__(self, self.np_random)
@@ -233,6 +237,15 @@ class MultiGridEnv(MultiAgentEnv, RandomMixin):
         self.obs_mode = obs_mode
         self._set_obs_spaces()
 
+        # Factors of variation (see `_variation_factors`), and goal infos of the current episode
+        self.variation_space = self._build_variation_space()
+        self._native_variation = {name: np.copy(vspaces.get_in(self.variation_space, name.split('.')).init_value)
+                                  for name in self.variation_space.names()}
+        if init_value is not None:
+            self.variation_space.set_init_value(init_value)
+        self._varied: set[str] = set()
+        self._goal_infos: dict[AgentID, dict[str, Any]] = {}
+
 
     @abstractmethod
     def _gen_grid(self: MultiGridEnv, width: int, height: int):
@@ -305,6 +318,92 @@ def _rand_color(self: MultiGridEnv) -> Color:
     """
     return self._rand_elem(Color)
 
+# %% ../../../nbs/envs/multigrid/02_base.ipynb #d1a2b3c4
+@patch
+def _variation_factors(self: MultiGridEnv) -> dict[str, Any]:
+    """
+    :meta public:
+
+    Factors of variation of the env (see :mod:`stable_marl.spaces`), by group. Every MultiGrid
+    env has:
+
+    * ``agent.color``: color index of each agent (all different), default: the agents' colors
+    * ``wall.color``: color index of the walls, default grey (cells outside the grid stay grey)
+
+    Subclasses add their own factors (calling this one); their initial values are the env's
+    defaults, so an env only changes when a variation is asked for.
+    """
+    num_colors, A = len(Color), self.num_agents
+    distinct = (lambda c: len(set(np.asarray(c).tolist())) == len(c)) if A <= num_colors else None
+    agent_colors = [Color(c).to_index() for c in np.atleast_1d(self.agent_states.color)]
+    return {
+        'agent': {'color': vspaces.MultiDiscrete([num_colors] * A, init_value=agent_colors, constrain_fn=distinct)},
+        'wall': {'color': vspaces.Discrete(num_colors, init_value=Color.grey.to_index())},
+    }
+
+@patch
+def _build_variation_space(self: MultiGridEnv) -> vspaces.Dict:
+    return vspaces.Dict({group: vspaces.Dict(factors) if isinstance(factors, dict) else factors
+                         for group, factors in self._variation_factors().items()})
+
+@patch
+def _variation(self: MultiGridEnv, name: str) -> Any:
+    "Current value of the factor of variation `name`, e.g. 'wall.color'."
+    return vspaces.get_in(self.variation_space, name.split('.')).value
+
+@patch
+def _apply_variations(self: MultiGridEnv):
+    """
+    Apply the color factors to the generated grid. A factor is applied when its value differs
+    from the env's native one (or differed in the previous episode, to restore it).
+    """
+    varied = {name for name in ('agent.color', 'wall.color', 'goal.color') if name in self._native_variation
+              and not np.array_equal(self._variation(name), self._native_variation[name])}
+    for name in varied | self._varied:
+        value = self._variation(name)
+        if name == 'agent.color':
+            self.agent_states.color = [Color.from_index(int(i)).value for i in value]
+        else:
+            self._recolor(Type.wall if name == 'wall.color' else Type.goal, Color.from_index(int(value)))
+    self._varied = varied
+
+@patch
+def _recolor(self: MultiGridEnv, obj_type: Type, color: Color):
+    """
+    Set the color of every object of type `obj_type` in the grid. Objects are replaced by
+    recolored copies, never modified: some are shared instances (e.g. ``Wall()`` is cached).
+    """
+    mask = self.grid.state[..., WorldObj.TYPE] == obj_type.to_index()
+    self.grid.state[mask, WorldObj.COLOR] = color.to_index()
+    for pos, obj in list(self.grid.world_objects.items()):
+        if obj is not None and obj.type == obj_type:
+            new = WorldObj.from_array(self.grid.state[pos])
+            new.contains = getattr(obj, 'contains', None)
+            new.init_pos, new.cur_pos = getattr(obj, 'init_pos', None), getattr(obj, 'cur_pos', None)
+            self.grid.world_objects[pos] = new
+
+@patch
+def goal_infos(self: MultiGridEnv) -> dict[AgentID, dict[str, Any]]:
+    """
+    Goal of the current episode for each agent, computed at reset and added to every info: for
+    envs defining ``get_goal_state``, ``'goal'`` (the agent's 'pov' observation at the goal) and
+    ``'goal_position'`` (the goal cell). Empty for other envs.
+    """
+    if not hasattr(self, 'get_goal_state'):
+        return {}
+    cells = np.argwhere(self.grid.state[..., WorldObj.TYPE] == Type.goal.to_index())
+    if len(cells) == 0:
+        return {}
+    return {agent.index: {'goal': self.get_goal_state(agent, agent.view_size), 'goal_position': cells[0]}
+            for agent in self.agents}
+
+@patch
+def _infos(self: MultiGridEnv) -> dict[AgentID, dict[str, Any]]:
+    "Infos of a reset / step: the goal infos of the episode."
+    return {agent.index: dict(self._goal_infos.get(agent.index, {})) for agent in self.agents}
+
+MultiGridEnv.DEFAULT_VARIATIONS = ()   # factors resampled at every reset when the options name none
+
 # %% ../../../nbs/envs/multigrid/02_base.ipynb #b4118899
 @patch
 def reset(
@@ -328,6 +427,7 @@ def reset(
     """
     # super().reset(seed=seed, **kwargs)
     gym.Env.reset(self, seed=seed, **kwargs)
+    vspaces.reset_variation_space(self.variation_space, seed, kwargs.get('options'), self.DEFAULT_VARIATIONS)
 
     # gym.Env.reset replaces self.np_random when seeded,
     # so re-bind the RandomMixin helpers (_rand_int, etc.) to the new generator
@@ -341,6 +441,7 @@ def reset(
 
     # Generate a new random grid at the start of each episode
     self._gen_grid(self.width, self.height)
+    self._apply_variations()
 
     # Envs may set the mission while generating the grid: keep the agents in sync
     for agent in self.agents:
@@ -360,12 +461,13 @@ def reset(
 
     # Return first observation
     observations = self.gen_obs()
+    self._goal_infos = self.goal_infos()
 
     # Render environment
     if self.render_mode == 'human':
         self.render()
 
-    return observations, {agent.index: {} for agent in self.agents}
+    return observations, self._infos()
 
 
 
@@ -414,7 +516,7 @@ def step(
     if self.render_mode == 'human':
         self.render()
 
-    infos = {agent.index: {} for agent in self.agents}
+    infos = self._infos()
     return observations, rewards, terminations, truncations, infos
 
 
