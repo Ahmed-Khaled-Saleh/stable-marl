@@ -228,6 +228,8 @@ class WorldModelPolicy(BasePolicy):
         super().__init__(**kwargs)
         self.type = 'world_model'
         self.cfg, self.solver = config, solver
+        if hasattr(getattr(solver, 'cost', None), 'eval'):   # plan with the model in inference mode (e.g. BatchNorm)
+            solver.cost.eval()
         self.process, self.transform = process or {}, transform or {}
         self.history_keys = tuple(history_keys)
         self._action_buffer: list[deque] | None = None

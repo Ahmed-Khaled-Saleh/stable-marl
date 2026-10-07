@@ -7,7 +7,7 @@ __all__ = ['PLANNING_MODES', 'Solver', 'SolverBase', 'gather_agents', 'joint_act
            'CategoricalCEMSolver', 'CategoricalMPPISolver', 'PGDSolver', 'CEMSolver', 'ICEMSolver', 'MPPISolver',
            'PredictiveSamplingSolver', 'GradientSolver', 'LagrangianSolver']
 
-# %% ../../../nbs/planning/solver/04_init.ipynb #e50e6668
+# %% ../../../nbs/planning/solver/04_init.ipynb #6137915c
 from .base import (PLANNING_MODES, Solver, SolverBase, gather_agents,
                                               joint_action_layout, prepare_init_action)
 from .categorical import CategoricalCEMSolver, CategoricalMPPISolver, PGDSolver
