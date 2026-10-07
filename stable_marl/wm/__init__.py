@@ -5,7 +5,7 @@
 # %% auto #0
 __all__ = ['DecentralizedWorldModel', 'LeWM', 'build_lewm', 'SIGReg', 'VCReg', 'lewm_losses', 'train_world_model']
 
-# %% ../../nbs/wm/06_init.ipynb #44e7334a
+# %% ../../nbs/wm/06_init.ipynb #83e5e698
 from .decentralized import DecentralizedWorldModel
 from .lewm import LeWM, build_lewm
 from .loss import SIGReg, VCReg

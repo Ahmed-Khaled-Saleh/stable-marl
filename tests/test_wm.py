@@ -67,6 +67,33 @@ def train_then_plan_per_agent():
 
 
 @test
+def position_as_extra_input():
+    """Each agent's model also reads its own position (and the goal's): train, then plan with it."""
+    with tempfile.TemporaryDirectory() as tmp:
+        dataset(f'{tmp}/d.h5')
+        ds = sm.HDF5Dataset(path=f'{tmp}/d.h5', num_steps=4, keys_to_load=['pov', 'position', 'action', 'terminated'])
+        torch.manual_seed(0)
+        model = DecentralizedWorldModel.build_lewm(num_agents=2, num_actions=4, extra_inputs={'position': 2}, **TINY)
+        train_world_model(model, ds, epochs=1, batch_size=32, lr=1e-3, sigreg_kwargs={'num_proj': 64}, log=None)
+
+    def policy(history_keys):
+        cost = ShootingCostEvaluator(model, GoalMSE(per_agent=True, step_reduction='min'))
+        solver = CategoricalCEMSolver(cost, batch_size=2, num_samples=16, n_steps=2, topk=4, mode='per_agent')
+        return sm.WorldModelPolicy(solver, sm.PlanConfig(horizon=4, receding_horizon=2, history_len=3),
+                                   history_keys=history_keys)
+
+    world = sm.World('MultiGrid-FindGoal-15x15-v0', num_envs=2, max_episode_steps=8, goal_conditioned=True, **ENV)
+    world.set_policy(policy(('pov', 'position')))
+    assert len(world.evaluate(episodes=2, seed=0)['episode_lengths']) == 2
+    world.set_policy(policy(('pov',)))        # position given for 1 frame, pov for up to 3: a clear error
+    try:
+        world.evaluate(episodes=2, seed=0)
+        raise AssertionError("missing position history must fail")
+    except ValueError as e:
+        assert 'history_keys' in str(e)
+
+
+@test
 def agents_plan_independently():
     """An agent's planned actions do not depend on what the other agent sees."""
     torch.manual_seed(0)
