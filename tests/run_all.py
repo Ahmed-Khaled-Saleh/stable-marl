@@ -27,6 +27,7 @@ TESTS = [
     ('hydra configs', ['test_hydra_configs.py']),
     ('external wrappers', ['test_external_wrappers.py']),
     ('sionna export', ['test_sionna_export.py']),
+    ('world / data', ['test_world.py']),
 ]
 
 # scenes exported for the Sionna RT check: (folder, CLI arguments)

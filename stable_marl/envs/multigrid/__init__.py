@@ -4,7 +4,7 @@
 
 # %% auto #0
 __all__ = ['CONFIGURATIONS', 'MultiGridEnv', 'BlockedUnlockPickupEnv', 'EmptyEnv', 'LockedHallwayEnv', 'PlaygroundEnv',
-           'RedBlueDoorsEnv', 'FindGoalEnv']
+           'RedBlueDoorsEnv', 'FindGoalEnv', 'GoToGoalPolicy']
 
 # %% ../../../nbs/envs/multigrid/10_init.ipynb #8e9f1e04
 """
@@ -47,9 +47,10 @@ from .locked_hallway import LockedHallwayEnv
 from .playground import PlaygroundEnv
 from .redbluedoors import RedBlueDoorsEnv
 from .findgoal import FindGoalEnv
+from .expert import GoToGoalPolicy
 
 _all_ = ['MultiGridEnv', 'BlockedUnlockPickupEnv', 'EmptyEnv', 'LockedHallwayEnv',
-         'PlaygroundEnv', 'RedBlueDoorsEnv', 'FindGoalEnv']
+         'PlaygroundEnv', 'RedBlueDoorsEnv', 'FindGoalEnv', 'GoToGoalPolicy']
 
 # %% ../../../nbs/envs/multigrid/10_init.ipynb #8c035681
 CONFIGURATIONS = {
