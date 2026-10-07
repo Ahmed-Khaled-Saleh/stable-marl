@@ -28,6 +28,20 @@ dependencies = [
     "numpy>=1.18.0",
     "gymnasium>=0.26",
     "pygame>=2.2.0",
+    "fastcore",
+    "hydra-core",
+    "omegaconf",
+]
+
+[project.optional-dependencies]
+pettingzoo = ["pettingzoo"]
+torchrl = ["pettingzoo", "torch", "torchrl>=0.10,<0.12"]
+rllib = ["ray[rllib]"]
+render = ["pillow>=11.3.0", "moviepy==1.0.3", "opencv-python", "tqdm", "matplotlib"]
+dev = [
+    "pettingzoo", "torch", "torchrl>=0.10,<0.12", "ray[rllib]",
+    "pillow>=11.3.0", "moviepy==1.0.3", "opencv-python", "tqdm", "matplotlib",
+    "nbdev", "notebook", "jupyterlab", "ipywidgets", "jupyterlab-git", "ipdb",
 ]
 dynamic = ["version"]
 

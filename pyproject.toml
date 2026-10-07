@@ -18,50 +18,41 @@ classifiers = [
 dependencies = [
     'aenum',
     'numpy',
-    'pandas',
     'numba',
     'fastcore',
+    'gymnasium',
+    'pygame',
+    'hydra-core',           # multigrid.configs, multigrid.utils.env_factory
+    'omegaconf',
+]
+
+[project.optional-dependencies]
+pettingzoo = ['pettingzoo']
+torchrl = ['pettingzoo', 'torch', 'torchrl>=0.10,<0.12']
+rllib = ['ray[rllib]']
+render = [                  # GridRecorder videos / frames, plotting in tests and examples
+    'pillow>=11.3.0',
+    'moviepy==1.0.3',
+    'opencv-python',
+    'tqdm',
+    'matplotlib',
+]
+dev = [                     # nbdev: `pip install -e ".[dev]"`
+    'pettingzoo',
+    'torch',
+    'torchrl>=0.10,<0.12',
+    'ray[rllib]',
+    'pillow>=11.3.0',
+    'moviepy==1.0.3',
+    'opencv-python',
+    'tqdm',
+    'matplotlib',
     'nbdev',
     'notebook',
     'jupyterlab',
     'ipywidgets',
     'jupyterlab-git',
     'ipdb',
-    # 'pygame',
-    'torch',
-    'torchvision',
-    'lightning',
-    'torchmetrics',
-    'transformers',
-    'timm',
-    'peft',
-    'datasets',
-    "pyarrow==20.0.0",
-    "minari[hdf5]>=0.5.3",
-    "scikit-learn>=1.7.0",
-    "swig",
-    "autorom",
-    'gymnasium',
-    "gymnasium_robotics[mujoco-py]",
-    # "pettingzoo[all]",
-    "stable-baselines3[extra]",
-    'torchrl>=0.10,<0.12',
-    'vmas>=1.3.4',
-    'ray[rllib]',
-    'loguru',
-    'tabulate',
-    'python-dotenv',
-    'einops',
-    'tqdm',
-    'pillow>=11.3.0',
-    'omegaconf',
-    'h5py',
-    'hydra-core',
-    'hydra-submitit-launcher',
-    'ujson',
-    'gdown',
-    'wandb',
-    'prettytable',
 ]
 
 [project.urls]
@@ -75,7 +66,7 @@ multigrid = "multigrid._modidx:d"
 version = {attr = "multigrid.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["multigrid"]
+include = ["multigrid*"]
 
 [tool.setuptools.package-data]
 multigrid = ["configs/**/*.yaml"]

@@ -1,5 +1,0 @@
-_target_: multigrid.envs.PlaygroundEnv
-agents: 2
-room_size: 7
-max_steps: 200
-render_mode: human

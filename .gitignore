@@ -41,3 +41,5 @@ venv
 *.xml
 *.ply
 *.blend
+scripts/env
+scripts/obs*
