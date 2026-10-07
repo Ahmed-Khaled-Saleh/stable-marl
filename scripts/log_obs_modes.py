@@ -29,7 +29,7 @@ import numpy as np
 from PIL import Image
 
 import stable_marl.envs
-from stable_marl.core.constants import Type
+from stable_marl.envs.multigrid.core.constants import Type
 
 MODES = ('ego', 'allo', 'global')
 

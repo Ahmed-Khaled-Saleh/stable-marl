@@ -23,7 +23,7 @@ from hydra.utils import get_class, instantiate
 from omegaconf import OmegaConf
 
 from stable_marl.configs.env import CONFIG_DIR, ENV_CONFIGS, register_configs
-from stable_marl.envs.base import MultiGridEnv
+from stable_marl.envs.multigrid.base import MultiGridEnv
 
 HYDRA_KEYS = {'_target_', '_convert_'}
 

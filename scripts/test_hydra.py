@@ -2,8 +2,8 @@
 from build import env
 import hydra
 from omegaconf import DictConfig
-from stable_marl.core import actions
-from stable_marl.utils.env_factory import make_env
+from stable_marl.envs.multigrid.core import actions
+from stable_marl.envs.registry import make_env
 
 @hydra.main(config_path="env", config_name="playground")
 def main(cfg: DictConfig):

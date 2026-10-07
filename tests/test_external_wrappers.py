@@ -20,8 +20,8 @@ import gymnasium as gym
 import numpy as np
 
 import stable_marl.envs
-from stable_marl.core.actions import Action
-from stable_marl.envs import EmptyEnv, FindGoalEnv, RedBlueDoorsEnv
+from stable_marl.envs.multigrid.core.actions import Action
+from stable_marl.envs.multigrid import EmptyEnv, FindGoalEnv, RedBlueDoorsEnv
 from stable_marl.wrappers.external import (
     PettingZooWrapper, RLlibWrapper, TorchRLPettingZooWrapper,
     register_rllib_envs, to_pettingzoo_env, to_rllib_env,
@@ -48,7 +48,7 @@ def quiet(fn, *args, **kwargs):
 
 def put_agent0_before_goal(base_env):
     """Place agent 0 of a FindGoal env right in front of the goal, facing it."""
-    from stable_marl.core.constants import Direction
+    from stable_marl.envs.multigrid.core.constants import Direction
     gx, gy = map(int, base_env.goal_pos)
     for d in Direction:
         dx, dy = d.to_vec()

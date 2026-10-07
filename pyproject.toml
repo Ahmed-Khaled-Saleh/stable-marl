@@ -30,7 +30,7 @@ dependencies = [
     'fastcore',
     'gymnasium',
     'pygame',
-    'hydra-core',           # stable_marl.configs, stable_marl.utils.env_factory
+    'hydra-core',           # stable_marl.configs, stable_marl.envs.registry.make_env
     'omegaconf',
 ]
 

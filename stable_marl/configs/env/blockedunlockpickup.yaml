@@ -1,6 +1,6 @@
-# Default config of stable_marl.envs.BlockedUnlockPickupEnv
+# Default config of stable_marl.envs.multigrid.BlockedUnlockPickupEnv
 # Generated from stable_marl.configs.env.BlockedUnlockPickupEnvConfig (nbs/04_configs.env.ipynb) -- edit the dataclass, not this file.
-_target_: stable_marl.envs.BlockedUnlockPickupEnv
+_target_: stable_marl.envs.multigrid.BlockedUnlockPickupEnv
 _convert_: all
 agents: 1
 agent_view_size: 7

@@ -1,6 +1,6 @@
-# Default config of stable_marl.envs.PlaygroundEnv
+# Default config of stable_marl.envs.multigrid.PlaygroundEnv
 # Generated from stable_marl.configs.env.PlaygroundEnvConfig (nbs/04_configs.env.ipynb) -- edit the dataclass, not this file.
-_target_: stable_marl.envs.PlaygroundEnv
+_target_: stable_marl.envs.multigrid.PlaygroundEnv
 _convert_: all
 agents: 1
 agent_view_size: 7

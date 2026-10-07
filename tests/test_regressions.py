@@ -12,11 +12,11 @@ import numpy as np
 
 warnings.filterwarnings('ignore')
 
-from stable_marl.core.actions import Action
-from stable_marl.core.constants import Color, Direction, Type
-from stable_marl.core.grid import Grid
-from stable_marl.core.world_object import Ball, Box, Door, Key, Marker, Wall, WorldObj
-from stable_marl.envs import (
+from stable_marl.envs.multigrid.core.actions import Action
+from stable_marl.envs.multigrid.core.constants import Color, Direction, Type
+from stable_marl.envs.multigrid.core.grid import Grid
+from stable_marl.envs.multigrid.core.world_object import Ball, Box, Door, Key, Marker, Wall, WorldObj
+from stable_marl.envs.multigrid import (
     BlockedUnlockPickupEnv, EmptyEnv, LockedHallwayEnv, PlaygroundEnv, RedBlueDoorsEnv,
 )
 
@@ -133,7 +133,7 @@ def str_with_marker():
 
 @test
 def envs_export_classes():
-    import stable_marl.envs as envs
+    import stable_marl.envs.multigrid as envs
     assert {'EmptyEnv', 'FindGoalEnv', 'RedBlueDoorsEnv'} <= set(envs.__all__)
 
 

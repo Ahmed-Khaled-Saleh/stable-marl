@@ -71,7 +71,7 @@ def main():
             folders = []
             for folder, cli in SIONNA_SCENES:
                 out = os.path.join(tmp, folder)
-                ok = run(f"export {folder}", [sys.executable, '-m', 'stable_marl.utils.sionna_export', *cli, '--out', out])
+                ok = run(f"export {folder}", [sys.executable, '-m', 'stable_marl.envs.multigrid.sionna_export', *cli, '--out', out])
                 results.append(ok)
                 if ok:
                     folders.append(out)

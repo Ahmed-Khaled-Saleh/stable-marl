@@ -13,7 +13,7 @@ import ray.tune
 import torch
 import torch.nn as nn
 
-from stable_marl.core.constants import Direction
+from stable_marl.envs.multigrid.core.constants import Direction
 from pathlib import Path
 from ray.rllib.algorithms import PPOConfig
 from ray.rllib.core.columns import Columns
