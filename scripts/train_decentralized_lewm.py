@@ -2,7 +2,7 @@
 Decentralized LeWMs on a small FindGoal (random goals and starts, 2 agents): collect expert + random data,
 train one LeWM per agent on its own pov, then let each agent plan with its own model.
 
-    python scripts/train_decentralized_lewm.py [epochs]
+    python scripts/train_decentralized_lewm.py [epochs] [ego|allo]
 
 Small model and images so it runs on CPU (about 5 minutes for 20 epochs); use the default
 `build_lewm` configuration (ViT-tiny, 224 x 224) on a GPU.
@@ -15,7 +15,8 @@ from stable_marl.planning import CategoricalCEMSolver, GoalMSE, ShootingCostEval
 from stable_marl.wm import DecentralizedWorldModel, train_world_model
 
 EPOCHS = int(sys.argv[1]) if len(sys.argv) > 1 else 20
-ENV = dict(agents=2, tile_size=8, size=7, num_obstacles=0, n_clutter=0, min_goal_spawn_distance=1)
+OBS_MODE = sys.argv[2] if len(sys.argv) > 2 else 'allo'   # 'ego' (rotates with the agent) or 'allo' (world-aligned)
+ENV = dict(agents=2, tile_size=8, size=7, num_obstacles=0, n_clutter=0, min_goal_spawn_distance=1, obs_mode=OBS_MODE)
 SMALL = dict(image_size=32, patch_size=8, embed_dim=64, depth=3, heads=4, dim_head=16, mlp_dim=256, projector_hidden=256,
              encoder_kwargs=dict(dim=64, depth=3, heads=4, mlp_dim=256), history_size=3, dropout=0.0)
 torch.manual_seed(0)
@@ -26,7 +27,7 @@ for name, policy, episodes in (('expert', GoToGoalPolicy(), 300), ('random', sm.
     world.set_policy(policy)
     world.collect(f'{tmp}/data.h5', episodes=episodes, seed=0 if name == 'expert' else 50_000, progress=False)
 ds = sm.HDF5Dataset(path=f'{tmp}/data.h5', num_steps=4, keys_to_load=['pov', 'action', 'terminated'])
-print(f'dataset: {len(ds.lengths)} episodes, {len(ds)} clips ({time.time() - t:.0f}s)')
+print(f'obs_mode={OBS_MODE} dataset: {len(ds.lengths)} episodes, {len(ds)} clips ({time.time() - t:.0f}s)')
 
 model = DecentralizedWorldModel.build_lewm(num_agents=2, num_actions=4, **SMALL)
 untrained = DecentralizedWorldModel.build_lewm(num_agents=2, num_actions=4, **SMALL)
