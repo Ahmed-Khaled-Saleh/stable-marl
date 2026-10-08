@@ -104,6 +104,13 @@ class DecentralizedWorldModel(nn.Module):
         info_dict['predicted_emb'] = torch.stack(preds, dim=3)
         return info_dict
 
+    @property
+    def pretrained_config(self) -> dict | None:
+        "Config rebuilding the model with Hydra's ``instantiate`` (used by :func:`save_pretrained`)."
+        if self.config is None:
+            return None
+        return {'_target_': 'stable_marl.wm.decentralized.DecentralizedWorldModel.build_lewm', **self.config}
+
     def save(self, path: str | Path):
         "Save the weights and the build configuration (models made with :meth:`build_lewm`)."
         torch.save({'config': self.config, 'state_dict': self.state_dict()}, path)

@@ -24,7 +24,7 @@ from stable_marl.data import ReplayBuffer, get_cache_dir, load_dataset
 from stable_marl.envs.multigrid import GoToGoalPolicy
 from stable_marl.planning import ShootingCostEvaluator
 from stable_marl.plot import save_panel_videos
-from stable_marl.wm import DecentralizedWorldModel
+from stable_marl.wm import load_pretrained
 
 logger = logging.getLogger(__name__)
 OmegaConf.register_new_resolver('eq', lambda a, b: a == b, replace=True)
@@ -35,8 +35,8 @@ def make_policy(cfg):
         return sm.RandomPolicy(seed=cfg.seed), None
     if cfg.policy == 'expert':
         return GoToGoalPolicy(), None
-    path = Path(get_cache_dir(cfg.cache_dir, sub_folder='checkpoints')) / f'{cfg.policy}.pt'
-    model = DecentralizedWorldModel.load(path)
+    path = Path(get_cache_dir(cfg.cache_dir, sub_folder='checkpoints')) / cfg.policy   # see save_pretrained
+    model = load_pretrained(cfg.policy, cache_dir=cfg.cache_dir)
     cost = ShootingCostEvaluator(model, hydra.utils.instantiate(cfg.objective))
     solver = hydra.utils.instantiate(cfg.solver, cost=cost)
     config = sm.PlanConfig(**cfg.plan_config)
@@ -58,7 +58,7 @@ def run(cfg):
     logger.info(f'{cfg.policy}: {metrics} ({elapsed:.0f}s)')
 
     out_dir = Path(cfg.output.dir) if cfg.output.dir else \
-        (checkpoint.parent if checkpoint else Path(__file__).parent / 'outputs')
+        (checkpoint if checkpoint else Path(__file__).parent / 'outputs')
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / cfg.output.filename).open('a') as f:
         f.write(f"\n==== CONFIG ====\n{OmegaConf.to_yaml(cfg, resolve=True)}\n==== RESULTS ====\n"

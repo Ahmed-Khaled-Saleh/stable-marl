@@ -53,6 +53,7 @@ class EnvPool:
         self._single_action_space = joint_action_space(self.envs[0])
         # cached: a batched space rebuilt on each access would never advance its RNG
         self._action_space = batch_space(self._single_action_space, self.num_envs)
+        self._observation_space = None   # batched lazily (the per-agent views make it large)
         self._stacked_infos: dict[str, Any] | None = None
 
     @property
@@ -70,6 +71,13 @@ class EnvPool:
         return self._single_action_space
 
     @property
+    def observation_space(self) -> spaces.Space:
+        "Batched observation space (each leaf with a leading num_envs axis)."
+        if self._observation_space is None:
+            self._observation_space = batch_space(self.single_observation_space, self.num_envs)
+        return self._observation_space
+
+    @property
     def single_observation_space(self) -> spaces.Dict:
         "Observation space of one env (agent id -> agent observation space)."
         return self.envs[0].observation_space
@@ -83,6 +91,11 @@ class EnvPool:
     def variation_space(self):
         "Variation space of the envs, or None if they do not define one."
         return getattr(self.envs[0].unwrapped, 'variation_space', None)
+
+    @property
+    def single_variation_space(self):
+        "Variation space of one env (alias of :attr:`variation_space`, as in stable-worldmodel)."
+        return self.variation_space
 
     def close(self):
         for env in self.envs:

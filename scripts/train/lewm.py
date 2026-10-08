@@ -6,11 +6,11 @@ several agents).
     python scripts/train/lewm.py inputs=[pixels,position,direction] output_model_name=lewm_findgoal_pos
 
 Reads the dataset <cache_dir>/datasets/<dataset_name> (its metadata gives the env), trains with
-LeWM's loss (next-embedding prediction + SIGReg) and saves <cache_dir>/checkpoints/<output_model_name>.pt,
-which `DecentralizedWorldModel.load` reads back (see scripts/plan/eval_wm.py).
+LeWM's loss (next-embedding prediction + SIGReg) and saves it with `save_pretrained` to
+<cache_dir>/checkpoints/<output_model_name>/ (weights.pt and config.json), which `load_pretrained`
+reads back (see scripts/plan/eval_wm.py).
 """
 import logging
-from pathlib import Path
 
 import hydra
 import numpy as np
@@ -18,8 +18,8 @@ import torch
 from omegaconf import OmegaConf
 
 import stable_marl as sm
-from stable_marl.data import get_cache_dir, load_dataset
-from stable_marl.wm import DecentralizedWorldModel, train_world_model
+from stable_marl.data import load_dataset
+from stable_marl.wm import DecentralizedWorldModel, save_pretrained, train_world_model
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +49,7 @@ def run(cfg):
                                 history_size=cfg.wm.history_size, num_preds=cfg.wm.num_preds,
                                 val_split=cfg.train.val_split, seed=cfg.seed, device=cfg.device,
                                 log=lambda row: logger.info(row))
-    path = Path(get_cache_dir(cfg.cache_dir, sub_folder='checkpoints')) / f'{cfg.output_model_name}.pt'
-    model.save(path)
+    path = save_pretrained(model, cfg.output_model_name, cache_dir=cfg.cache_dir)
     logger.info(f"train loss {history['train_loss'][0]:.3f} -> {history['train_loss'][-1]:.3f}, "
                 f"val {history['val_loss'][0]:.3f} -> {history['val_loss'][-1]:.3f}; saved {path}")
 

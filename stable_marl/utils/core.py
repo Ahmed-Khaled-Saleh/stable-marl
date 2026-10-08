@@ -42,7 +42,7 @@ DEFAULT_CACHE_DIR = os.path.expanduser('~/.stable_marl')   # overridden by $STAB
 HF_BASE_URL = 'https://huggingface.co'
 
 # %% auto #0
-__all__ = ['logger', 'DEFAULT_CACHE_DIR', 'HF_BASE_URL', 'exists', 'default', 'flatten_dict', 'get_in',
+__all__ = ['logger', 'DEFAULT_CACHE_DIR', 'HF_BASE_URL', 'exists', 'default', 'flatten_dict', 'get_in', 'pretraining',
            'record_video_from_dataset']
 
 # %% ../../nbs/utils/03_core.ipynb #a1133a15
@@ -74,6 +74,30 @@ def get_in(mapping: Any, path: Iterable[str]) -> Any:
     for key in list(path):
         current = current[key]
     return current
+
+# %% ../../nbs/utils/03_core.ipynb #e4a5fcd9
+def pretraining(
+    script_path: str,
+    dataset_name: str,
+    output_model_name: str,
+    dump_object: bool = True,
+    args: str = '') -> None:
+    """
+    Run the training script `script_path` with Hydra overrides `args`, ``dataset_name``,
+    ``output_model_name`` and ``++dump_object``. A failing script exits with its return code.
+    """
+    import shlex, subprocess, sys
+    if not os.path.isfile(script_path):
+        raise ValueError(f'Script {script_path} does not exist.')
+    logger.info(f'Running pretraining script: {script_path} with args: {args}')
+    env = os.environ.copy()
+    env.setdefault('PYTHONUNBUFFERED', '1')
+    args = f'{args} ++dump_object={dump_object} dataset_name={dataset_name} output_model_name={output_model_name}'
+    try:
+        subprocess.run([sys.executable, script_path, *shlex.split(args)], env=env, check=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+    logger.info('Pretraining script finished')
 
 # %% ../../nbs/utils/03_core.ipynb #38a10783
 def _frames_hwc(x) -> np.ndarray:

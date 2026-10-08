@@ -23,7 +23,7 @@ Hydra scripts, as in stable-worldmodel; any config key can be overridden on the 
 (`cache_dir`: `$STABLEMARL_HOME`, else `~/.stable_marl`).
 
     python scripts/data/collect_findgoal.py                 # expert + random FindGoal episodes -> findgoal.h5
-    python scripts/train/lewm.py                            # one LeWM per agent -> checkpoints/lewm_findgoal.pt
+    python scripts/train/lewm.py                            # one LeWM per agent -> checkpoints/lewm_findgoal/
     python scripts/plan/eval_wm.py                          # plan with it: success rate, results file, videos
     python scripts/plan/eval_wm.py policy=random            # baselines: random, expert
 

@@ -204,7 +204,14 @@ def evaluate(
     episodes: int | None = None,
     seed: int | None = None,
     options: dict | None = None,
-    reset_mode: str | None = None) -> dict[str, Any]:
+    video: str | Path | None = None,
+    reset_mode: str | None = None,
+    dataset: Any = None,
+    episodes_idx: list[int] | None = None,
+    start_steps: list[int] | None = None,
+    goal_offset: int | None = None,
+    eval_budget: int | None = None,
+    callables: list[dict] | None = None) -> dict[str, Any]:
     """
     Run the policy and return, per episode (indexed by episode):
 
@@ -215,35 +222,216 @@ def evaluate(
     * ``seeds``: reset seed (-1 if unseeded)
 
     and ``success_rate`` (in percent, as in stable-worldmodel), ``mean_return`` (summed over
-    agents) and ``mean_length``. `reset_mode` 'wait' plays one episode per env.
+    agents) and ``mean_length``.
+
+    Two modes, as in stable-worldmodel:
+
+    * **episodic** (default): `episodes` episodes; `reset_mode` 'wait' plays one episode per env
+    * **dataset-driven**: with `dataset`, env ``i`` starts from step ``start_steps[i]`` (default 0)
+      of episode ``episodes_idx[i]`` (``num_envs`` episodes) and must reach the state recorded
+      `goal_offset` steps later within `eval_budget` steps. Envs with a
+      ``reset_options_from_dataset(init_row, goal_row)`` method (MultiGrid envs) are reset with
+      the options it returns; for the others, the ``callables`` specs
+      (``{'method': name, 'args': {arg: {'value': ..., 'in_dataset': bool}}}``) are called on the
+      unwrapped env after a reset, with a dataset column as value if ``in_dataset``. The goal
+      (``goal`` from the recorded `pixels`, ``goal_<col>`` from the other columns) is written
+      into the infos at every step.
+
+    `video`: a directory for one mp4 per episode (episodic: ``episode_<k>.mp4``; dataset-driven:
+    ``env_<i>.mp4``, the run next to the recorded steps and the goal), made from the infos'
+    ``render`` (the env render), or else ``pixels`` (the agents' views side by side).
     """
+    if dataset is not None:
+        return self._evaluate_from_dataset(dataset, episodes_idx, start_steps, goal_offset, eval_budget,
+                                           callables, video, reset_mode or 'wait')
     mode = reset_mode or 'auto'
     E, A = self.num_envs, self.num_agents
     n = E if episodes is None else (episodes if mode == 'auto' else min(episodes, E))
-    results = {
-        'success_rate': 0.0,
-        'episode_successes': np.zeros(n, bool),
-        'episode_returns': np.zeros((n, A)),
-        'episode_lengths': np.zeros(n, np.int64),
-        'seeds': np.full(n, -1, np.int64),
-    }
+    results = _empty_results(n, A)
     returns = np.zeros((E, A))
+    frames: dict[int, list] | None = defaultdict(list) if video else None
 
     def on_step(world, mask):
         for i in np.flatnonzero(mask):
-            returns[i] = 0 if world.infos['_needs_flush'][i] else returns[i] + world.infos['reward'][i, 0]
+            new = world.infos['_needs_flush'][i]
+            returns[i] = 0 if new else returns[i] + world.infos['reward'][i, 0]
+            if frames is not None:
+                if new: frames[i] = []
+                frames[i].append(_video_frame(world.infos, i))
 
     for i, k in self._run_iter(n, seed=seed, options=options, mode=mode, on_step=on_step):
         results['episode_successes'][k] = self.terminateds[i].all()
         results['episode_returns'][k] = returns[i]
         results['episode_lengths'][k] = self.infos['step_idx'][i, 0]
         results['seeds'][k] = self.envs.seeds[i]
+        if frames is not None:
+            from stable_marl.plot.video_utils import save_video
+            save_video(Path(video) / f'episode_{k}.mp4', frames.pop(i))
+    return _summarize(results)
 
-    if n:
+
+def _empty_results(n: int, num_agents: int) -> dict[str, Any]:
+    return {
+        'success_rate': 0.0,
+        'episode_successes': np.zeros(n, bool),
+        'episode_returns': np.zeros((n, num_agents)),
+        'episode_lengths': np.zeros(n, np.int64),
+        'seeds': np.full(n, -1, np.int64),
+    }
+
+
+def _summarize(results: dict[str, Any]) -> dict[str, Any]:
+    if len(results['episode_successes']):
         results['success_rate'] = float(results['episode_successes'].mean()) * 100.0
         results['mean_return'] = float(results['episode_returns'].sum(axis=1).mean())
         results['mean_length'] = float(results['episode_lengths'].mean())
     return results
+
+
+def _video_key(infos: dict) -> str:
+    for key in ('render', 'pixels'):
+        if key in infos:
+            return key
+    raise ValueError("evaluate(video=...) needs images in the infos: `pixels` or, with add_pixels=True, `render`")
+
+
+def _side_by_side(image: np.ndarray) -> np.ndarray:
+    "An image (H, W, C), or per-agent images (num_agents, H, W, C) side by side."
+    image = np.asarray(image)
+    return np.concatenate(list(image), axis=1) if image.ndim == 4 else image
+
+
+def _video_frame(infos: dict, i: int) -> np.ndarray:
+    return _side_by_side(infos[_video_key(infos)][i, 0]).copy()
+
+
+# %% ../../nbs/world/01_world.ipynb #9d1e0f3a
+@patch
+def _evaluate_from_dataset(
+    self: World, dataset, episodes_idx, start_steps, goal_offset, eval_budget, callables, video, mode) -> dict:
+    from copy import deepcopy
+    n, A = self.num_envs, self.num_agents
+    if episodes_idx is None or len(episodes_idx) != n:
+        raise ValueError(f"dataset-driven evaluation needs one episode per env: {n} `episodes_idx`")
+    if goal_offset is None or eval_budget is None:
+        raise ValueError("dataset-driven evaluation needs a `goal_offset` and an `eval_budget`")
+    if mode != 'wait':
+        raise ValueError("dataset-driven evaluation plays one run per env: reset_mode must be 'wait'")
+    if self.policy is None:
+        raise RuntimeError("No policy set: call `set_policy` first")
+    start_steps = [0] * n if start_steps is None else list(start_steps)
+    infos_key = 'render' if 'render' in (dataset.column_names or []) and video else 'pixels'
+    init_rows, goal_rows, dataset_videos = _extract_init_goal(dataset, episodes_idx, start_steps, goal_offset, infos_key)
+
+    seeds = None
+    if 'seed' in init_rows[0]:
+        seeds = [int(np.asarray(row['seed']).reshape(-1)[0]) for row in init_rows]
+        seeds = [s if s >= 0 else None for s in seeds]
+    unwrapped = [env.unwrapped for env in self.envs.envs]
+    restores = hasattr(unwrapped[0], 'reset_options_from_dataset')
+    if restores:
+        self.reset(seed=seeds, options=[u.reset_options_from_dataset(init_rows[i], goal_rows[i])
+                                        for i, u in enumerate(unwrapped)])
+    else:
+        self.reset(seed=seeds)
+        for i in range(n):
+            _apply_callables(unwrapped[i], callables or [], {**init_rows[i], **goal_rows[i]})
+
+    # dataset values into the infos (one row per env, shape (num_envs, 1, ...)): the goal always; the
+    # start step only when the env was set up by `callables` (restored envs report their own state)
+    episode_cols = set(getattr(dataset, 'episode_column_names', None) or [])
+    goal_keys = set(goal_rows[0])
+    for rows in ((init_rows, goal_rows) if not restores else (goal_rows,)):
+        for key in rows[0]:
+            if key in episode_cols or (key not in self.infos and key not in goal_keys):
+                continue
+            vals = [row[key] for row in rows]
+            if not all(isinstance(v, np.ndarray) for v in vals) or len({v.shape for v in vals}) > 1:
+                continue
+            self.infos[key] = np.stack(vals)[:, None].copy()
+    goal_snapshot = {k: self.infos[k].copy() for k in goal_keys if k in self.infos}
+
+    results = _empty_results(n, A)
+    results['seeds'] = np.array([-1 if s is None else s for s in seeds] if seeds else [-1] * n, np.int64)
+    frames = [[_video_frame(self.infos, i)] for i in range(n)] if video else None
+    alive = np.ones(n, bool)
+    for _ in range(eval_budget):
+        actions = self.policy.get_action(self.infos)
+        _, self.rewards, self.terminateds, self.truncateds, self.infos = self.envs.step(actions, mask=alive)
+        self.infos['_needs_flush'] = np.zeros(n, bool)
+        self.infos.update(deepcopy(goal_snapshot))
+        results['episode_returns'][alive] += self.rewards[alive]
+        results['episode_lengths'][alive] += 1
+        results['episode_successes'] |= alive & self.terminateds.all(axis=1)
+        if frames is not None:
+            for i in np.flatnonzero(alive):
+                frames[i].append(_video_frame(self.infos, i))
+        alive &= ~episode_done(self.terminateds, self.truncateds)
+        if not alive.any():
+            break
+
+    if frames is not None:
+        from stable_marl.plot.video_utils import save_panel_videos
+        save_panel_videos(Path(video), {'agent': frames, 'dataset': dataset_videos,
+                                        'goal': [_side_by_side(row['goal']) for row in goal_rows]})
+    return _summarize(results)
+
+
+def _as_numpy_image(col: str, arr: np.ndarray) -> np.ndarray:
+    "Undo the channel-first layout datasets give single images (T, H, W, C) (see `to_tensor`)."
+    if arr.ndim == 4 and arr.shape[1] in (1, 3) and arr.shape[-1] not in (1, 3):
+        return arr.transpose(0, 2, 3, 1)
+    return arr
+
+
+def _extract_init_goal(dataset, episodes_idx, start_steps, goal_offset, video_key: str = 'pixels'):
+    """
+    Per-episode rows of a dataset-driven evaluation: ``init_rows[i]`` (every column at the start
+    step, plus the episode columns), ``goal_rows[i]`` (the step `goal_offset` later, as ``goal``
+    for ``pixels`` and ``goal_<col>`` for the others) and ``dataset_videos[i]`` (the recorded
+    `video_key` images in between).
+    """
+    ep_idx, start = np.asarray(episodes_idx), np.asarray(start_steps)
+    if getattr(dataset, 'lengths', None) is not None:
+        lengths = np.asarray(dataset.lengths)[ep_idx]
+        if (start < 0).any() or (start + goal_offset >= lengths).any():
+            raise ValueError(f"start_steps + goal_offset must stay within the episodes (lengths {lengths.tolist()})")
+    data = dataset.load_chunk(ep_idx, start, start + goal_offset + 1)
+    episode_cols = list(getattr(dataset, 'episode_column_names', None) or [])
+    episode_data = dataset.get_episode_data(list(episodes_idx)) if episode_cols else {}
+    init_rows, goal_rows, videos = [], [], []
+    for i, ep in enumerate(data):
+        init_row, goal_row = {}, {}
+        for col, val in ep.items():
+            if col.startswith('goal') or col == 'action' or not hasattr(val, 'shape'):
+                continue
+            arr = _as_numpy_image(col, val.numpy() if hasattr(val, 'numpy') else np.asarray(val))
+            init_row[col] = arr[0]
+            goal_row['goal' if col == 'pixels' else f'goal_{col}'] = arr[-1]
+            if col == video_key:
+                videos.append(arr)
+        for col in episode_cols:
+            init_row[col] = episode_data[col][i]
+        init_rows.append(init_row)
+        goal_rows.append(goal_row)
+    return init_rows, goal_rows, videos
+
+
+def _apply_callables(env, callables: list[dict], init_state: dict):
+    "Call ``env.<method>(**args)`` for each spec, with dataset values for the args marked ``in_dataset``."
+    from copy import deepcopy
+    for spec in callables:
+        method = spec['method']
+        if not hasattr(env, method):
+            continue
+        prepared = {}
+        for name, data in spec.get('args', {}).items():
+            if data.get('in_dataset', True):
+                if data.get('value') in init_state:
+                    prepared[name] = deepcopy(init_state[data['value']])
+            else:
+                prepared[name] = data.get('value')
+        getattr(env, method)(**prepared)
 
 # %% ../../nbs/world/01_world.ipynb #04ff79aa
 @patch

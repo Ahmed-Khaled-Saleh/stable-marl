@@ -128,7 +128,8 @@ class PGDSolver(SolverBase):
     `num_samples` restarts are optimised; the best one is kept (per agent in ``'per_agent'``
     mode, where each agent's actions only receive the gradient of its own cost). Returns
     ``actions`` ``(n_envs, H, A, action_block)``. `init_action` may be action indices
-    ``(n_envs, t, A, action_block)`` or relaxed actions ``(n_envs, t, A, action_block * K)``.
+    ``(n_envs, t, A, action_block)`` or relaxed actions ``(n_envs, t, A, action_block * K)``:
+    `from_scalar` says which (as in stable-worldmodel); by default, integer tensors are indices.
     """
     discrete = True
 
@@ -137,9 +138,11 @@ class PGDSolver(SolverBase):
         super().__init__(cost, batch_size=batch_size, num_samples=num_samples, **kwargs)
         self.n_steps, self.var_scale, self.action_noise, self.lr = n_steps, var_scale, action_noise, lr
 
-    def _relaxed(self, init_action: torch.Tensor | None, n_envs: int) -> torch.Tensor:
+    def _relaxed(self, init_action: torch.Tensor | None, n_envs: int, from_scalar: bool | None = None) -> torch.Tensor:
         K, ab, A = self._num_actions, self.action_block, self._num_agents
-        if init_action is not None and not init_action.is_floating_point():
+        if from_scalar is None:
+            from_scalar = init_action is not None and not init_action.is_floating_point()
+        if init_action is not None and from_scalar:
             init_action = torch.nn.functional.one_hot(init_action.long(), K).to(self.dtype).flatten(-2)
         actions = torch.zeros(n_envs, self.horizon, A, ab * K, dtype=self.dtype, device=self.device)
         if init_action is not None:
@@ -162,10 +165,10 @@ class PGDSolver(SolverBase):
         psi = (cumulative.gather(-1, rho - 1) - 1) / rho
         return (s - psi).clamp(min=0.0).reshape(actions.shape)
 
-    def solve(self, info_dict: dict, init_action: torch.Tensor | None = None) -> dict:
+    def solve(self, info_dict: dict, init_action: torch.Tensor | None = None, from_scalar: bool | None = None) -> dict:
         start_time = time.time()
         n_envs = len(next(v for v in info_dict.values() if isinstance(v, (torch.Tensor, np.ndarray, list))))
-        params, actions, final_costs = self._relaxed(init_action, n_envs), [], []
+        params, actions, final_costs = self._relaxed(init_action, n_envs, from_scalar), [], []
         for start, end in self._batches(n_envs):
             B, infos = end - start, self._expand(info_dict, start, end)
             x = params[start:end].clone().requires_grad_(True)

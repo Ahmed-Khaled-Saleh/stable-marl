@@ -15,7 +15,8 @@ import numpy as np
 from ..spaces import get_in
 
 # %% auto #0
-__all__ = ['EverythingToInfoWrapper', 'AddPixelsWrapper', 'EnsureInfoKeysWrapper', 'TransformInfoWrapper', 'MegaWrapper']
+__all__ = ['EverythingToInfoWrapper', 'AddPixelsWrapper', 'EnsureInfoKeysWrapper', 'TransformInfoWrapper', 'MegaWrapper',
+           'EnsureImageShape', 'EnsureGoalInfoWrapper', 'MapKeysWrapper', 'ResizeGoalWrapper']
 
 # %% ../../nbs/wrappers/02_default.ipynb #85a13746
 def _is_array_like(value) -> bool:
@@ -88,11 +89,12 @@ class EverythingToInfoWrapper(gym.Wrapper):
     def _no_action(self) -> list[np.ndarray]:
         return [np.full(self.env.action_space[a].shape, np.nan, np.float32) for a in range(self.num_agents)]
 
-    def step(self, actions: dict):
+    def step(self, action: dict):
+        "`action`: the agents' actions, ``{agent_index: action}``."
         # agents that already terminated take the env's no-op (recorded as nan if it has none)
         noop = getattr(self.env.unwrapped, 'noop_action', None)
         finished = self._finished if self._finished is not None else np.zeros(self.num_agents, bool)
-        actions = dict(actions)
+        actions = dict(action)
         if noop is not None:
             actions.update({int(a): noop for a in np.flatnonzero(finished)})
         obs, rewards, terminations, truncations, env_infos = self.env.step(actions)
@@ -121,33 +123,36 @@ class AddPixelsWrapper(gym.Wrapper):
     """
     Adds a render of the whole env (``env.render()``, so ``render_mode='rgb_array'``) to the
     info as ``pixels``, or as ``render`` when the env already provides ``pixels`` (e.g. the
-    agents' views of MultiGrid envs), resized to `image_shape` (H, W) if given, then passed
-    through `transform`. Also adds ``render_time`` (seconds).
+    agents' views of MultiGrid envs), resized to `pixels_shape` (H, W) if given, then passed
+    through `torchvision_transform`. Also adds ``render_time`` (seconds).
+
+    Same arguments as stable-worldmodel's, but `pixels_shape` defaults to the render's own size
+    (stable-worldmodel: 84 x 84).
     """
     def __init__(
         self,
         env: gym.Env,
-        image_shape: tuple[int, int] | None = None,
-        transform: Callable[[np.ndarray], Any] | None = None,
+        pixels_shape: tuple[int, int] | None = None,
+        torchvision_transform: Callable[[np.ndarray], Any] | None = None,
         resample: str | int | None = None):
         super().__init__(env)
         if env.render_mode != 'rgb_array':
             raise ValueError("AddPixelsWrapper needs an env made with render_mode='rgb_array'")
-        self.image_shape, self.transform = image_shape, transform
+        self.pixels_shape, self.torchvision_transform = pixels_shape, torchvision_transform
         self.resample = _resolve_resample(resample)
         self._key = None
 
     def _add_pixels(self, info: dict) -> dict:
         start = time.time()
         img = self.env.render()
-        if self.image_shape is not None and img.shape[:2] != tuple(self.image_shape):
+        if self.pixels_shape is not None and img.shape[:2] != tuple(self.pixels_shape):
             from PIL import Image
-            h, w = self.image_shape
+            h, w = self.pixels_shape
             resample = Image.Resampling.BILINEAR if self.resample is None else self.resample
             img = np.asarray(Image.fromarray(img).resize((w, h), resample=resample))
         if self._key is None:   # decided once: 'pixels' unless the env provides its own
             self._key = 'render' if 'pixels' in info else 'pixels'
-        info[self._key] = self.transform(img) if self.transform else img
+        info[self._key] = self.torchvision_transform(img) if self.torchvision_transform else img
         info['render_time'] = time.time() - start
         return info
 
@@ -155,8 +160,8 @@ class AddPixelsWrapper(gym.Wrapper):
         obs, info = self.env.reset(**kwargs)
         return obs, self._add_pixels(info)
 
-    def step(self, actions):
-        obs, rewards, terminations, truncations, info = self.env.step(actions)
+    def step(self, action):
+        obs, rewards, terminations, truncations, info = self.env.step(action)
         return obs, rewards, terminations, truncations, self._add_pixels(info)
 
 # %% ../../nbs/wrappers/02_default.ipynb #e85aaf0b
@@ -178,8 +183,8 @@ class EnsureInfoKeysWrapper(gym.Wrapper):
         self._check(info, 'reset')
         return obs, info
 
-    def step(self, actions):
-        obs, rewards, terminations, truncations, info = self.env.step(actions)
+    def step(self, action):
+        obs, rewards, terminations, truncations, info = self.env.step(action)
         self._check(info, 'step')
         return obs, rewards, terminations, truncations, info
 
@@ -200,8 +205,8 @@ class TransformInfoWrapper(gym.Wrapper):
         obs, info = self.env.reset(**kwargs)
         return obs, self._apply(info)
 
-    def step(self, actions):
-        obs, rewards, terminations, truncations, info = self.env.step(actions)
+    def step(self, action):
+        obs, rewards, terminations, truncations, info = self.env.step(action)
         return obs, rewards, terminations, truncations, self._apply(info)
 
 
@@ -249,3 +254,120 @@ class MegaWrapper(gym.Wrapper):
         if goal_transform is not None:
             env = TransformInfoWrapper(env, 'goal', goal_transform)
         self.env = EnsureInfoKeysWrapper(env, required)
+
+# %% ../../nbs/wrappers/02_default.ipynb #7c35dd6c
+def _image_hw(image) -> tuple[int, int]:
+    "(H, W) of an image (H, W, C), or of per-agent images (num_agents, H, W, C)."
+    return tuple(int(s) for s in np.shape(image)[-3:-1])
+
+
+class EnsureImageShape(gym.Wrapper):
+    "Checks that ``info[image_key]`` (one image, or one per agent) has the (H, W) `image_shape`."
+
+    def __init__(self, env: gym.Env, image_key: str, image_shape: tuple[int, int]):
+        super().__init__(env)
+        self.image_key, self.image_shape = image_key, tuple(image_shape)
+
+    def _check(self, info: dict):
+        if _image_hw(info[self.image_key]) != self.image_shape:
+            raise RuntimeError(f"Image shape {np.shape(info[self.image_key])} should be {self.image_shape}")
+
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        self._check(info)
+        return obs, info
+
+    def step(self, action):
+        obs, rewards, terminations, truncations, info = self.env.step(action)
+        self._check(info)
+        return obs, rewards, terminations, truncations, info
+
+
+class EnsureGoalInfoWrapper(gym.Wrapper):
+    "Checks that the info has a ``goal`` after a reset (`check_reset`) and after every step (`check_step`)."
+
+    def __init__(self, env: gym.Env, check_reset: bool, check_step: bool = False):
+        super().__init__(env)
+        self.check_reset, self.check_step = check_reset, check_step
+
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        if self.check_reset and 'goal' not in info:
+            raise RuntimeError("The info dict returned by reset() must contain the key 'goal'.")
+        return obs, info
+
+    def step(self, action):
+        obs, rewards, terminations, truncations, info = self.env.step(action)
+        if self.check_step and 'goal' not in info:
+            raise RuntimeError("The info dict returned by step() must contain the key 'goal'.")
+        return obs, rewards, terminations, truncations, info
+
+
+class MapKeysWrapper(gym.Wrapper):
+    """
+    Renames info keys, ``{source: destination}``: e.g. ``{'image': 'pixels'}`` makes the agents'
+    encoded views the ``pixels`` the rest of the pipeline reads. A missing source is an error.
+    """
+    def __init__(self, env: gym.Env, key_map: dict[str, str]):
+        super().__init__(env)
+        self.key_map = dict(key_map)
+
+    def _remap(self, info: dict) -> dict:
+        for src, dst in self.key_map.items():
+            if src not in info:
+                raise KeyError(f"MapKeysWrapper: key {src!r} not found in info; present keys: {list(info)}")
+            info[dst] = info.pop(src)
+        return info
+
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        return obs, self._remap(info)
+
+    def step(self, action):
+        obs, rewards, terminations, truncations, info = self.env.step(action)
+        return obs, rewards, terminations, truncations, self._remap(info)
+
+
+class ResizeGoalWrapper(gym.Wrapper):
+    """
+    Resizes ``info['goal']`` (one image, or one per agent) to `pixels_shape` (H, W), then applies
+    `torchvision_transform` to each image (a PIL image, as in stable-worldmodel). Infos without
+    a ``goal`` are left as they are.
+    """
+    def __init__(
+        self,
+        env: gym.Env,
+        pixels_shape: tuple[int, int] = (84, 84),
+        torchvision_transform: Callable[[Any], Any] | None = None,
+        resample: str | int | None = None):
+        super().__init__(env)
+        self.pixels_shape, self.torchvision_transform = tuple(pixels_shape), torchvision_transform
+        self.resample = _resolve_resample(resample)
+
+    def _format_one(self, img: np.ndarray):
+        from PIL import Image
+        h, w = self.pixels_shape
+        resample = Image.Resampling.BILINEAR if self.resample is None else self.resample
+        pil = Image.fromarray(np.asarray(img)).resize((w, h), resample=resample)
+        return self.torchvision_transform(pil) if self.torchvision_transform is not None else np.asarray(pil)
+
+    def _format(self, goal):
+        if np.ndim(goal) == 3:
+            return self._format_one(goal)
+        images = [self._format_one(g) for g in goal]
+        if all(isinstance(g, np.ndarray) for g in images):
+            return np.stack(images)
+        import torch
+        return torch.stack([torch.as_tensor(g) for g in images])
+
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        if 'goal' in info:
+            info['goal'] = self._format(info['goal'])
+        return obs, info
+
+    def step(self, action):
+        obs, rewards, terminations, truncations, info = self.env.step(action)
+        if 'goal' in info:
+            info['goal'] = self._format(info['goal'])
+        return obs, rewards, terminations, truncations, info

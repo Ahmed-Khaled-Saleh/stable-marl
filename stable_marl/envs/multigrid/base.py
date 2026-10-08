@@ -464,6 +464,12 @@ def reset(
     # Step count since episode start
     self.step_count = 0
 
+    # Dataset-driven evaluation: restore the agents of a recorded step, and their target cells
+    self._targets = None
+    dataset_state = (kwargs.get('options') or {}).get('dataset_state')
+    if dataset_state is not None:
+        self._restore_dataset_state(dataset_state)
+
     # Return first observation
     observations = self.gen_obs()
     self._goal_infos = self.goal_infos()
@@ -475,6 +481,50 @@ def reset(
     return observations, self._infos()
 
 
+
+# %% ../../../nbs/envs/multigrid/02_base.ipynb #b26692c5
+@patch
+def reset_options_from_dataset(self: MultiGridEnv, init_row: dict, goal_row: dict) -> dict:
+    """
+    Reset options restoring the recorded step `init_row` (one dataset row: ``position``,
+    ``direction``, ``seed``, ``variation.<name>``), with the targets of `goal_row` (``goal_position``).
+    """
+    seed = int(np.asarray(init_row.get('seed', -1)).reshape(-1)[0])
+    if seed < 0:
+        raise ValueError("Restoring a dataset step needs the episode's reset seed: collect with a `seed`")
+    state = {'position': np.asarray(init_row['position']), 'direction': np.asarray(init_row['direction'])}
+    if 'goal_position' in goal_row:
+        state['goal_position'] = np.asarray(goal_row['goal_position'])
+    values = {k[len('variation.'):]: np.asarray(v) for k, v in init_row.items() if k.startswith('variation.')}
+    options = {'dataset_state': state}
+    if values:
+        options['variation_values'] = {k: v.item() if v.ndim == 0 else v for k, v in values.items()}
+    return options
+
+
+@patch
+def _restore_dataset_state(self: MultiGridEnv, state: dict):
+    "Place the agents as recorded (``position`` (A, 2), ``direction`` (A,)); ``goal_position``: their targets."
+    positions, directions = np.asarray(state['position']), np.asarray(state['direction'])
+    for agent in self.agents:
+        pos = positions[agent.index].astype(int)
+        cell = self.grid.get(*pos)
+        if cell is not None and not cell.can_overlap():
+            raise ValueError(f"agent {agent.index}: recorded cell {tuple(pos)} holds a {cell.type}: "
+                             "the layout differs from the recorded one (same seed and variations?)")
+        agent.state.pos, agent.state.dir = pos, int(directions[agent.index])
+    if state.get('goal_position') is not None:
+        self._targets = np.asarray(state['goal_position']).astype(int)
+
+
+@patch
+def _reach_targets(self: MultiGridEnv, rewards: dict[AgentID, SupportsFloat]):
+    "Agents standing on their target cell (dataset-driven evaluation) complete their mission."
+    if getattr(self, '_targets', None) is None:
+        return
+    for agent in self.agents:
+        if not agent.state.terminated and np.array_equal(agent.state.pos, self._targets[agent.index]):
+            self.on_success(agent, rewards, {})
 
 # %% ../../../nbs/envs/multigrid/02_base.ipynb #4e730f4e
 @patch
@@ -510,6 +560,7 @@ def step(
     """
     self.step_count += 1
     rewards = self.handle_actions(actions)
+    self._reach_targets(rewards)
 
     # Generate outputs
     observations = self.gen_obs()

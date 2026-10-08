@@ -364,6 +364,7 @@ def step(
     """
     self.step_count += 1
     rewards = self.handle_actions(actions)
+    self._reach_targets(rewards)
 
     # Generate outputs
     observations = self.gen_obs()

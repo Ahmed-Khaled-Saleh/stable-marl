@@ -39,9 +39,9 @@ import numpy as np
 __all__ = ['GOAL_KINDS', 'get_cache_dir', 'to_tensor', 'Dataset', 'MergeDataset', 'ConcatDataset', 'GoalDataset']
 
 # %% ../../nbs/data/01_dataset.ipynb #16614d36
-def get_cache_dir(cache_dir: str | Path | None = None, sub_folder: str | None = None) -> Path:
-    "Where named datasets live: `cache_dir`, else ``$STABLEMARL_HOME``, else ``~/.stable_marl``."
-    root = Path(cache_dir or os.environ.get('STABLEMARL_HOME', '~/.stable_marl')).expanduser()
+def get_cache_dir(override_root: str | Path | None = None, sub_folder: str | None = None) -> Path:
+    "Where named datasets and checkpoints live: `override_root`, else ``$STABLEMARL_HOME``, else ``~/.stable_marl``."
+    root = Path(override_root or os.environ.get('STABLEMARL_HOME', '~/.stable_marl')).expanduser()
     path = root / sub_folder if sub_folder else root
     path.mkdir(parents=True, exist_ok=True)
     return path

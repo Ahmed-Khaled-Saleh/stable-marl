@@ -39,8 +39,11 @@ class BasePolicy:
         for arg, value in kwargs.items():
             setattr(self, arg, value)
 
-    def get_action(self, info_dict: dict, **kwargs: Any) -> np.ndarray:
-        "Actions of shape (num_envs, num_agents) for the stacked `info_dict`."
+    def get_action(self, obs: dict, **kwargs: Any) -> np.ndarray:
+        """
+        Actions of shape (num_envs, num_agents) for `obs`, the stacked info dict of the pool
+        (named as in stable-worldmodel).
+        """
         raise NotImplementedError
 
     def set_env(self, env: Any):
@@ -87,7 +90,7 @@ class RandomPolicy(BasePolicy):
         self.type = 'random'
         self.seed = seed
 
-    def get_action(self, info_dict: dict, **kwargs: Any) -> np.ndarray:
+    def get_action(self, obs: dict, **kwargs: Any) -> np.ndarray:
         return self.env.action_space.sample()
 
     def set_env(self, env: Any):
@@ -111,7 +114,7 @@ class ExpertPolicy(BasePolicy):
         super().__init__(**kwargs)
         self.type = 'expert'
 
-    def get_action(self, info_dict: dict, **kwargs: Any) -> np.ndarray:
+    def get_action(self, obs: dict, **kwargs: Any) -> np.ndarray:
         return np.array([self.act(env.unwrapped) for env in self.env.envs])
 
     def act(self, env: MultiAgentEnv) -> np.ndarray:
@@ -143,9 +146,9 @@ class FeedForwardPolicy(BasePolicy):
         self.process = process or {}
         self.transform = transform or {}
 
-    def get_action(self, info_dict: dict, **kwargs: Any) -> np.ndarray:
+    def get_action(self, obs: dict, **kwargs: Any) -> np.ndarray:
         import torch
-        info = self._prepare_info(info_dict)
+        info = self._prepare_info(obs)
         parameter = next(self.model.parameters(), None)
         if parameter is not None:
             info = {k: v.to(parameter.device) if torch.is_tensor(v) else v for k, v in info.items()}
@@ -271,10 +274,10 @@ class WorldModelPolicy(BasePolicy):
         shape = tuple(self.env.single_action_space.shape[1:])
         return plan.reshape(n, rh, A, ab, -1).transpose(2, 3).reshape(n, rh * ab, A, *shape)
 
-    def get_action(self, info_dict: dict, **kwargs: Any) -> np.ndarray:
+    def get_action(self, obs: dict, **kwargs: Any) -> np.ndarray:
         import torch
         n_envs = self.env.num_envs
-        needs_flush = info_dict.pop('_needs_flush', None)
+        needs_flush = obs.pop('_needs_flush', None)
         if needs_flush is not None:
             flush = [int(i) for i in np.flatnonzero(needs_flush)]
             for i in flush:
@@ -283,7 +286,7 @@ class WorldModelPolicy(BasePolicy):
                     self._next_init[i] = 0
             if self._history_buffer is not None and flush:
                 self._history_buffer.reset(flush)
-        info = self._prepare_info(info_dict)
+        info = self._prepare_info(obs)
         if self._history_buffer is not None:
             self._history_buffer.append({k: info[k] for k in (*self.history_keys, 'action') if k in info})
 

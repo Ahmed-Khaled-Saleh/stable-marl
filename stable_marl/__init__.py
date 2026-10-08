@@ -5,9 +5,9 @@ __version__ = "0.0.1"
 
 # %% auto #0
 __all__ = ['MultiAgentEnv', 'make', 'list_envs', 'register', 'World', 'EnvPool', 'BasePolicy', 'Policy', 'RandomPolicy',
-           'ExpertPolicy', 'FeedForwardPolicy', 'PlanConfig', 'WorldModelPolicy', 'HDF5Dataset', 'buffer', 'configs',
-           'data', 'envs', 'planning', 'plot', 'policy', 'protocols', 'spaces', 'types', 'utils', 'wm', 'world',
-           'wrappers']
+           'ExpertPolicy', 'FeedForwardPolicy', 'PlanConfig', 'WorldModelPolicy', 'HDF5Dataset', 'pretraining',
+           'buffer', 'configs', 'data', 'envs', 'planning', 'plot', 'policy', 'protocols', 'spaces', 'types', 'utils',
+           'wm', 'world', 'wrapper', 'wrappers']
 
 # %% ../nbs/00_init.ipynb #dd2d93d0
 import importlib
@@ -17,7 +17,7 @@ from . import envs   # eager: registers the environments
 from .envs import MultiAgentEnv, make, list_envs, register
 
 _LAZY_SUBMODULES = {'buffer', 'configs', 'data', 'planning', 'plot', 'policy', 'protocols', 'spaces', 'types',
-                    'utils', 'wm', 'world', 'wrappers'}
+                    'utils', 'wm', 'world', 'wrapper', 'wrappers'}
 
 _LAZY_ATTRS = {
     'World': ('stable_marl.world', 'World'),
@@ -30,10 +30,13 @@ _LAZY_ATTRS = {
     'PlanConfig': ('stable_marl.policy', 'PlanConfig'),
     'WorldModelPolicy': ('stable_marl.policy', 'WorldModelPolicy'),
     'HDF5Dataset': ('stable_marl.data', 'HDF5Dataset'),
+    'pretraining': ('stable_marl.utils', 'pretraining'),
 }
 
 if TYPE_CHECKING:   # for editors and type checkers
-    from stable_marl import buffer, configs, data, planning, plot, policy, protocols, spaces, types, utils, wm, world, wrappers
+    from stable_marl import (buffer, configs, data, planning, plot, policy, protocols, spaces, types, utils, wm, world,
+                             wrapper, wrappers)
+    from stable_marl.utils import pretraining
     from stable_marl.data import HDF5Dataset
     from stable_marl.policy import (BasePolicy, Policy, RandomPolicy, ExpertPolicy, FeedForwardPolicy,
                                     PlanConfig, WorldModelPolicy)
@@ -58,5 +61,5 @@ def __dir__() -> list[str]:
 
 _all_ = ['MultiAgentEnv', 'make', 'list_envs', 'register', 'World', 'EnvPool', 'BasePolicy', 'Policy',
          'RandomPolicy', 'ExpertPolicy', 'FeedForwardPolicy', 'PlanConfig', 'WorldModelPolicy', 'HDF5Dataset',
-         'buffer', 'configs', 'data', 'envs', 'planning', 'plot', 'policy', 'protocols', 'spaces', 'types', 'utils', 'wm',
-         'world', 'wrappers']
+         'pretraining', 'buffer', 'configs', 'data', 'envs', 'planning', 'plot', 'policy', 'protocols', 'spaces',
+         'types', 'utils', 'wm', 'world', 'wrapper', 'wrappers']
