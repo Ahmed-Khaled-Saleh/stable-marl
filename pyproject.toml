@@ -40,9 +40,11 @@ pettingzoo = ['pettingzoo']
 torchrl = ['pettingzoo', 'torch', 'torchrl>=0.10,<0.12']
 train = ['torch']           # reading datasets as tensors (stable_marl.data.Dataset), FeedForwardPolicy
 rllib = ['ray[rllib]']
-render = [                  # GridRecorder videos / frames, plotting in tests and examples
+render = [                  # GridRecorder videos / frames, dataset videos, plotting in tests and examples
     'pillow>=11.3.0',
     'moviepy==1.0.3',
+    'imageio',
+    'imageio-ffmpeg',
     'opencv-python',
     'tqdm',
     'matplotlib',
@@ -54,6 +56,8 @@ dev = [                     # nbdev: `pip install -e ".[dev]"`
     'ray[rllib]',
     'pillow>=11.3.0',
     'moviepy==1.0.3',
+    'imageio',
+    'imageio-ffmpeg',
     'opencv-python',
     'tqdm',
     'matplotlib',

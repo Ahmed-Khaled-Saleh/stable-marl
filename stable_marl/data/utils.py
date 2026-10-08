@@ -39,14 +39,14 @@ import numpy as np
 
 from .dataset import Dataset, get_cache_dir
 from .format import EPISODE_DATA_KEY, FORMATS, detect_format, get_format
+from ..utils.core import HF_BASE_URL
 from .normalization import (IdentityScaler, PercentileScaler, ZScoreScaler, ColumnTransform,
                                             get_scaler)
 
 logger = logging.getLogger(__name__)
-HF_BASE_URL = 'https://huggingface.co'
 
 # %% auto #0
-__all__ = ['logger', 'HF_BASE_URL', 'ensure_dir_exists', 'load_dataset', 'convert', 'merge', 'column_normalizer']
+__all__ = ['logger', 'ensure_dir_exists', 'load_dataset', 'convert', 'merge', 'column_normalizer']
 
 # %% ../../nbs/data/04_utils.ipynb #b05f1181
 def ensure_dir_exists(path: Path):
