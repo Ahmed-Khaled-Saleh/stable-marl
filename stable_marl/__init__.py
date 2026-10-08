@@ -5,17 +5,57 @@ __version__ = "0.0.1"
 
 # %% auto #0
 __all__ = ['MultiAgentEnv', 'make', 'list_envs', 'register', 'World', 'EnvPool', 'BasePolicy', 'Policy', 'RandomPolicy',
-           'ExpertPolicy', 'FeedForwardPolicy', 'PlanConfig', 'WorldModelPolicy', 'HDF5Dataset', 'data', 'envs',
-           'policy', 'world']
+           'ExpertPolicy', 'FeedForwardPolicy', 'PlanConfig', 'WorldModelPolicy', 'HDF5Dataset', 'buffer', 'configs',
+           'data', 'envs', 'planning', 'policy', 'protocols', 'spaces', 'types', 'utils', 'wm', 'world', 'wrappers']
 
 # %% ../nbs/00_init.ipynb #dd2d93d0
+import importlib
+from typing import TYPE_CHECKING
+
+from . import envs   # eager: registers the environments
 from .envs import MultiAgentEnv, make, list_envs, register
-from .world import World, EnvPool
-from .policy import (BasePolicy, Policy, RandomPolicy, ExpertPolicy, FeedForwardPolicy,
-                                PlanConfig, WorldModelPolicy)
-from .data import HDF5Dataset
-from . import data, envs, policy, world
+
+_LAZY_SUBMODULES = {'buffer', 'configs', 'data', 'planning', 'policy', 'protocols', 'spaces', 'types', 'utils',
+                    'wm', 'world', 'wrappers'}
+
+_LAZY_ATTRS = {
+    'World': ('stable_marl.world', 'World'),
+    'EnvPool': ('stable_marl.world', 'EnvPool'),
+    'BasePolicy': ('stable_marl.policy', 'BasePolicy'),
+    'Policy': ('stable_marl.policy', 'Policy'),
+    'RandomPolicy': ('stable_marl.policy', 'RandomPolicy'),
+    'ExpertPolicy': ('stable_marl.policy', 'ExpertPolicy'),
+    'FeedForwardPolicy': ('stable_marl.policy', 'FeedForwardPolicy'),
+    'PlanConfig': ('stable_marl.policy', 'PlanConfig'),
+    'WorldModelPolicy': ('stable_marl.policy', 'WorldModelPolicy'),
+    'HDF5Dataset': ('stable_marl.data', 'HDF5Dataset'),
+}
+
+if TYPE_CHECKING:   # for editors and type checkers
+    from stable_marl import buffer, configs, data, planning, policy, protocols, spaces, types, utils, wm, world, wrappers
+    from stable_marl.data import HDF5Dataset
+    from stable_marl.policy import (BasePolicy, Policy, RandomPolicy, ExpertPolicy, FeedForwardPolicy,
+                                    PlanConfig, WorldModelPolicy)
+    from stable_marl.world import World, EnvPool
+
+
+def __getattr__(name: str):
+    if name in _LAZY_SUBMODULES:
+        mod = importlib.import_module(f'.{name}', __name__)
+        globals()[name] = mod
+        return mod
+    if name in _LAZY_ATTRS:
+        modpath, attrname = _LAZY_ATTRS[name]
+        attr = getattr(importlib.import_module(modpath), attrname)
+        globals()[name] = attr
+        return attr
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+
+
+def __dir__() -> list[str]:
+    return sorted(set(__all__) | set(globals().keys()))
 
 _all_ = ['MultiAgentEnv', 'make', 'list_envs', 'register', 'World', 'EnvPool', 'BasePolicy', 'Policy',
          'RandomPolicy', 'ExpertPolicy', 'FeedForwardPolicy', 'PlanConfig', 'WorldModelPolicy', 'HDF5Dataset',
-         'data', 'envs', 'policy', 'world']
+         'buffer', 'configs', 'data', 'envs', 'planning', 'policy', 'protocols', 'spaces', 'types', 'utils', 'wm',
+         'world', 'wrappers']
