@@ -7,3 +7,8 @@ website:
   description: "Fast and flexible multi-agent gridworld reinforcement learning environments."
   repo-branch: master
   repo-url: "https://github.com/Ahmed-Khaled-Saleh/stable-marl"
+
+format-links:
+  - html
+  - format: commonmark
+    text: Markdown
