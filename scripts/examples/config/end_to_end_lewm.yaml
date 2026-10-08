@@ -1,0 +1,60 @@
+# Decentralized LeWMs end to end (python scripts/examples/end_to_end_lewm.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+seed: 0
+
+env:                            # a small FindGoal: random goals and starts, no walls inside
+  name: MultiGrid-FindGoal-15x15-v0
+  agents: 2
+  size: 7
+  tile_size: 8
+  num_obstacles: 0
+  n_clutter: 0
+  min_goal_spawn_distance: 1
+  obs_mode: allo                # ego (rotates with the agent), allo (world-aligned local view), global (whole grid)
+
+data:
+  num_envs: 4
+  max_episode_steps: 25
+  expert_episodes: 300
+  random_episodes: 150
+
+# model inputs per agent: its view, plus extra info keys (position: 2 values, direction: 1)
+inputs: [pixels]                # e.g. [pixels, position, direction]
+
+model:                          # small, to run on CPU (about 5 minutes for 20 epochs)
+  image_size: 32
+  patch_size: 8
+  embed_dim: 64
+  depth: 3
+  heads: 4
+  dim_head: 16
+  mlp_dim: 256
+  projector_hidden: 256
+  history_size: 3
+  dropout: 0.0
+  encoder_kwargs: {dim: 64, depth: 3, heads: 4, mlp_dim: 256}
+
+train:
+  epochs: 20
+  batch_size: 64
+  lr: 1e-3
+  sigreg_num_proj: 256
+
+planner:                        # categorical CEM, each agent with its own model and cost
+  num_samples: 128
+  n_steps: 5
+  topk: 16
+  horizon: 8
+  receding_horizon: 2
+  history_len: 3
+  step_reductions: [last, min]  # goal scored at the last predicted step, and at the plan's best step
+
+eval:
+  episodes: 20
+  seed: 100000
+  num_envs: 2
+  max_episode_steps: 40

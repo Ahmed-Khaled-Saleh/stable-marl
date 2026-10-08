@@ -1,0 +1,14 @@
+# python scripts/log_obs_modes.py [key=value ...]
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+env: MultiGrid-RedBlueDoors-8x8-v0
+env_kwargs: {}            # extra env kwargs, e.g. +env_kwargs.num_obstacles=6
+agents: 2
+steps: 20
+seed: 0
+see_through_walls: false
+out: obs_modes_log        # output folder
+fps: 3

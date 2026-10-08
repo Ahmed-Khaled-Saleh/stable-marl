@@ -1,0 +1,17 @@
+# RLlib training on MultiGrid (python scripts/train.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+algo: PPO                     # RLlib-registered algorithm
+env: MultiGrid-Empty-8x8-v0
+env_config: {}                # env kwargs, e.g. +env_config.size=8
+num_agents: 2
+num_workers: 8                # rollout workers
+num_gpus: 1
+num_timesteps: 10000000       # total env steps to train
+lr: null                      # null: RLlib's default
+batch_size: null              # train batch size, null: RLlib's default
+load_dir: null                # checkpoint directory to load pre-trained policies from
+save_dir: ~/ray_results/      # checkpoints, results and trained policies

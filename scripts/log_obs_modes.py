@@ -5,23 +5,24 @@ One env is created per mode, all reset with the same seed and stepped with the
 same (seeded random) actions, so the trajectories are identical and only the
 observation frame differs.
 
-Outputs (in --out):
+Outputs (in `out`):
     step_XXX.png   rows = modes, columns = full grid + each agent's 'pixels'
     obs_modes.gif  all steps as an animation
     log.txt        per step: agent states, rewards, terminations, and per mode/agent
                    the obs shapes, visible/unseen cells and the 'image' type grid
 
-Examples:
-    python nbs/examples/log_obs_modes.py
-    python nbs/examples/log_obs_modes.py --env MultiGrid-FindGoal-15x15-v0 --env-kwargs num_obstacles=6 width=15 height=15
-    python nbs/examples/log_obs_modes.py --steps 40 --see-through-walls --out logs/modes
+Examples (config: scripts/config/log_obs_modes.yaml):
+    python scripts/log_obs_modes.py
+    python scripts/log_obs_modes.py env=MultiGrid-FindGoal-15x15-v0 +env_kwargs.num_obstacles=6 +env_kwargs.width=15 +env_kwargs.height=15
+    python scripts/log_obs_modes.py steps=40 see_through_walls=true out=logs/modes
 """
-import argparse
 import contextlib
 import io
 import os
 
 import gymnasium as gym
+import hydra
+from omegaconf import OmegaConf
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -38,23 +39,6 @@ TYPE_TO_STR = {
     Type.unseen: '?', Type.empty: '.', Type.wall: 'W', Type.floor: 'F', Type.door: 'D',
     Type.key: 'K', Type.ball: 'A', Type.box: 'B', Type.goal: 'G', Type.lava: 'V', Type.agent: '@',
 }
-
-
-def parse_kwargs(pairs):
-    """Parse ['key=value', ...] into a dict, converting ints / floats / bools."""
-    out = {}
-    for pair in pairs or []:
-        key, value = pair.split('=', 1)
-        for cast in (int, float):
-            try:
-                value = cast(value)
-                break
-            except ValueError:
-                pass
-        else:
-            value = {'true': True, 'false': False}.get(value.lower(), value)
-        out[key] = value
-    return out
 
 
 def type_grid(image):
@@ -77,7 +61,7 @@ def make_envs(args):
             render_mode='rgb_array',
             obs_mode=mode,
             see_through_walls=args.see_through_walls,
-            **parse_kwargs(args.env_kwargs),
+            **OmegaConf.to_container(args.env_kwargs),
         )
     return envs
 
@@ -136,18 +120,8 @@ def log_step(f, envs, obs, step, actions=None, rewards=None, terms=None, truncs=
         assert np.array_equal(u.agent_states.pos, ref.agent_states.pos), f"{mode} diverged"
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--env', default='MultiGrid-RedBlueDoors-8x8-v0')
-    parser.add_argument('--env-kwargs', nargs='*', default=[], help="extra env kwargs as key=value")
-    parser.add_argument('--agents', type=int, default=2)
-    parser.add_argument('--steps', type=int, default=20)
-    parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--see-through-walls', action='store_true')
-    parser.add_argument('--out', default='obs_modes_log')
-    parser.add_argument('--fps', type=int, default=3)
-    args = parser.parse_args()
-
+@hydra.main(version_base=None, config_path='./config', config_name='log_obs_modes')
+def main(args):
     os.makedirs(args.out, exist_ok=True)
     envs = make_envs(args)
     action_rng = np.random.default_rng(args.seed)
@@ -155,7 +129,7 @@ def main():
 
     with open(os.path.join(args.out, 'log.txt'), 'w') as f:
         f.write(f"env={args.env} agents={args.agents} seed={args.seed} "
-                f"see_through_walls={args.see_through_walls} kwargs={parse_kwargs(args.env_kwargs)}\n")
+                f"see_through_walls={args.see_through_walls} kwargs={OmegaConf.to_container(args.env_kwargs)}\n")
         f.write("legend: ? unseen  . empty  W wall  D door  K key  A ball  B box  G goal  V lava  @ agent\n")
         f.write("image grids are printed with row = y (top to bottom), column = x (left to right)\n")
 

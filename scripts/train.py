@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import argparse
-import json
-# import stable_marl.rllib
-from stable_marl.wrappers.external import RLlibWrapper
+import hydra
+from omegaconf import OmegaConf
+from stable_marl.wrappers.external import register_rllib_envs
 
 import os
 import random
@@ -88,14 +87,16 @@ class MultiGridEncoder(nn.Module):
 class AgentModule(TorchRLModule, ValueFunctionAPI):
 
     def setup(self):
+        # observations {'image': (H, W, C), 'direction'}: C image channels + the direction's (cos, sin)
+        in_channels = self.observation_space['image'].shape[-1] + 2
         self.base = nn.Identity()
         self.actor = nn.Sequential(
-            MultiGridEncoder(in_channels=23),
+            MultiGridEncoder(in_channels=in_channels),
             nn.Linear(64, 64), nn.ReLU(),
-            nn.Linear(64, 7),
+            nn.Linear(64, int(self.action_space.n)),
         )
         self.critic = nn.Sequential(
-            MultiGridEncoder(in_channels=23),
+            MultiGridEncoder(in_channels=in_channels),
             nn.Linear(64, 64), nn.ReLU(),
             nn.Linear(64, 1),
         )
@@ -140,6 +141,7 @@ def get_algorithm_config(
     """
     Return the RL algorithm configuration dictionary.
     """
+    register_rllib_envs(flatten=False)      # the MultiGrid envs as RLlib envs, observations {'image', 'direction'}
     config = PPOConfig()
     config = config.api_stack(
         enable_env_runner_and_connector_v2=True,
@@ -186,11 +188,11 @@ def train(
         tuner = ray.tune.Tuner(
             config.algo_class,
             param_space=config,
-            run_config=ray.train.RunConfig(
+            run_config=ray.tune.RunConfig(
                 storage_path=save_dir,
                 stop=stop_conditions,
                 verbose=1,
-                checkpoint_config=ray.train.CheckpointConfig(
+                checkpoint_config=ray.tune.CheckpointConfig(
                     checkpoint_frequency=20,
                     checkpoint_at_end=True,
                 ),
@@ -202,54 +204,26 @@ def train(
 
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+@hydra.main(version_base=None, config_path='./config', config_name='train')
+def main(cfg):
+    """
+    Train MultiGrid agents with RLlib (config: scripts/config/train.yaml), e.g.
 
-    parser.add_argument(
-        '--algo', type=str, default='PPO',
-        help="The name of the RLlib-registered algorithm to use.")
-    parser.add_argument(
-        '--env', type=str, default='MultiGrid-Empty-8x8-v0',
-        help="MultiGrid environment to use.")
-    parser.add_argument(
-        '--env-config', type=json.loads, default={},
-        help="Environment config dict, given as a JSON string (e.g. '{\"size\": 8}')")
-    parser.add_argument(
-        '--num-agents', type=int, default=2,
-        help="Number of agents in environment.")
-    # parser.add_argument(
-    #     '--lstm', action='store_true',
-    #     help="Use LSTM model.")
-    # parser.add_argument(
-    #     '--centralized-critic', action='store_true',
-    #     help="Use centralized critic for training.")
-    parser.add_argument(
-        '--num-workers', type=int, default=8,
-        help="Number of rollout workers.")
-    parser.add_argument(
-        '--num-gpus', type=int, default=1,
-        help="Number of GPUs to train on.")
-    parser.add_argument(
-        '--num-timesteps', type=int, default=1e7,
-        help="Total number of timesteps to train.")
-    parser.add_argument(
-        '--lr', type=float,
-        help="Learning rate for training.")
-    parser.add_argument(
-        '--load-dir', type=str,
-        help="Checkpoint directory for loading pre-trained policies.")
-    parser.add_argument(
-        '--save-dir', type=str, default='~/ray_results/',
-        help="Directory for saving checkpoints, results, and trained policies.")
-
-    args = parser.parse_args()
-    config = get_algorithm_config(**vars(args))
+        python scripts/train.py env=MultiGrid-Empty-8x8-v0 num_agents=2 save_dir=~/saved/empty8x8/
+    """
+    args = OmegaConf.to_container(cfg)
+    args.update({k: NotProvided for k in ('lr', 'batch_size') if args[k] is None})   # RLlib's defaults
+    config = get_algorithm_config(**args)
 
     print()
-    print(f"Running with following CLI options: {args}")
+    print(f"Running with following options: {OmegaConf.to_yaml(cfg)}")
     print('\n', '-' * 64, '\n', "Training with following configuration:", '\n', '-' * 64)
     print()
 
     stop_conditions = {
-        'learners/__all_modules__/num_env_steps_trained_lifetime': args.num_timesteps}
-    train(config, stop_conditions, args.save_dir, args.load_dir)
+        'learners/__all_modules__/num_env_steps_trained_lifetime': cfg.num_timesteps}
+    train(config, stop_conditions, str(Path(cfg.save_dir).expanduser()), cfg.load_dir)
+
+
+if __name__ == "__main__":
+    main()
