@@ -175,6 +175,48 @@ def finished_agents_record_the_noop():
         ds.close()
 
 
+from stable_marl.envs.multigrid.findgoal import FindGoalEnv
+
+
+class EpisodeDataFindGoal(FindGoalEnv):
+    "FindGoal with episode-scoped data: the reset count and the goal of the episode."
+    resets = 0
+
+    def reset(self, *args, **kwargs):
+        type(self).resets += 1
+        self._reset_idx = type(self).resets
+        return super().reset(*args, **kwargs)
+
+    def get_episode_data(self):
+        return {'reset_idx': self._reset_idx, 'goal': str(tuple(self.goal_pos)) if hasattr(self, 'goal_pos') else ''}
+
+
+sm.register('Test-FindGoalEpisodeData-v0', EpisodeDataFindGoal, family='test')
+
+
+@test
+def replay_buffer_collects_episode_data():
+    """World.collect fills a ReplayBuffer, each episode with the episode data of its own env (read before the auto-reset)."""
+    from stable_marl.data import EPISODE_DATA_KEY, ReplayBuffer
+    EpisodeDataFindGoal.resets = 0
+    world = sm.World('Test-FindGoalEpisodeData-v0', num_envs=2, agents=2, size=7, num_obstacles=0, n_clutter=0,
+                     min_goal_spawn_distance=1, max_episode_steps=3, tile_size=4)
+    world.set_policy(sm.RandomPolicy(seed=0))
+    buf = ReplayBuffer(max_steps=100)
+    world.collect(writer=buf, episodes=4, seed=0, progress=False)
+    data = buf.get_episode_data()
+    # resets 1, 2 start the envs' first episodes, 3, 4 their second: read after the auto-reset, the
+    # snapshots would be shifted (3, 4, ...) or repeated
+    assert buf.num_episodes == 4 and sorted(data['reset_idx']) == [1, 2, 3, 4], data
+    assert 'reset_idx' not in buf.column_names and EPISODE_DATA_KEY not in buf.column_names
+    with tempfile.TemporaryDirectory() as tmp:                # HDF5 has no episode data: dropped, the file is fine
+        world.set_policy(sm.RandomPolicy(seed=0))
+        world.collect(f'{tmp}/d.h5', episodes=2, seed=0, progress=False)
+        ds = sm.HDF5Dataset(path=f'{tmp}/d.h5')
+        assert len(ds.lengths) == 2 and EPISODE_DATA_KEY not in ds.column_names
+        ds.close()
+
+
 if __name__ == '__main__':
     failed = 0
     for fn in TESTS:

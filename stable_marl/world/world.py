@@ -265,8 +265,12 @@ def collect(
     ``terminated`` and ``truncated`` come from the step that led there (``nan`` / False on
     the first row), while ``action`` is the action taken at step ``t`` (``nan`` on the last row).
     Keys starting with ``_`` and non-array values are skipped.
+
+    Envs with a ``get_episode_data()`` method (on the unwrapped env: values constant within an
+    episode, e.g. a layout description) have it attached to each episode under
+    ``EPISODE_DATA_KEY``, for writers that store it (e.g. a :class:`ReplayBuffer`).
     """
-    from stable_marl.data import get_format
+    from stable_marl.data import EPISODE_DATA_KEY, get_format
 
     if (path is None) == (writer is None):
         raise ValueError("World.collect: pass exactly one of `path` or `writer`")
@@ -290,6 +294,11 @@ def collect(
                 buffers[i].clear()
                 if 'action' in episode:   # action taken at each step: the reset's nan moves last
                     episode['action'] = np.roll(episode['action'], -1, axis=0)
+                # yielded before the env's reset: it still holds the episode that just ended
+                ep_data_fn = getattr(self.envs.envs[i].unwrapped, 'get_episode_data', None)
+                extra = ep_data_fn() if ep_data_fn is not None else None
+                if extra:
+                    episode[EPISODE_DATA_KEY] = dict(extra)
                 if pbar is not None: pbar.update(1)
                 yield episode
         w.write_episodes(episode_iter())

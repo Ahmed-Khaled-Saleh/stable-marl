@@ -15,7 +15,7 @@ import h5py
 import numpy as np
 
 from .dataset import Dataset, get_cache_dir, to_tensor
-from .format import Format, register_format, validate_write_mode
+from .format import Format, register_format, split_episode_data, validate_write_mode
 
 # %% auto #0
 __all__ = ['HDF5Dataset', 'HDF5Writer', 'HDF5']
@@ -187,6 +187,7 @@ class HDF5Writer:
         self._f: h5py.File | None = None
         self._initialized = self._appending_existing = False
         self._ep_written = self._global_ptr = 0
+        self._warned_episode_data = False
 
     def __enter__(self) -> HDF5Writer:
         exists = self.path.exists()
@@ -202,6 +203,9 @@ class HDF5Writer:
 
     def __exit__(self, *exc):
         if self._f is not None:
+            if 'ep_len' not in self._f:   # no episode written: still a readable (empty) dataset
+                self._f.create_dataset('ep_len', shape=(0,), maxshape=(None,), dtype=np.int32)
+                self._f.create_dataset('ep_offset', shape=(0,), maxshape=(None,), dtype=np.int64)
             for key, value in self.metadata.items():
                 self._f.attrs[key] = value if isinstance(value, (int, float, str)) else json.dumps(value, default=str)
             self._f.close()
@@ -210,6 +214,10 @@ class HDF5Writer:
     def write_episode(self, ep_data: dict):
         if self._f is None:
             raise RuntimeError("HDF5Writer used outside of a `with` block")
+        ep_data, extra = split_episode_data(ep_data)
+        if extra and not self._warned_episode_data:   # HDF5 files have no episode-scoped storage
+            logging.warning(f"HDF5Writer: episode data {sorted(extra)} is not stored in '{self.path}'.")
+            self._warned_episode_data = True
         if not self._initialized:
             self._init_schema(ep_data)
             self._initialized = True
