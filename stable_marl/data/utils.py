@@ -152,13 +152,18 @@ def _download(url: str, dest: Path) -> None:
 
 # %% ../../nbs/data/04_utils.ipynb #cfb424df
 def _episode_steps(src, ep_idx: int) -> dict[str, list]:
-    "Episode `ep_idx` of `src` as the ``{column: [row, ...]}`` writers take."
+    """
+    Episode `ep_idx` of `src` as the ``{column: [row, ...]}`` writers take: the stored rows where the
+    reader gives them (``get_row_data``), the other columns (e.g. image files) from ``load_episode``.
+    """
     length = int(src.lengths[ep_idx])
+    rows = {}
     if hasattr(src, 'offsets') and type(src).get_row_data is not Dataset.get_row_data:
         start = int(src.offsets[ep_idx])
         rows = src.get_row_data(list(range(start, start + length)))
-        return {col: list(np.asarray(rows[col])) for col in src.column_names}
-    return _episode_to_step_lists(src.load_episode(ep_idx), length)
+    missing = [col for col in src.column_names if col not in rows]
+    steps = _episode_to_step_lists(src.load_episode(ep_idx), length) if missing else {}
+    return {col: list(np.asarray(rows[col])) if col in rows else steps[col] for col in src.column_names}
 
 
 def _episode_to_step_lists(ep: dict, ep_len: int) -> dict[str, list]:

@@ -259,8 +259,8 @@ class HDF5Writer:
             if h5py.check_string_dtype(self._f[col].dtype):
                 continue
             if np.asarray(values[0]).shape != self._f[col].shape[1:]:
-                raise ValueError(f"HDF5Writer: append failed, column '{col}' has per-step shape "
-                                 f"{self._f[col].shape[1:]} in the file and {np.asarray(values[0]).shape} here.")
+                raise ValueError(f"HDF5Writer: append failed, column '{col}' per-step shape mismatch: "
+                                 f"existing={self._f[col].shape[1:]}, incoming={np.asarray(values[0]).shape}.")
 
     def _init_schema(self, sample_ep: dict):
         for col, values in sample_ep.items():
@@ -288,11 +288,19 @@ class HDF5(Format):
 
     @classmethod
     def open_reader(cls, path, **kwargs) -> HDF5Dataset:
+        s = str(path)
+        if '://' in s:                     # remote (s3://, gs://, ...): read with fsspec, region from the env by default
+            if 'storage_options' not in kwargs:
+                import os
+                kwargs['storage_options'] = {'client_kwargs': {'region_name': os.environ.get('AWS_DEFAULT_REGION', 'us-east-1')}}
+            return HDF5Dataset(path=s, **kwargs)
         p = Path(path)
         if p.is_dir():
             files = sorted(p.glob('*.h5')) + sorted(p.glob('*.hdf5'))
-            if len(files) != 1:
-                raise ValueError(f"Expected one .h5 / .hdf5 file in {p}, found {len(files)}: pass the file")
+            if not files:
+                raise FileNotFoundError(f"No .h5/.hdf5 file in {p}")
+            if len(files) > 1:
+                raise ValueError(f"Ambiguous dataset: multiple HDF5 files in {p}. Pass the file directly.")
             p = files[0]
         return HDF5Dataset(path=p, **kwargs)
 

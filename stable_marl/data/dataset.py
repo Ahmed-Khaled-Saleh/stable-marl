@@ -440,6 +440,10 @@ class GoalDataset:
         current_end, max_steps = self._future_steps(ep_idx, local_start)
         return ep_idx, current_end + int(self.rng.integers(1, max_steps + 1)) * self.dataset.frameskip
 
+    def _get_clip_info(self, idx: int) -> tuple[int, int]:
+        "``(episode, start)`` of clip `idx`."
+        return self._clip_indices[idx]
+
     def _load_single_step(self, ep_idx: int, local_idx: int) -> dict:
         return self.dataset._load_slice(ep_idx, local_idx, local_idx + 1)
 
@@ -447,7 +451,7 @@ class GoalDataset:
         steps = self.dataset[self._index_mapping[idx]]
         if not self.goal_keys:
             return steps
-        ep_idx, local_start = self._clip_indices[idx]
+        ep_idx, local_start = self._get_clip_info(idx)
         kind = self._sample_goal_kind()
         if kind == 'random':
             goal_ep, goal_idx = self._sample_random_step()
