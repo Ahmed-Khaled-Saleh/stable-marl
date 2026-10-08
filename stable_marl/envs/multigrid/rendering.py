@@ -283,7 +283,7 @@ def point_in_triangle(
 # %% ../../../nbs/envs/multigrid/00_rendering.ipynb #8c673212
 def highlight_img(
     img: ndarray[np.uint8],
-    color: ndarray[np.uint8] = White,
+    color: ndarray[np.uint8] | None = None,
     alpha=0.30) -> ndarray[np.uint8]:
     """
     Add highlighting to an image.
@@ -293,7 +293,7 @@ def highlight_img(
     img : ndarray[uint8] of shape (height, width, 3)
         The image to highlight
     color : ndarray[uint8] of shape (3,)
-        RGB color to use for highlighting
+        RGB color to use for highlighting (default: white)
     alpha : float
         The alpha value to use for blending
 
@@ -302,6 +302,7 @@ def highlight_img(
     img : ndarray[uint8] of shape (height, width, 3)
         The highlighted image
     """
+    color = White if color is None else color
     blend_img = img + alpha * (np.array(color, dtype=np.uint8) - img)
     blend_img = blend_img.clip(0, 255).astype(np.uint8)
     img[:, :, :] = blend_img

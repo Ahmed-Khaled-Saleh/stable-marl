@@ -5,5 +5,5 @@ website:
   title: "stable-marl"
   site-url: "https://Ahmed-Khaled-Saleh.github.io/stable-marl"
   description: "Fast and flexible multi-agent gridworld reinforcement learning environments."
-  repo-branch: main
+  repo-branch: master
   repo-url: "https://github.com/Ahmed-Khaled-Saleh/stable-marl"

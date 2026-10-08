@@ -86,3 +86,4 @@ include = ["stable_marl*"]
 stable_marl = ["configs/**/*.yaml"]
 
 [tool.nbdev]
+branch = "master"

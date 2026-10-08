@@ -331,16 +331,16 @@ def front_pos(self: Agent) -> tuple[int, int]:
 
 # %% ../../../../nbs/envs/multigrid/core/04_agent.ipynb #7d9e4ef9
 @patch
-def reset(self: Agent, mission: Mission = Mission('maximize reward')):
+def reset(self: Agent, mission: Mission | None = None):
     """
     Reset the agent to an initial state.
 
     Parameters
     ----------
     mission : Mission
-        Mission string to use for the new episode
+        Mission string to use for the new episode (default: 'maximize reward')
     """
-    self.mission = mission
+    self.mission = Mission('maximize reward') if mission is None else mission
     self.state.pos = (-1, -1)
     self.state.dir = -1
     self.state.terminated = False
