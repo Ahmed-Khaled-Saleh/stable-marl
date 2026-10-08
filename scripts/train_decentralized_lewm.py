@@ -1,8 +1,8 @@
 """
-Decentralized LeWMs on a small FindGoal (random goals and starts, 2 agents): collect expert + random data,
+Decentralized LeWMs on a small FindGoal (random goals and starts, 2 agents by default): collect expert + random data,
 train one LeWM per agent on its own local view, then let each agent plan with its own model.
 
-    python scripts/train_decentralized_lewm.py [--epochs 20] [--obs-mode allo] [--position]
+    python scripts/train_decentralized_lewm.py [--epochs 20] [--obs-mode allo] [--position] [--agents 2]
 
 `--position` adds each agent's own position as an extra model input (with the goal's position for
 the goal). The trained model is evaluated with the goal scored at the last predicted step
@@ -24,12 +24,14 @@ from stable_marl.wm import DecentralizedWorldModel, train_world_model
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=20)
-parser.add_argument('--obs-mode', default='allo', choices=['ego', 'allo'], help="'allo': world-aligned local view")
+parser.add_argument('--obs-mode', default='allo', choices=['ego', 'allo', 'global'],
+                    help="'ego': local view rotating with the agent, 'allo': world-aligned local view, 'global': whole grid")
 parser.add_argument('--position', action='store_true', help="add each agent's position as a model input")
+parser.add_argument('--agents', type=int, default=2)
 parser.add_argument('--episodes', type=int, default=20, help='evaluation episodes')
 args = parser.parse_args()
 
-ENV = dict(agents=2, tile_size=8, size=7, num_obstacles=0, n_clutter=0, min_goal_spawn_distance=1, obs_mode=args.obs_mode)
+ENV = dict(agents=args.agents, tile_size=8, size=7, num_obstacles=0, n_clutter=0, min_goal_spawn_distance=1, obs_mode=args.obs_mode)
 SMALL = dict(image_size=32, patch_size=8, embed_dim=64, depth=3, heads=4, dim_head=16, mlp_dim=256, projector_hidden=256,
              encoder_kwargs=dict(dim=64, depth=3, heads=4, mlp_dim=256), history_size=3, dropout=0.0)
 if args.position:
@@ -44,9 +46,9 @@ for policy, episodes, seed in ((GoToGoalPolicy(), 300, 0), (sm.RandomPolicy(seed
     world.set_policy(policy)
     world.collect(f'{tmp}/data.h5', episodes=episodes, seed=seed, progress=False)
 ds = sm.HDF5Dataset(path=f'{tmp}/data.h5', num_steps=4, keys_to_load=[*inputs, 'action', 'terminated'])
-print(f'obs_mode={args.obs_mode} inputs={inputs}: {len(ds.lengths)} episodes, {len(ds)} clips ({time.time() - t:.0f}s)')
+print(f'agents={args.agents} obs_mode={args.obs_mode} inputs={inputs}: {len(ds.lengths)} episodes, {len(ds)} clips ({time.time() - t:.0f}s)')
 
-model = DecentralizedWorldModel.build_lewm(num_agents=2, num_actions=4, **SMALL)
+model = DecentralizedWorldModel.build_lewm(num_agents=args.agents, num_actions=4, **SMALL)
 t = time.time()
 hist = train_world_model(model, ds, epochs=args.epochs, batch_size=64, lr=1e-3, sigreg_kwargs={'num_proj': 256}, log=None)
 print(f'trained {args.epochs} epochs in {time.time() - t:.0f}s: train {hist["train_loss"][0]:.3f} -> '
@@ -55,7 +57,7 @@ print(f'trained {args.epochs} epochs in {time.time() - t:.0f}s: train {hist["tra
 
 def planner(step_reduction):
     cost = ShootingCostEvaluator(model, GoalMSE(per_agent=True, step_reduction=step_reduction))
-    solver = CategoricalCEMSolver(cost, batch_size=2, num_samples=128, n_steps=5, topk=16, mode='per_agent', seed=0)
+    solver = CategoricalCEMSolver(cost, batch_size=args.agents, num_samples=128, n_steps=5, topk=16, mode='per_agent', seed=0)
     return sm.WorldModelPolicy(solver, sm.PlanConfig(horizon=8, receding_horizon=2, history_len=3), history_keys=inputs)
 
 
