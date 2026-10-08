@@ -4,14 +4,15 @@
 
 # %% auto #0
 __all__ = ['FORMATS', 'WRITE_MODES', 'Format', 'Writer', 'detect_format', 'get_format', 'list_formats', 'register_format',
-           'validate_write_mode', 'Dataset', 'get_cache_dir', 'HDF5', 'HDF5Dataset', 'HDF5Writer']
+           'validate_write_mode', 'Dataset', 'MergeDataset', 'ConcatDataset', 'GoalDataset', 'GOAL_KINDS',
+           'get_cache_dir', 'HDF5', 'HDF5Dataset', 'HDF5Writer']
 
 # %% ../../nbs/data/03_init.ipynb #9d7ae926
 from .format import (
     FORMATS, WRITE_MODES, Format, Writer, detect_format, get_format, list_formats,
     register_format, validate_write_mode)
-from .dataset import Dataset, get_cache_dir
+from .dataset import Dataset, MergeDataset, ConcatDataset, GoalDataset, GOAL_KINDS, get_cache_dir
 from .hdf5 import HDF5, HDF5Dataset, HDF5Writer   # registers the 'hdf5' format
 
 _all_ = ['FORMATS', 'WRITE_MODES', 'Format', 'Writer', 'detect_format', 'get_format', 'list_formats',
-         'register_format', 'validate_write_mode', 'Dataset', 'get_cache_dir', 'HDF5', 'HDF5Dataset', 'HDF5Writer']
+         'register_format', 'validate_write_mode', 'Dataset', 'MergeDataset', 'ConcatDataset', 'GoalDataset', 'GOAL_KINDS', 'get_cache_dir', 'HDF5', 'HDF5Dataset', 'HDF5Writer']
