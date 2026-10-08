@@ -42,7 +42,7 @@ def variation_values_are_applied_then_restored():
     assert (cells(env, Type.wall) == grey).all() and (cells(env, Type.goal) == green).all()
     assert [Color(c).to_index() for c in env.agent_states.color] == native_agents
     ref, _ = sm.make('MultiGrid-FindGoal-15x15-v0', **FINDGOAL).reset(seed=0)
-    assert all(np.array_equal(obs[a]['pov'], ref[a]['pov']) for a in range(2))
+    assert all(np.array_equal(obs[a]['pixels'], ref[a]['pixels']) for a in range(2))
 
 
 @test
@@ -120,7 +120,7 @@ def varied_episodes_replay_from_the_dataset():
             env = sm.make('MultiGrid-FindGoal-15x15-v0', **FINDGOAL)
             obs, _ = env.reset(seed=int(col('seed')[0]), options={'variation_values': values})
             for t in range(T):
-                assert all(np.array_equal(col('pov')[t, a], obs[a]['pov']) for a in range(2)), (e, t)
+                assert all(np.array_equal(col('pixels')[t, a], obs[a]['pixels']) for a in range(2)), (e, t)
                 if t + 1 < T:
                     obs, *_ = env.step({a: int(col('action')[t, a]) for a in range(2)})
 

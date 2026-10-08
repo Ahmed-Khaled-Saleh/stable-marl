@@ -148,9 +148,9 @@ class MultiGridEnv(MultiAgentEnv, RandomMixin):
             Whether to highlight the view of each agent when rendering
         tile_size : int
             Width and height of each grid tile (in pixels), used for rendering
-            and for the 'pov' observation
+            and for the 'pixels' observation
         obs_mode : 'ego', 'allo' or 'global'
-            Frame of the 'image' and 'pov' observations:
+            Frame of the 'image' and 'pixels' observations:
             * 'ego': partial view in front of the agent, rotated so the agent faces up
             * 'allo': partial view centred on the agent, world-aligned (no rotation)
             * 'global': the whole grid, fully observable, identical for every agent
@@ -391,7 +391,7 @@ def _recolor(self: MultiGridEnv, obj_type: Type, color: Color):
 def goal_infos(self: MultiGridEnv) -> dict[AgentID, dict[str, Any]]:
     """
     Goal of the current episode for each agent, computed at reset and added to every info: for
-    envs defining ``get_goal_state``, ``'goal'`` (the agent's 'pov' observation at the goal) and
+    envs defining ``get_goal_state``, ``'goal'`` (the agent's 'pixels' observation at the goal) and
     ``'goal_position'`` (the goal cell). Empty for other envs.
     """
     if not hasattr(self, 'get_goal_state'):
@@ -530,8 +530,8 @@ def step(
 @patch
 def _set_obs_spaces(self: MultiGridEnv):
     """
-    Set each agent's 'image' / 'pov' observation spaces for the current
-    `obs_mode` and `tile_size` ('pov' is rendered with `tile_size` pixels per cell),
+    Set each agent's 'image' / 'pixels' observation spaces for the current
+    `obs_mode` and `tile_size` ('pixels' is rendered with `tile_size` pixels per cell),
     and the 'position' space for the grid size.
     Subclasses that re-create their agents, or code that changes `tile_size`
     after construction, must call this again.
@@ -539,12 +539,12 @@ def _set_obs_spaces(self: MultiGridEnv):
     for agent in self.agents:
         if self.obs_mode == 'global':
             image_shape = (self.width, self.height, WorldObj.dim)
-            pov_shape = (self.height * self.tile_size, self.width * self.tile_size, 3)
+            pixels_shape = (self.height * self.tile_size, self.width * self.tile_size, 3)
         else:
             image_shape = (agent.view_size, agent.view_size, WorldObj.dim)
-            pov_shape = (agent.view_size * self.tile_size, agent.view_size * self.tile_size, 3)
+            pixels_shape = (agent.view_size * self.tile_size, agent.view_size * self.tile_size, 3)
         agent.observation_space['image'] = spaces.Box(low=0, high=255, shape=image_shape, dtype=int)
-        agent.observation_space['pov'] = spaces.Box(low=0, high=255, shape=pov_shape, dtype=np.uint8)
+        agent.observation_space['pixels'] = spaces.Box(low=0, high=255, shape=pixels_shape, dtype=np.uint8)
         agent.observation_space['position'] = spaces.Box(
             low=0, high=np.array([self.width - 1, self.height - 1]), shape=(2,), dtype=int)
 
@@ -563,12 +563,12 @@ def _obs_encoding(self: MultiGridEnv) -> ndarray[np.int_]:
 
 
 @patch
-def _obs_pov(
+def _obs_pixels(
     self: MultiGridEnv,
     agents: list[Agent] | None = None,
     see_through_walls: bool | None = None) -> ndarray[np.uint8]:
     """
-    RGB 'pov' observation of the given agents (default: all), in the frame given by `obs_mode`.
+    RGB 'pixels' observation of the given agents (default: all), in the frame given by `obs_mode`.
     `see_through_walls=None` uses each agent's own setting.
     """
     agents = self.agents if agents is None else agents
@@ -600,13 +600,13 @@ def gen_obs(self: MultiGridEnv) -> dict[AgentID, ObsType]:
     direction = self.agent_states.dir
     position = np.array(self.agent_states.pos)
     image = self._obs_encoding()
-    rgb = self._obs_pov()
+    rgb = self._obs_pixels()
 
     observations = {}
     for i in range(self.num_agents):
         observations[i] = {
             'image': image[i],
-            'pov': rgb[i],
+            'pixels': rgb[i],
             'direction': direction[i],
             'position': position[i],
             'mission': self.agents[i].mission,

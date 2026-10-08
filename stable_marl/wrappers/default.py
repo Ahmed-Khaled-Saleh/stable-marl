@@ -120,8 +120,9 @@ def _resolve_resample(resample: str | int | None) -> int | None:
 class AddPixelsWrapper(gym.Wrapper):
     """
     Adds a render of the whole env (``env.render()``, so ``render_mode='rgb_array'``) to the
-    info as ``pixels``, resized to `image_shape` (H, W) if given, then passed through
-    `transform`. Also adds ``render_time`` (seconds).
+    info as ``pixels``, or as ``render`` when the env already provides ``pixels`` (e.g. the
+    agents' views of MultiGrid envs), resized to `image_shape` (H, W) if given, then passed
+    through `transform`. Also adds ``render_time`` (seconds).
     """
     def __init__(
         self,
@@ -134,6 +135,7 @@ class AddPixelsWrapper(gym.Wrapper):
             raise ValueError("AddPixelsWrapper needs an env made with render_mode='rgb_array'")
         self.image_shape, self.transform = image_shape, transform
         self.resample = _resolve_resample(resample)
+        self._key = None
 
     def _add_pixels(self, info: dict) -> dict:
         start = time.time()
@@ -143,7 +145,9 @@ class AddPixelsWrapper(gym.Wrapper):
             h, w = self.image_shape
             resample = Image.Resampling.BILINEAR if self.resample is None else self.resample
             img = np.asarray(Image.fromarray(img).resize((w, h), resample=resample))
-        info['pixels'] = self.transform(img) if self.transform else img
+        if self._key is None:   # decided once: 'pixels' unless the env provides its own
+            self._key = 'render' if 'pixels' in info else 'pixels'
+        info[self._key] = self.transform(img) if self.transform else img
         info['render_time'] = time.time() - start
         return info
 
@@ -204,21 +208,21 @@ class TransformInfoWrapper(gym.Wrapper):
 class MegaWrapper(gym.Wrapper):
     """
     The standard preprocessing of every env of a :class:`World`: everything goes to the info dict
-    (:class:`EverythingToInfoWrapper`), plus the render as ``pixels`` if `add_pixels`
+    (:class:`EverythingToInfoWrapper`), plus the render as ``pixels`` (``render`` if the env has its own ``pixels``) if `add_pixels`
     (:class:`AddPixelsWrapper`), and a check of the `required_keys`.
 
     Parameters
     ----------
     image_shape : (H, W), optional
-        Size ``pixels`` is resized to (default: the render's size)
+        Size the render is resized to (default: the render's size)
     pixels_transform : callable, optional
-        Applied to ``pixels``
+        Applied to the render
     required_keys : list of str, optional
         Info keys (regular expressions) that must be present
     image_resample : str or int, optional
-        PIL resampling used to resize ``pixels`` ('nearest', 'bilinear', ...), default bilinear
+        PIL resampling used to resize the render ('nearest', 'bilinear', ...), default bilinear
     add_pixels : bool
-        Render the env into ``pixels`` (needs ``render_mode='rgb_array'``)
+        Render the env into ``pixels``, or ``render`` if the env has its own ``pixels`` (needs ``render_mode='rgb_array'``)
     goal_transform : callable, optional
         Applied to ``goal`` (the agents' goal observations)
     separate_goal : bool

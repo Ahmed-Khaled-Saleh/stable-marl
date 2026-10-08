@@ -290,7 +290,7 @@ class Agent:
                 shape=(view_size, view_size, WorldObj.dim),
                 dtype=int,
             ),
-            'pov': spaces.Box(
+            'pixels': spaces.Box(
                 low=0,
                 high=255,
                 shape=(view_size * TILE_PIXELS, view_size * TILE_PIXELS, 3),
@@ -458,7 +458,7 @@ class NavigationAgent(Agent):
                 shape=(view_size, view_size, WorldObj.dim),
                 dtype=int,
             ),
-            'pov': spaces.Box(
+            'pixels': spaces.Box(
                 low=0,
                 high=255,
                 shape=(view_size * TILE_PIXELS, view_size * TILE_PIXELS, 3),

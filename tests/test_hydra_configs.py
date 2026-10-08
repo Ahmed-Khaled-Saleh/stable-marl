@@ -103,11 +103,11 @@ wrapper:
                                                'env.num_obstacles=6'])
             env = quiet(instantiate, cfg.env)
             obs, _ = quiet(env.reset, seed=0)
-            assert env.num_agents == 2 and env.obs_mode == 'allo' and obs[0]['pov'].shape == (112, 112, 3)
+            assert env.num_agents == 2 and env.obs_mode == 'allo' and obs[0]['pixels'].shape == (112, 112, 3)
             wrapped = quiet(instantiate, cfg.wrapper)
             assert isinstance(wrapped.env, get_class(cfg.env._target_))
             print(f"  yaml searchpath: env={type(env).__name__} agents={env.num_agents} "
-                  f"obs_mode={env.obs_mode} pov={obs[0]['pov'].shape} | wrapper={type(wrapped).__name__} OK")
+                  f"obs_mode={env.obs_mode} pixels={obs[0]['pixels'].shape} | wrapper={type(wrapped).__name__} OK")
 
             for name in ENV_CONFIGS:
                 cfg = compose('config', overrides=[f'env={name}', 'env.agents=2'])

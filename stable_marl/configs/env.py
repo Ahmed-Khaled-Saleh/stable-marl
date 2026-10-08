@@ -37,7 +37,7 @@ class MultiGridEnvConfig:
     render_mode: Optional[str] = None  # None, 'human' or 'rgb_array'
     screen_size: Optional[int] = 640
     highlight: bool = True
-    tile_size: int = 32                # pixels per cell (rendering and 'pov' observation)
+    tile_size: int = 32                # pixels per cell (rendering and 'pixels' observation)
     agent_pov: bool = False
 
 

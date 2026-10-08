@@ -211,7 +211,7 @@ class WorldModelPolicy(BasePolicy):
     Continuous actions are clipped to the action space, so the recorded actions are the executed ones.
 
     With ``history_len > 1``, the solver gets the last ``history_len`` frames of the
-    `history_keys` (one every ``action_block`` env steps, oldest first, e.g. ``pov``
+    `history_keys` (one every ``action_block`` env steps, oldest first, e.g. ``pixels``
     ``(n, history_len, num_agents, ...)``) and the actions executed between them under
     ``'action_history'`` ``(n, history_len - 1, num_agents, action_block * D)``. Early in an
     episode the context is shorter; it is padded (copies of the oldest frame, zero actions) only
@@ -223,7 +223,7 @@ class WorldModelPolicy(BasePolicy):
         config: PlanConfig,
         process: dict[str, Transformable] | None = None,
         transform: dict[str, Callable] | None = None,
-        history_keys: tuple[str, ...] = ('pov',),
+        history_keys: tuple[str, ...] = ('pixels',),
         **kwargs: Any):
         super().__init__(**kwargs)
         self.type = 'world_model'

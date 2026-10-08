@@ -39,10 +39,10 @@ from ..protocols import Dynamics, Objective
 __all__ = ['flat_goal_encode', 'default_goal_encode', 'ShootingCostEvaluator']
 
 # %% ../../nbs/planning/00_evaluator.ipynb #573f4223
-def flat_goal_encode(model: Dynamics, info_dict: dict, goal_obs_key: str = 'pov') -> torch.Tensor:
+def flat_goal_encode(model: Dynamics, info_dict: dict, goal_obs_key: str = 'pixels') -> torch.Tensor:
     """
     Encode the goal for models whose latent is one tensor: the goal observation (``goal``)
-    takes the place of `goal_obs_key` (each agent's ``pov`` by default), and every
+    takes the place of `goal_obs_key` (each agent's ``pixels`` by default), and every
     ``goal_<key>`` the place of ``<key>`` (e.g. ``goal_position`` -> ``position``); inputs with
     no goal value (e.g. ``direction``) keep their latest entries.
     Pair with :class:`GoalMSE`.
@@ -63,7 +63,7 @@ def flat_goal_encode(model: Dynamics, info_dict: dict, goal_obs_key: str = 'pov'
 
 
 def default_goal_encode(model: Dynamics, info_dict: dict) -> torch.Tensor:
-    "The goal encoding used by default: :func:`flat_goal_encode` with each agent's ``pov``."
+    "The goal encoding used by default: :func:`flat_goal_encode` with each agent's ``pixels``."
     return flat_goal_encode(model, info_dict)
 
 # %% ../../nbs/planning/00_evaluator.ipynb #e91d2c80

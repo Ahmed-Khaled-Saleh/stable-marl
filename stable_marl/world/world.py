@@ -63,7 +63,7 @@ class World:
     num_envs : int
         Number of envs in the pool
     image_shape : (H, W), optional
-        Size ``pixels`` is resized to (default: the render's size)
+        Size the render is resized to (default: the render's size)
     max_episode_steps : int, optional
         Step limit of an episode (the env's ``max_steps``; default: the env's own)
     pre_wrappers : list of callables
@@ -71,11 +71,12 @@ class World:
     extra_wrappers : list of callables
         Applied after :class:`MegaWrapper`, on envs returning flat info dicts
     image_transform : callable, optional
-        Applied to ``pixels``
+        Applied to the render
     image_resample : str or int, optional
-        PIL resampling used to resize ``pixels`` (default bilinear)
+        PIL resampling used to resize the render (default bilinear)
     add_pixels : bool
-        Add a render of the whole env as ``pixels`` to the infos
+        Add a render of the whole env to the infos, as ``pixels`` (as ``render`` if the env
+        already provides ``pixels``, e.g. the agents' views of MultiGrid envs)
     goal_conditioned : bool
         Require a ``goal`` in the infos (envs with goals, e.g. FindGoal)
     goal_transform : callable, optional

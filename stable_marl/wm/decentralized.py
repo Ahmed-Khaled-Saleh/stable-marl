@@ -31,7 +31,7 @@ class DecentralizedWorldModel(nn.Module):
     action_block : int
         Env steps per planning step
     """
-    def __init__(self, models: list[nn.Module], obs_key: str = 'pov', num_actions: int | None = None,
+    def __init__(self, models: list[nn.Module], obs_key: str = 'pixels', num_actions: int | None = None,
                  action_block: int = 1, config: dict | None = None):
         super().__init__()
         self.models = nn.ModuleList(models)
@@ -40,7 +40,7 @@ class DecentralizedWorldModel(nn.Module):
 
     @classmethod
     def build_lewm(cls, num_agents: int, num_actions: int | None = None, action_size: int | None = None,
-                   action_block: int = 1, obs_key: str = 'pov', **lewm_kwargs) -> DecentralizedWorldModel:
+                   action_block: int = 1, obs_key: str = 'pixels', **lewm_kwargs) -> DecentralizedWorldModel:
         """
         One independent :func:`build_lewm` per agent, for discrete actions (`num_actions`) or continuous
         actions of size `action_size`.

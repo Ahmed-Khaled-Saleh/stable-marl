@@ -1,7 +1,7 @@
 """
 Test that `see_through_walls` is respected by both observations:
   * 'image' (symbolic encoding): hidden cells are Type.unseen
-  * 'pov'   (RGB rendering):     hidden cells are blacked out
+  * 'pixels'   (RGB rendering):     hidden cells are blacked out
 
 Layout (9x9, agent 0 at (2, 4) facing right, goal hidden behind a wall at x=4):
 
@@ -59,7 +59,7 @@ def black_tiles(pov: np.ndarray) -> np.ndarray:
 
 def check(see_through_walls: bool):
     env, obs = make_obs(see_through_walls)
-    image, pov = obs['image'], obs['pov']
+    image, pov = obs['image'], obs['pixels']
     types = image[..., 0]
     unseen = types == Type.unseen.to_index()
     goal_seen = (types == Type.goal.to_index()).any()
@@ -87,7 +87,7 @@ def check(see_through_walls: bool):
 
     # The POV image must hide exactly the cells the encoding marks unseen
     assert (black_tiles(pov) == unseen).all(), "POV blacked-out cells != unseen cells"
-    assert env.observation_space[0]['pov'].contains(pov), "POV outside observation space"
+    assert env.observation_space[0]['pixels'].contains(pov), "POV outside observation space"
 
     print("OK")
     return env, pov

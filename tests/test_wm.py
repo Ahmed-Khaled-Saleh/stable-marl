@@ -1,6 +1,6 @@
 """
 Tests of the decentralized LeWM world models (stable_marl.wm): training on collected data, and each
-agent planning with its own model from its own pov.
+agent planning with its own model from its own view (`pixels`).
 
     python tests/test_wm.py
 """
@@ -31,7 +31,7 @@ def dataset(path):
         world = sm.World('MultiGrid-FindGoal-15x15-v0', num_envs=4, max_episode_steps=20, goal_conditioned=True, **ENV)
         world.set_policy(policy)
         world.collect(path, episodes=episodes, seed=seed, progress=False)
-    return sm.HDF5Dataset(path=path, num_steps=4, keys_to_load=['pov', 'action', 'terminated'])
+    return sm.HDF5Dataset(path=path, num_steps=4, keys_to_load=['pixels', 'action', 'terminated'])
 
 
 @test
@@ -49,7 +49,7 @@ def train_then_plan_per_agent():
     seen = []
     rollout = model.rollout
     def spy(info_dict, candidates):
-        seen.append((tuple(info_dict['pov'].shape), tuple(candidates.shape)))
+        seen.append((tuple(info_dict['pixels'].shape), tuple(candidates.shape)))
         return rollout(info_dict, candidates)
     model.rollout = spy
 
@@ -62,7 +62,7 @@ def train_then_plan_per_agent():
     res = world.evaluate(episodes=2, seed=0)
     assert len(res['episode_lengths']) == 2 and seen
     frames = {s[0][2] for s in seen}
-    assert seen[0][0][3:] == (2, 56, 56, 3) and max(frames) == 3      # each agent's pov, up to 3 context frames
+    assert seen[0][0][3:] == (2, 56, 56, 3) and max(frames) == 3      # each agent's view, up to 3 context frames
     assert all(s[1][2:] == (4, 2, 4) for s in seen)                    # (horizon, agents, one-hot actions)
 
 
@@ -71,7 +71,7 @@ def position_as_extra_input():
     """Each agent's model also reads its own position (and the goal's): train, then plan with it."""
     with tempfile.TemporaryDirectory() as tmp:
         dataset(f'{tmp}/d.h5')
-        ds = sm.HDF5Dataset(path=f'{tmp}/d.h5', num_steps=4, keys_to_load=['pov', 'position', 'action', 'terminated'])
+        ds = sm.HDF5Dataset(path=f'{tmp}/d.h5', num_steps=4, keys_to_load=['pixels', 'position', 'action', 'terminated'])
         torch.manual_seed(0)
         model = DecentralizedWorldModel.build_lewm(num_agents=2, num_actions=4, extra_inputs={'position': 2}, **TINY)
         train_world_model(model, ds, epochs=1, batch_size=32, lr=1e-3, sigreg_kwargs={'num_proj': 64}, log=None)
@@ -83,9 +83,9 @@ def position_as_extra_input():
                                    history_keys=history_keys)
 
     world = sm.World('MultiGrid-FindGoal-15x15-v0', num_envs=2, max_episode_steps=8, goal_conditioned=True, **ENV)
-    world.set_policy(policy(('pov', 'position')))
+    world.set_policy(policy(('pixels', 'position')))
     assert len(world.evaluate(episodes=2, seed=0)['episode_lengths']) == 2
-    world.set_policy(policy(('pov',)))        # position given for 1 frame, pov for up to 3: a clear error
+    world.set_policy(policy(('pixels',)))        # position given for 1 frame, pixels for up to 3: a clear error
     try:
         world.evaluate(episodes=2, seed=0)
         raise AssertionError("missing position history must fail")
@@ -105,7 +105,7 @@ def agents_plan_independently():
     for blank_agent_1 in (False, True):
         info = {k: torch.as_tensor(v) for k, v in world.infos.items() if isinstance(v, np.ndarray) and v.dtype != object}
         if blank_agent_1:
-            info['pov'] = info['pov'].clone(); info['pov'][:, :, 1] = 0
+            info['pixels'] = info['pixels'].clone(); info['pixels'][:, :, 1] = 0
             info['goal'] = info['goal'].clone(); info['goal'][:, :, 1] = 0
         solver = CategoricalCEMSolver(cost, num_samples=32, n_steps=3, topk=8, mode='per_agent', seed=0)
         solver.configure(action_space=world.envs.single_action_space, n_envs=1,

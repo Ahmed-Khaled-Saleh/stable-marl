@@ -267,8 +267,8 @@ def get_goal_state(
     agent.state.dir = goal_agent_dir
 
     # Generate the observation image
-    # (same frame and tile size as the 'pov' observation, see `obs_mode`)
-    goal_image = self._obs_pov(
+    # (same frame and tile size as the 'pixels' observation, see `obs_mode`)
+    goal_image = self._obs_pixels(
         [goal_agent],
         see_through_walls=agent.see_through_walls if see_through_walls is None else see_through_walls,
     )[0]

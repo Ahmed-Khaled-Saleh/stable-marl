@@ -642,6 +642,6 @@ def main(argv=None):
     print(f"  agents: {[a['world_pos'] for a in meta['agents']]}")
 
 # %% ../../../nbs/envs/multigrid/11_sionna_export.ipynb #3f570363
-if __name__ == '__main__' and 'ipykernel' not in sys.modules:   # not when running the notebook
+if __name__ == '__main__' and 'IPython' not in sys.modules:   # not in notebooks or nbdev's test runner
     # Inside Blender (`blender -b -P this_file -- ...`), arguments come after '--'
     main(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else None)

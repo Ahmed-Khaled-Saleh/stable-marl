@@ -28,7 +28,7 @@ parser.add_argument('--obs-mode', default='allo', choices=['ego', 'allo', 'globa
                     help="'ego': local view rotating with the agent, 'allo': world-aligned local view, 'global': whole grid")
 parser.add_argument('--position', action='store_true', help="add each agent's position as a model input")
 parser.add_argument('--direction', action='store_true', help="add each agent's facing direction as a model input")
-parser.add_argument('--image-size', type=int, default=32, help='model input size (pov is resized to it)')
+parser.add_argument('--image-size', type=int, default=32, help='model input size (pixels are resized to it)')
 parser.add_argument('--agents', type=int, default=2)
 parser.add_argument('--episodes', type=int, default=20, help='evaluation episodes')
 args = parser.parse_args()
@@ -39,7 +39,7 @@ SMALL = dict(image_size=args.image_size, patch_size=8, embed_dim=64, depth=3, he
 extras = {**({'position': 2} if args.position else {}), **({'direction': 1} if args.direction else {})}
 if extras:
     SMALL['extra_inputs'] = extras
-inputs = ['pov', *extras]
+inputs = ['pixels', *extras]
 torch.manual_seed(0)
 
 tmp = tempfile.mkdtemp()

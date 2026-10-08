@@ -107,17 +107,17 @@ def mode_and_cost_must_agree():
 
 @test
 def discrete_history_and_action_blocks():
-    """history_len=3, action_block=2: the model gets 1, 2 then 3 pov frames, and per-agent action blocks."""
+    """history_len=3, action_block=2: the model gets 1, 2 then 3 frames, and per-agent action blocks."""
     for mode in PLANNING_MODES:
-        model = Recording(NavigationDynamics(action_block=2), ('pov', 'action_history'))
+        model = Recording(NavigationDynamics(action_block=2), ('pixels', 'action_history'))
         config = sm.PlanConfig(horizon=4, receding_horizon=1, history_len=3, action_block=2)
         res = run_grid(grid_planner(mode, model=model, config=config), num_envs=1, episodes=2)
         assert res['success_rate'] == 100.0, (mode, res['episode_successes'])
-        frames = [s['pov'][2] for s in model.seen]
+        frames = [s['pixels'][2] for s in model.seen]
         assert frames[0] == 1 and 2 in frames and max(frames) == 3, frames
         with_history = [s for s in model.seen if 'action_history' in s]
-        assert with_history and all(s['action_history'][2:] == (s['pov'][2] - 1, 2, 2) for s in with_history)
-        assert all(s['pov'][3:] == (2, 224, 224, 3) for s in model.seen)    # (agents, H, W, C)
+        assert with_history and all(s['action_history'][2:] == (s['pixels'][2] - 1, 2, 2) for s in with_history)
+        assert all(s['pixels'][3:] == (2, 224, 224, 3) for s in model.seen)    # (agents, H, W, C)
 
 
 # ------------------------------------------------------------------------------------------- continuous: point masses

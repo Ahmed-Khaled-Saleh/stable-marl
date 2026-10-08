@@ -485,11 +485,11 @@ def on_success(
             self._last_obs = {}
 
         image_all = self._obs_encoding() # ← same as gen_obs
-        rgb_all = self._obs_pov()        # ← same as gen_obs
+        rgb_all = self._obs_pixels()        # ← same as gen_obs
 
         self._last_obs[agent.index] = {
             'image':      image_all[agent.index],  # ← index by agent.index
-            'pov':        rgb_all[agent.index],    # ← index by agent.index
+            'pixels':        rgb_all[agent.index],    # ← index by agent.index
             'direction':  agent.state.dir,
             'position':   np.array(agent.state.pos), # goal cell (cached before moving off grid)
             'mission':    agent.mission,
@@ -523,7 +523,7 @@ def gen_obs(self: FindGoalEnv) -> dict[AgentID, ObsType]:
     direction = self.agent_states.dir
     position = np.array(self.agent_states.pos)
     image = self._obs_encoding()
-    rgb = self._obs_pov()
+    rgb = self._obs_pixels()
 
     observations = {}
     for i in range(self.num_agents):
@@ -535,7 +535,7 @@ def gen_obs(self: FindGoalEnv) -> dict[AgentID, ObsType]:
 
         observations[i] = {
             'image':     image[i],
-            'pov':       rgb[i],
+            'pixels':       rgb[i],
             'direction': direction[i],
             'position':  position[i],
             'mission':   self.agents[i].mission,
@@ -598,8 +598,8 @@ def get_goal_state(
     agent.state.dir = goal_agent_dir
 
     # Generate observation from ON the goal cell
-    # (same frame and tile size as the 'pov' observation, see `obs_mode`)
-    goal_image = self._obs_pov([agent], see_through_walls=see_through_walls)[0]
+    # (same frame and tile size as the 'pixels' observation, see `obs_mode`)
+    goal_image = self._obs_pixels([agent], see_through_walls=see_through_walls)[0]
 
     # Restore
     agent.state.pos = original_pos

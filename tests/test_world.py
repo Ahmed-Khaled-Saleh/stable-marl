@@ -48,7 +48,7 @@ def collected_episodes_replay_exactly():
             assert list(ep['step_idx']) == list(range(T + 1)) and len(set(ep['id'])) == 1
             for t in range(T + 1):
                 for a in range(2):
-                    assert np.array_equal(ep['pov'][t, a], obs[a]['pov']), (e, t, a)
+                    assert np.array_equal(ep['pixels'][t, a], obs[a]['pixels']), (e, t, a)
                     assert np.array_equal(ep['image'][t, a], obs[a]['image']), (e, t, a)
                 assert np.array_equal(ep['state'][t], env.state())
                 if t == T:
@@ -112,7 +112,7 @@ def world_options():
     world = sm.World('MultiGrid-Empty-6x6-v0', num_envs=2, agents=2, max_episode_steps=5, add_pixels=True)
     world.set_policy(sm.RandomPolicy(seed=0))
     res = world.evaluate(episodes=3, seed=0)
-    assert (res['episode_lengths'] <= 5).all() and world.infos['pixels'].shape == (2, 1, 192, 192, 3)
+    assert (res['episode_lengths'] <= 5).all() and world.infos['render'].shape == (2, 1, 192, 192, 3)
     assert len(world.evaluate(episodes=10, seed=0, reset_mode='wait')['seeds']) == 2
 
 
@@ -150,11 +150,11 @@ def single_env_info_matches_world():
 def dataset_clips():
     with tempfile.TemporaryDirectory() as tmp:
         collect(f'{tmp}/d.h5', episodes=3, seed=1)
-        ds = sm.HDF5Dataset(path=f'{tmp}/d.h5', num_steps=4, keys_to_load=['pov', 'state', 'action', 'step_idx'])
+        ds = sm.HDF5Dataset(path=f'{tmp}/d.h5', num_steps=4, keys_to_load=['pixels', 'state', 'action', 'step_idx'])
         assert len(ds) == sum(max(int(n) - 4 + 1, 0) for n in ds.lengths)
         item = ds[len(ds) - 1]
-        assert item['pov'].shape == (4, 2, 224, 224, 3) and item['action'].shape == (4, 2)
-        assert item['state'].shape == (4, 3, 6, 6) and set(item) == {'pov', 'state', 'action', 'step_idx'}
+        assert item['pixels'].shape == (4, 2, 224, 224, 3) and item['action'].shape == (4, 2)
+        assert item['state'].shape == (4, 3, 6, 6) and set(item) == {'pixels', 'state', 'action', 'step_idx'}
         assert list(item['step_idx'].numpy()) == list(range(int(ds.lengths[-1]) - 4, int(ds.lengths[-1])))
 
 

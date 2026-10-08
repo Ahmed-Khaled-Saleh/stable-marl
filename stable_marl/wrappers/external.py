@@ -216,7 +216,7 @@ class RLlibWrapper(MultiAgentEnv):
         env : MultiGridEnv
             Environment to wrap
         obs_keys : tuple[str, ...]
-            Observation entries to keep ('image', 'pov', 'direction', 'position');
+            Observation entries to keep ('image', 'pixels', 'direction', 'position');
             the text 'mission' is not supported by RLlib
         flatten : bool
             Concatenate the kept entries into one float32 vector (Box entries flattened,

@@ -27,7 +27,7 @@ while not env.unwrapped.is_done():
     #     )
     # if env.unwrapped.step_count % 5 == 0:
     #     img1 = env.render()
-    #     # img2 = observations[0]['pov']
+    #     # img2 = observations[0]['pixels']
     #     plot_two_imgs_in_one(img1, goal_obs)
     #     break
     

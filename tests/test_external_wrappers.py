@@ -156,10 +156,10 @@ def test_rllib(train: bool):
     assert term[0] and env.observation_spaces[0].contains(obs[0])
     print(f"  {'FindGoal':28s} agent reaching the goal OK")
 
-    pov = RLlibWrapper(RedBlueDoorsEnv(agents=2), obs_keys=('pov',), flatten=False)
+    pov = RLlibWrapper(RedBlueDoorsEnv(agents=2), obs_keys=('pixels',), flatten=False)
     obs, _ = pov.reset(seed=0)
     assert pov.observation_spaces[0].contains(obs[0])
-    print(f"  {'obs_keys=(pov,) flatten=False':28s} obs space {pov.observation_spaces[0].shape} OK")
+    print(f"  {'obs_keys=(pixels,) flatten=False':28s} obs space {pov.observation_spaces[0].shape} OK")
 
     if not train:
         return

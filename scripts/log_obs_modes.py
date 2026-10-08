@@ -6,7 +6,7 @@ same (seeded random) actions, so the trajectories are identical and only the
 observation frame differs.
 
 Outputs (in --out):
-    step_XXX.png   rows = modes, columns = full grid + each agent's 'pov'
+    step_XXX.png   rows = modes, columns = full grid + each agent's 'pixels'
     obs_modes.gif  all steps as an animation
     log.txt        per step: agent states, rewards, terminations, and per mode/agent
                    the obs shapes, visible/unseen cells and the 'image' type grid
@@ -98,8 +98,8 @@ def save_figure(envs, obs, step, path):
         axes[r, 0].set_title(f"{mode}: full grid (highlight = view)", fontsize=9)
         for a in range(num_agents):
             color = u.agents[a].state.color.name
-            axes[r, a + 1].imshow(obs[mode][a]['pov'])
-            axes[r, a + 1].set_title(f"{mode}: agent {a} ({color}) pov", fontsize=9)
+            axes[r, a + 1].imshow(obs[mode][a]['pixels'])
+            axes[r, a + 1].set_title(f"{mode}: agent {a} ({color}) pixels", fontsize=9)
     for ax in axes.flat:
         ax.axis('off')
     fig.suptitle(f"step {step}", fontsize=12)
@@ -125,7 +125,7 @@ def log_step(f, envs, obs, step, actions=None, rewards=None, terms=None, truncs=
         for a, o in obs[mode].items():
             image = o['image']
             unseen = int((image[..., 0] == Type.unseen.to_index()).sum())
-            f.write(f"agent {a}: image {image.shape} pov {o['pov'].shape} "
+            f.write(f"agent {a}: image {image.shape} pixels {o['pixels'].shape} "
                     f"direction={int(o['direction'])} visible={image[..., 0].size - unseen} unseen={unseen}\n")
             for row in type_grid(image):
                 f.write(f"    {row}\n")

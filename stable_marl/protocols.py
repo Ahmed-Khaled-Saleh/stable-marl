@@ -75,14 +75,14 @@ class Dynamics(Protocol):
     "The dynamics surface a shooting cost evaluator needs from a world model."
 
     def encode(self, x: dict) -> dict:
-        "Embed raw observations (e.g. ``pov``, ``pixels``, ``state``); returns `x` with the embeddings (e.g. ``emb``)."
+        "Embed raw observations (e.g. ``pixels``, ``pixels``, ``state``); returns `x` with the embeddings (e.g. ``emb``)."
         ...
 
     def rollout(self, info_dict: dict, action_candidates: torch.Tensor) -> dict:
         """
         Roll the candidate action sequences ``(B, S, horizon, num_agents[, action_dim])`` forward.
 
-        `info_dict` holds ``H`` context steps of observations (e.g. ``pov`` of shape
+        `info_dict` holds ``H`` context steps of observations (e.g. ``pixels`` of shape
         ``(B, S, H, num_agents, C, h, w)``); when ``H > 1`` the actions executed between them are
         given as ``action_history`` ``(B, S, H - 1, num_agents[, action_dim])``. Returns
         `info_dict` with the rollout outputs, e.g. ``predicted_emb`` of shape
