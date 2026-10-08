@@ -43,7 +43,8 @@ def flat_goal_encode(model: Dynamics, info_dict: dict, goal_obs_key: str = 'pov'
     """
     Encode the goal for models whose latent is one tensor: the goal observation (``goal``)
     takes the place of `goal_obs_key` (each agent's ``pov`` by default), and every
-    ``goal_<key>`` the place of ``<key>`` (e.g. ``goal_position`` -> ``position``).
+    ``goal_<key>`` the place of ``<key>`` (e.g. ``goal_position`` -> ``position``); inputs with
+    no goal value (e.g. ``direction``) keep their latest entries.
     Pair with :class:`GoalMSE`.
     """
     assert 'goal' in info_dict, "goal not in info_dict"
@@ -54,6 +55,10 @@ def flat_goal_encode(model: Dynamics, info_dict: dict, goal_obs_key: str = 'pov'
             goal[k[len('goal_'):]] = goal.pop(k)
     goal.pop('action', None)
     goal.pop('action_history', None)   # past actions are context, not goal
+    T = goal[goal_obs_key].shape[1]
+    for k, v in goal.items():          # inputs with no goal value (e.g. direction): their latest T entries
+        if v.ndim > 1 and v.shape[1] > T:
+            goal[k] = v[:, -T:]
     return model.encode(goal)['emb']
 
 
