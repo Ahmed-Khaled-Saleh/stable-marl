@@ -1,0 +1,40 @@
+# Decentralized LeWM training (python scripts/train/lewm.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null                 # datasets from <cache_dir>/datasets/, checkpoints to <cache_dir>/checkpoints/
+dataset_name: findgoal          # see scripts/data/collect_findgoal.py
+output_model_name: lewm_findgoal
+seed: 0
+device: cpu                     # cuda on a GPU
+
+# model inputs per agent: its view `pixels`, plus extra info keys (e.g. [pixels, position, direction])
+inputs: [pixels]
+
+wm:
+  history_size: 3               # context frames
+  num_preds: 1
+
+# small model and images, to run on CPU; on a GPU, the defaults of build_lewm (ViT-tiny, 224 x 224)
+model:
+  image_size: 32
+  patch_size: 8
+  embed_dim: 64
+  depth: 3
+  heads: 4
+  dim_head: 16
+  mlp_dim: 256
+  projector_hidden: 256
+  dropout: 0.0
+  encoder_kwargs: {dim: 64, depth: 3, heads: 4, mlp_dim: 256}
+
+train:
+  epochs: 20
+  batch_size: 64
+  lr: 1e-3
+  weight_decay: 1e-3
+  sigreg_weight: 0.09
+  sigreg_num_proj: 256
+  val_split: 0.1

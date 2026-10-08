@@ -1,0 +1,4 @@
+# Distance between the predicted embedding and the embedding of the goal observation.
+_target_: stable_marl.planning.GoalMSE
+per_agent: ${eq:${mode},per_agent}
+step_reduction: min            # best predicted step (last: the end of the plan, as stable-worldmodel)

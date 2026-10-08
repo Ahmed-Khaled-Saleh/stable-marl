@@ -1,0 +1,10 @@
+_target_: stable_marl.planning.CategoricalCEMSolver
+cost: ???
+batch_size: ${eval.num_envs}
+num_samples: 128
+n_steps: 5
+topk: 16
+mode: ${mode}
+seed: ${seed}
+callbacks:
+  - _target_: stable_marl.planning.solver.callbacks.BestCostRecorder

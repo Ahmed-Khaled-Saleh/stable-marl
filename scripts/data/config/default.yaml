@@ -1,0 +1,28 @@
+# Data collection (python scripts/data/collect_findgoal.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null            # default: $STABLEMARL_HOME, else ~/.stable_marl (datasets go to <cache_dir>/datasets/)
+dataset_name: findgoal
+format: hdf5               # hdf5, folder or video
+seed: 0
+
+env:                       # a small FindGoal: 2 agents, random goals and starts, no walls inside
+  name: MultiGrid-FindGoal-15x15-v0
+  agents: 2
+  size: 7
+  num_obstacles: 0
+  n_clutter: 0
+  min_goal_spawn_distance: 1
+  tile_size: 8
+  obs_mode: allo           # ego, allo or global (see the envs' obs_mode)
+
+world:
+  num_envs: 4
+  max_episode_steps: 25
+
+expert_episodes: 300       # shortest-path expert
+random_episodes: 150       # uniformly random actions (coverage)
+options: null              # reset options, e.g. {variation: [all]}

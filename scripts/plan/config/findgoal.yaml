@@ -1,0 +1,33 @@
+# Planning evaluation (python scripts/plan/eval_wm.py [key=value ...])
+defaults:
+  - solver: categorical_cem
+  - objective: goal_mse
+  - _self_
+
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null
+dataset_name: findgoal         # the env (and its settings) of this dataset is evaluated
+policy: lewm_findgoal          # a checkpoint in <cache_dir>/checkpoints, or `random` / `expert`
+inputs: [pixels]               # the model's inputs (as when training)
+mode: per_agent                # joint (centralized) or per_agent (each agent with its own model and cost)
+seed: 0
+
+plan_config:
+  horizon: 8
+  receding_horizon: 2
+  history_len: 3               # context frames, as the training history_size
+
+eval:
+  episodes: 20
+  seed: 100000                 # episodes unseen in the dataset
+  num_envs: 2
+  max_episode_steps: 40
+  video_episodes: 2            # episodes saved as panel videos (0: none)
+
+output:
+  dir: null                    # default: next to the checkpoint (scripts/plan/outputs for random / expert)
+  filename: findgoal_results.txt

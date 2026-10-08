@@ -1,0 +1,8 @@
+_target_: stable_marl.planning.CategoricalMPPISolver
+cost: ???
+batch_size: ${eval.num_envs}
+num_samples: 128
+n_steps: 5
+temperature: 1.0
+mode: ${mode}
+seed: ${seed}

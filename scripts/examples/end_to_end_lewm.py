@@ -2,7 +2,7 @@
 Decentralized LeWMs on a small FindGoal (random goals and starts, 2 agents by default): collect expert + random data,
 train one LeWM per agent on its own local view, then let each agent plan with its own model.
 
-    python scripts/train_decentralized_lewm.py [--epochs 20] [--obs-mode allo] [--position] [--agents 2]
+    python scripts/examples/end_to_end_lewm.py [--epochs 20] [--obs-mode allo] [--position] [--agents 2]
 
 `--position` adds each agent's own position as an extra model input (with the goal's position for
 the goal), `--direction` its facing direction; `--image-size` sets the model's input size. The trained model is evaluated with the goal scored at the last predicted step
