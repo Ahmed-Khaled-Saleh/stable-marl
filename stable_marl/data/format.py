@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Iterable, Protocol, runtime_checkable
 
 # %% auto #0
-__all__ = ['FORMATS', 'WRITE_MODES', 'validate_write_mode', 'register_format', 'list_formats', 'get_format', 'detect_format',
-           'Format', 'Writer']
+__all__ = ['FORMATS', 'WRITE_MODES', 'EPISODE_DATA_KEY', 'split_episode_data', 'validate_write_mode', 'register_format',
+           'list_formats', 'get_format', 'detect_format', 'Format', 'Writer']
 
 # %% ../../nbs/data/00_format.ipynb #9d60b5de
 FORMATS: dict[str, type[Format]] = {}
@@ -20,6 +20,21 @@ WRITE_MODES = ('append', 'overwrite', 'error')
 Writer modes shared by all formats: ``append`` extends an existing dataset (default),
 ``overwrite`` replaces it, ``error`` raises :class:`FileExistsError` if it exists.
 """
+
+
+EPISODE_DATA_KEY = '_episode_data'
+"""
+Reserved key of an episode dict holding its episode-scoped values (one per episode, not per
+step). Writers of formats with ``supports_episode_data`` split it out with
+:func:`split_episode_data`; the others never receive it (``convert`` / ``merge`` drop it first).
+"""
+
+
+def split_episode_data(ep_data: dict) -> tuple[dict, dict]:
+    "``(per-step columns, episode data)`` of an episode dict, without changing it."
+    if EPISODE_DATA_KEY not in ep_data:
+        return ep_data, {}
+    return {k: v for k, v in ep_data.items() if k != EPISODE_DATA_KEY}, dict(ep_data[EPISODE_DATA_KEY] or {})
 
 
 def validate_write_mode(mode: str) -> str:
@@ -61,6 +76,8 @@ def detect_format(path: str | Path) -> type[Format] | None:
 class Format:
     "An on-disk dataset format: subclasses set `name`, implement `detect` and their reader / writer."
     name: str = ''
+    #: whether the writer stores episode-scoped data (:data:`EPISODE_DATA_KEY`)
+    supports_episode_data: bool = False
 
     @classmethod
     def detect(cls, path) -> bool:
