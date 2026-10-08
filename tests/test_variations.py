@@ -125,6 +125,25 @@ def varied_episodes_replay_from_the_dataset():
                     obs, *_ = env.step({a: int(col('action')[t, a]) for a in range(2)})
 
 
+@test
+def unreachable_spawn_distance_does_not_hang():
+    """A goal spawn distance no free cell has (small grid, or sampled with variation=['all']) is lowered, with a warning."""
+    import warnings
+    env = sm.make('MultiGrid-FindGoal-15x15-v0', agents=2, size=5, num_obstacles=0, n_clutter=0, min_goal_spawn_distance=10)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        env.reset(seed=0)
+    assert any('no free cell is 10 steps' in str(w.message) for w in caught)
+    goal = np.asarray(env.goal_pos)
+    farthest = max(abs(x - goal[0]) + abs(y - goal[1]) for x in range(1, 4) for y in range(1, 4))
+    assert all(np.abs(np.asarray(a.state.pos) - goal).sum() >= farthest - 1 for a in env.agents)   # as far as possible
+    small = sm.make('MultiGrid-FindGoal-15x15-v0', agents=2, size=7, num_obstacles=2, n_clutter=0)
+    for seed in range(20):                                   # sampled distances up to 10 on a 5 x 5 interior
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            small.reset(seed=seed, options={'variation': ['all']})
+
+
 if __name__ == '__main__':
     failed = 0
     for fn in TESTS:

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import math
+import warnings
 from collections import defaultdict
 from itertools import repeat
 
@@ -159,17 +160,19 @@ class FindGoalEnv(MultiGridEnv):
 
         # 5. Place agents
         min_goal_spawn_distance = int(self._variation('goal.min_spawn_distance'))
-        def reject_spawn_fn(env, pos):
-            """Reject positions too close to goal (where goal might be visible)"""
-            print("Rejecting spawn positions too close to goal")
-            print(f"Goal pos: {goal_pos}, Candidate pos: {pos}")
-            # dist = abs(pos[0] - goal_pos[0]) + abs(pos[1] - goal_pos[1])
-            # another way of doing the same as above is through manhattan distance: dist = np.sum(np.abs(np.array(pos) - goal_pos))
-            dist = np.linalg.norm(np.array(pos) - goal_pos, ord=1)
-            return dist < min_goal_spawn_distance
-        
+        dist_to_goal = lambda pos: np.abs(np.asarray(pos) - goal_pos).sum()     # Manhattan distance
         for agent in self.agents:
-            self.place_agent(agent, top=(1, 1), size=(width - 2, height - 2), reject_fn= reject_spawn_fn)
+            # a distance no free cell has (a small grid, or a sampled variation) would make the rejection
+            # sampling below run forever: use the largest one available instead (no random draw used)
+            occupied = {tuple(p) for p in np.asarray(self.agent_states.pos).reshape(-1, 2)}
+            farthest = max((dist_to_goal((x, y)) for x in range(1, width - 1) for y in range(1, height - 1)
+                            if self.grid.get(x, y) is None and (x, y) not in occupied), default=0)
+            min_dist = min(min_goal_spawn_distance, farthest)
+            if min_dist < min_goal_spawn_distance:
+                warnings.warn(f"FindGoal: no free cell is {min_goal_spawn_distance} steps from the goal, agents "
+                              f"spawn at least {min_dist} steps away instead", stacklevel=2)
+            self.place_agent(agent, top=(1, 1), size=(width - 2, height - 2),
+                             reject_fn=lambda env, pos, d=min_dist: dist_to_goal(pos) < d)
 
         return goal_pos
 

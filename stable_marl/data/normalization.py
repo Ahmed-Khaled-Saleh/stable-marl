@@ -37,6 +37,14 @@ import numpy as np
 __all__ = ['SCALERS', 'IdentityScaler', 'ZScoreScaler', 'PercentileScaler', 'get_scaler', 'ColumnTransform']
 
 # %% ../../nbs/data/03_normalization.ipynb #0d77e20c
+def _as_float(x):
+    "`x` as floats (integer columns such as positions would otherwise truncate the statistics)."
+    if _is_tensor(x):
+        return x if x.is_floating_point() else x.float()
+    x = np.asarray(x)
+    return x if x.dtype.kind == 'f' else x.astype(np.float32)
+
+
 def _as_like(a, b, x):
     "Bounds `a`, `b` as the type (and dtype / device) of `x`."
     if _is_tensor(x):
@@ -78,10 +86,12 @@ class ZScoreScaler:
         return self
 
     def transform(self, X):
+        X = _as_float(X)
         mean, std = _as_like(self.mean, self.std, X)
         return (X - mean) / (std.clamp(min=self.eps) if _is_tensor(X) else np.maximum(std, self.eps))
 
     def inverse_transform(self, X):
+        X = _as_float(X)
         mean, std = _as_like(self.mean, self.std, X)
         return X * std + mean
 
@@ -106,12 +116,14 @@ class PercentileScaler:
         return self
 
     def transform(self, X):
+        X = _as_float(X)
         q_low, q_high = _as_like(self.q_low, self.q_high, X)
         if _is_tensor(X):
             return (2 * (X - q_low) / (q_high - q_low).clamp(min=self.eps) - 1).clamp(-1, 1)
         return np.clip(2 * (X - q_low) / np.maximum(q_high - q_low, self.eps) - 1, -1, 1)
 
     def inverse_transform(self, X):
+        X = _as_float(X)
         q_low, q_high = _as_like(self.q_low, self.q_high, X)
         return (X + 1) * (q_high - q_low) / 2 + q_low
 
