@@ -242,6 +242,49 @@ def continuous_history_and_action_blocks():
         assert with_history and all(s['action_history'][2:] == (s['position'][2] - 1, 2, 4) for s in with_history)
 
 
+@test
+def solver_callbacks_per_agent():
+    """Callbacks get per-agent costs in 'per_agent' mode, joint ones otherwise; solvers without callbacks refuse them."""
+    from stable_marl.planning.solver.callbacks import BestCostRecorder, EliteSpreadRecorder, MeanShiftRecorder, VarNormRecorder
+    from stable_marl.planning import MPPISolver, PredictiveSamplingSolver, LagrangianSolver
+
+    class Quadratic:                                    # agent a's cost: its distance to a * 0.5
+        def get_cost(self, info, candidates):           # (B, S, H, A, D) -> (B, S, A)
+            target = 0.5 * torch.arange(candidates.shape[3], dtype=candidates.dtype)[:, None]
+            return (candidates - target).pow(2).sum(dim=(2, 4))
+
+    space = spaces.Box(-2, 2, shape=(3, 2), dtype=np.float32)          # 3 agents, 2-d actions
+    info = {'pixels': torch.zeros(4, 1, 3, 2, 2)}
+    for mode in PLANNING_MODES:
+        cbs = [BestCostRecorder(reduction='none'), VarNormRecorder(), MeanShiftRecorder(), EliteSpreadRecorder()]
+        solver = CEMSolver(Quadratic(), batch_size=2, num_samples=64, n_steps=4, topk=8, mode=mode, callbacks=cbs)
+        solver.configure(action_space=space, n_envs=4, config=sm.PlanConfig(horizon=3, receding_horizon=1))
+        out = solver.solve(info)
+        best = out['callbacks']['BestCostRecorder']
+        assert len(best) == 2 and all(len(batch) == 4 for batch in best)           # 2 env batches x 4 iterations
+        per_env = best[0][-1]
+        assert len(per_env) == 2 and (np.shape(per_env) == (2, 3) if mode == 'per_agent' else np.ndim(per_env) == 1)
+        var = out['callbacks']['VarNormRecorder'][0]
+        assert var[-1] < var[0]                                                    # the distribution narrows
+        solver.solve(info)
+        assert len(cbs[0].history) == 2                                            # reset by each solve
+
+    cb = BestCostRecorder()
+    discrete = CategoricalCEMSolver(lambda info, c: None, num_samples=8, n_steps=2, topk=2, callbacks=[cb])
+    assert discrete.supports_callbacks and CategoricalMPPISolver.supports_callbacks
+    for cls in (MPPISolver, PredictiveSamplingSolver):
+        try:
+            cls(Quadratic(), callbacks=[cb])
+            raise AssertionError(f"{cls.__name__} must refuse callbacks")
+        except ValueError as e:
+            assert 'does not report to callbacks' in str(e)
+    try:
+        LagrangianSolver(Quadratic(), n_steps=1, callbacks=[cb])
+        raise AssertionError("LagrangianSolver must refuse callbacks")
+    except ValueError:
+        pass
+
+
 if __name__ == '__main__':
     failed = 0
     for fn in TESTS:

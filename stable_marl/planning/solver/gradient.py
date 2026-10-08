@@ -52,6 +52,7 @@ class GradientSolver(SolverBase):
     receive the gradient of its own cost). Returns ``actions`` ``(n_envs, H, A, action_dim)``.
     """
     discrete = False
+    supports_callbacks = True
 
     def __init__(self, cost: Costable, n_steps: int, batch_size: int | None = None, var_scale: float = 1.0,
                  num_samples: int = 1, action_noise: float = 0.0,
@@ -95,21 +96,25 @@ class GradientSolver(SolverBase):
         start_time = time.time()
         n_envs = self._n_envs_of(info_dict)
         params, actions, final_costs = self.init_action(n_envs, info_dict, init_action), [], []
+        self._callbacks_reset()
         for start, end in self._batches(n_envs):
             B, infos = end - start, self._expand(info_dict, start, end)
             x = params[start:end].clone().requires_grad_(True)
             optim = self.optimizer_cls([x], **self.optimizer_kwargs)
-            for _ in range(self.n_steps):
+            self._callbacks_start_batch()
+            for step in range(self.n_steps):
                 costs = self._costs(self.cost.get_cost(infos, x), B, self.num_samples)
                 if not costs.requires_grad:
                     raise RuntimeError(f"{type(self).__name__} needs a cost differentiable in the candidates")
                 _backward(costs, x, self.mode)
+                user_costs = self._user(costs).detach()
+                self._callbacks_step(step=step, params=x, cost=user_costs.sum(), costs=user_costs)
                 self._step(x, optim)
             plan, cost = self._best(infos, x, B)
             actions.append(plan.cpu())
             final_costs += self._cost_list(cost)
         self._log(start_time)
-        return {'actions': torch.cat(actions), 'costs': final_costs}
+        return self._callbacks_output({'actions': torch.cat(actions), 'costs': final_costs})
 
 # %% ../../../nbs/planning/solver/03_gradient.ipynb #ea8df97f
 class LagrangianSolver(GradientSolver):
@@ -123,6 +128,8 @@ class LagrangianSolver(GradientSolver):
     ``(B, S, A, C)``, and each agent's actions follow its own cost and constraint terms (joint
     constraints apply to every agent). Multipliers persist across solves (`persist_multipliers`).
     """
+    supports_callbacks = False      # as in stable-worldmodel
+
     def __init__(self, cost: Costable, n_steps: int, n_outer_steps: int = 5, rho_init: float = 1.0,
                  rho_max: float = 1e4, rho_scale: float = 2.0, persist_multipliers: bool = True,
                  optimizer_cls: type[torch.optim.Optimizer] = torch.optim.Adam, **kwargs):

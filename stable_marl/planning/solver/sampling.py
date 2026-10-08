@@ -80,6 +80,8 @@ class GaussianSolverBase(SolverBase):
 # %% ../../../nbs/planning/solver/02_sampling.ipynb #29982137
 class CEMSolver(GaussianSolverBase):
     "Cross-entropy method: the Gaussian is refit to the `topk` best candidates (per agent in 'per_agent' mode)."
+    supports_callbacks = True
+
     def __init__(self, cost: Costable, topk: int = 30, **kwargs):
         super().__init__(cost, **kwargs)
         self.topk = topk
@@ -89,19 +91,25 @@ class CEMSolver(GaussianSolverBase):
         start_time = time.time()
         n_envs, mean, var = self._init(info_dict, init_action)
         final_costs = []
+        self._callbacks_reset()
         for start, end in self._batches(n_envs):
             B, m, v, infos = end - start, mean[start:end], var[start:end], self._expand(info_dict, start, end)
-            for _ in range(self.n_steps):
+            self._callbacks_start_batch()
+            for step in range(self.n_steps):
                 candidates = self._noise(B) * v.unsqueeze(1) + m.unsqueeze(1)
                 candidates[:, 0] = m
                 costs = self._costs(self.cost.get_cost(infos, candidates), B, self.num_samples)
                 top_costs, top = torch.topk(costs, k=self.topk, dim=1, largest=False)
                 elites = gather_agents(candidates, top)
+                prev_m, prev_v = m, v
                 m, v = elites.mean(dim=1), elites.std(dim=1, correction=0)
+                self._callbacks_step(step=step, candidates=candidates, costs=self._user(costs),
+                                     topk_vals=self._user(top_costs), topk_inds=self._user(top), topk_candidates=elites,
+                                     mean=m, var=v, prev_mean=prev_m, prev_var=prev_v)
             mean[start:end], var[start:end] = m, v
             final_costs += self._cost_list(top_costs.mean(dim=1))
         self._log(start_time)
-        return {'actions': mean.cpu(), 'costs': final_costs, 'mean': [mean.cpu()], 'var': [var.cpu()]}
+        return self._callbacks_output({'actions': mean.cpu(), 'costs': final_costs, 'mean': [mean.cpu()], 'var': [var.cpu()]})
 
 
 class ICEMSolver(GaussianSolverBase):
@@ -110,6 +118,8 @@ class ICEMSolver(GaussianSolverBase):
     on the Gaussian, the `n_elite_keep` previous elites kept as candidates, candidates clipped to
     the action bounds. Returns the mean (`return_mean`) or the best elite.
     """
+    supports_callbacks = True
+
     def __init__(self, cost: Costable, topk: int = 30, noise_beta: float = 2.0, alpha: float = 0.1,
                  n_elite_keep: int = 5, return_mean: bool = True, **kwargs):
         super().__init__(cost, **kwargs)
@@ -135,10 +145,12 @@ class ICEMSolver(GaussianSolverBase):
         n_envs, mean, var = self._init(info_dict, init_action)
         final_costs = []
         bounded = hasattr(self, '_low')
+        self._callbacks_reset()
         for start, end in self._batches(n_envs):
             B, m, v, infos = end - start, mean[start:end], var[start:end], self._expand(info_dict, start, end)
             prev_elites = None
-            for _ in range(self.n_steps):
+            self._callbacks_start_batch()
+            for step in range(self.n_steps):
                 candidates = self._colored_noise(B) * v.unsqueeze(1) + m.unsqueeze(1)
                 candidates[:, 0] = m
                 if prev_elites is not None:
@@ -149,13 +161,18 @@ class ICEMSolver(GaussianSolverBase):
                 costs = self._costs(self.cost.get_cost(infos, candidates), B, self.num_samples)
                 top_costs, top = torch.topk(costs, k=self.topk, dim=1, largest=False)
                 prev_elites = elites = gather_agents(candidates, top)
+                prev_m, prev_v = m, v
                 m = self.alpha * m + (1 - self.alpha) * elites.mean(dim=1)
                 v = self.alpha * v + (1 - self.alpha) * elites.std(dim=1, correction=0)
+                self._callbacks_step(step=step, candidates=candidates, costs=self._user(costs),
+                                     topk_vals=self._user(top_costs), topk_inds=self._user(top), topk_candidates=elites,
+                                     mean=m, var=v, prev_mean=prev_m, prev_var=prev_v,
+                                     action_low=getattr(self, '_low', None), action_high=getattr(self, '_high', None))
             mean[start:end] = m if self.return_mean else elites[:, 0]
             var[start:end] = v
             final_costs += self._cost_list(top_costs.mean(dim=1) if self.return_mean else top_costs[:, 0])
         self._log(start_time)
-        return {'actions': mean.cpu(), 'costs': final_costs, 'mean': [mean.cpu()], 'var': [var.cpu()]}
+        return self._callbacks_output({'actions': mean.cpu(), 'costs': final_costs, 'mean': [mean.cpu()], 'var': [var.cpu()]})
 
 
 class MPPISolver(GaussianSolverBase):

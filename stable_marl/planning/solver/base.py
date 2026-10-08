@@ -103,14 +103,23 @@ class SolverBase:
         Centralised or decentralised planning (see above)
     device, seed, verbose
         Torch device, seed of the solver's random generator, print solve times
+    callbacks : list of Callback, optional
+        Per-iteration recorders (see :mod:`stable_marl.planning.solver.callbacks`), for the solvers
+        that report to them (``supports_callbacks``)
     """
     discrete: bool | None = None   # True: needs discrete actions, False: continuous, None: both
+    supports_callbacks: bool = False
 
     def __init__(self, cost: Costable, batch_size: int | None = 1, num_samples: int = 300, mode: str = 'joint',
-                 device: str | torch.device = 'cpu', seed: int = 1234, verbose: bool = False):
+                 device: str | torch.device = 'cpu', seed: int = 1234, verbose: bool = False,
+                 callbacks: list | None = None):
         if mode not in PLANNING_MODES:
             raise ValueError(f"mode must be one of {PLANNING_MODES}, got {mode!r}")
+        if callbacks and not self.supports_callbacks:
+            raise ValueError(f"{type(self).__name__} does not report to callbacks (CEMSolver, ICEMSolver, GradientSolver, "
+                             "CategoricalCEMSolver and CategoricalMPPISolver do)")
         self.cost, self.batch_size, self.num_samples, self.mode = cost, batch_size, num_samples, mode
+        self.callbacks = list(callbacks) if callbacks else []
         self.device, self.verbose = device, verbose
         self.torch_gen = torch.Generator(device=device).manual_seed(seed)
         try:
@@ -198,6 +207,31 @@ class SolverBase:
     def _cost_list(self, costs: torch.Tensor) -> list:
         "Final costs (B, A) as output: one float per env, or one per agent in 'per_agent' mode."
         return costs.tolist() if self.mode == 'per_agent' else costs[:, 0].tolist()
+
+    def _user(self, x: torch.Tensor) -> torch.Tensor:
+        "A tensor with a trailing agent axis as the callbacks see it: per agent, or the joint value."
+        return x if self.mode == 'per_agent' else x[..., 0]
+
+    def _callbacks_reset(self):
+        for cb in self.callbacks:
+            cb.reset()
+
+    def _callbacks_start_batch(self):
+        for cb in self.callbacks:
+            cb.start_batch()
+
+    def _callbacks_step(self, **state):
+        for cb in self.callbacks:
+            cb(**state)
+
+    def _callbacks_output(self, outputs: dict) -> dict:
+        "Adds ``callbacks`` (``{output_key: history}``) to the solve's outputs, if there are callbacks."
+        if self.callbacks:
+            outputs['callbacks'] = {}
+            for cb in self.callbacks:
+                cb.end_solve()
+                outputs['callbacks'][cb.output_key] = cb.history
+        return outputs
 
     def _log(self, start_time: float):
         if self.verbose:

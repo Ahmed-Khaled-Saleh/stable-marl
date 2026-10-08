@@ -53,6 +53,7 @@ class CategoricalCEMSolver(SolverBase):
     `init_action` is accepted for API parity and ignored, as in stable-worldmodel.
     """
     discrete = True
+    supports_callbacks = True
 
     def __init__(self, cost: Costable, batch_size: int | None = 1, num_samples: int = 300, n_steps: int = 30,
                  topk: int = 30, smoothing: float = 0.0, alpha: float = 0.0, **kwargs):
@@ -81,9 +82,11 @@ class CategoricalCEMSolver(SolverBase):
         start_time = time.time()
         n_envs = len(next(v for v in info_dict.values() if isinstance(v, (torch.Tensor, np.ndarray, list))))
         probs, final_costs = self.init_probs(n_envs), []
+        self._callbacks_reset()
         for start, end in self._batches(n_envs):
             B, batch_probs, infos = end - start, probs[start:end], self._expand(info_dict, start, end)
-            for _ in range(self.n_steps):
+            self._callbacks_start_batch()
+            for step in range(self.n_steps):
                 indices = self._sample_indices(batch_probs)
                 indices[:, 0] = batch_probs.argmax(dim=-1)              # the current mode is always a candidate
                 one_hot = torch.nn.functional.one_hot(indices, num_classes=self._num_actions).to(self.dtype)
@@ -93,11 +96,18 @@ class CategoricalCEMSolver(SolverBase):
                 new_probs = torch.einsum('bsa,bshajk->bhajk', weights, one_hot)
                 if self.smoothing > 0:
                     new_probs = (new_probs + self.smoothing) / (new_probs + self.smoothing).sum(-1, keepdim=True)
+                prev_probs = batch_probs
                 batch_probs = self.alpha * batch_probs + (1 - self.alpha) * new_probs if self.alpha > 0 else new_probs
+                if self.callbacks:
+                    top_costs, top = torch.topk(costs, k=self.topk, dim=1, largest=False)
+                    self._callbacks_step(step=step, candidates=candidates, costs=self._user(costs),
+                                         topk_vals=self._user(top_costs), topk_inds=self._user(top),
+                                         topk_candidates=gather_agents(candidates, top), probs=batch_probs,
+                                         prev_probs=prev_probs)
             final_costs += self._cost_list((weights * costs).sum(dim=1))
             probs[start:end] = batch_probs
         self._log(start_time)
-        return {'actions': probs.argmax(dim=-1).cpu(), 'costs': final_costs, 'probs': [probs.cpu()]}
+        return self._callbacks_output({'actions': probs.argmax(dim=-1).cpu(), 'costs': final_costs, 'probs': [probs.cpu()]})
 
 
 class CategoricalMPPISolver(CategoricalCEMSolver):
