@@ -30,8 +30,13 @@ class MultiAgentEnv(gym.Env, ABC):
     On top of the per-agent observations, every env exposes a global :meth:`state`
     (described by :attr:`state_space`), for centralised critics and mixers
     (centralised training, decentralised execution) and for centralised world models.
+
+    :attr:`noop_action` is an action that changes nothing, if the env has one: agents that
+    already terminated are given it (and it is what gets recorded for them), else their
+    recorded action is ``nan``.
     """
     num_agents: int
+    noop_action: Any = None
 
     @property
     def agent_ids(self) -> list[AgentID]:

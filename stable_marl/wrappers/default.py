@@ -34,6 +34,7 @@ class EverythingToInfoWrapper(gym.Wrapper):
         super().__init__(env)
         self._step_counter, self._id, self._seed = 0, 0, -1
         self._variations_watch: list[str] = []
+        self._finished = None   # agents terminated before the current step
 
     @property
     def num_agents(self) -> int:
@@ -81,13 +82,24 @@ class EverythingToInfoWrapper(gym.Wrapper):
         rng = np.random.default_rng(None if seed is None else [int(seed), 0x5EED])
         self._id = int(rng.integers(np.iinfo(np.int64).max))
         A = self.num_agents
-        no_action = [np.full(self.env.action_space[a].shape, np.nan, np.float32) for a in range(A)]
-        return obs, self._info(obs, [np.nan] * A, [False] * A, [False] * A, no_action, env_infos)
+        self._finished = np.zeros(A, bool)
+        return obs, self._info(obs, [np.nan] * A, [False] * A, [False] * A, self._no_action(), env_infos)
+
+    def _no_action(self) -> list[np.ndarray]:
+        return [np.full(self.env.action_space[a].shape, np.nan, np.float32) for a in range(self.num_agents)]
 
     def step(self, actions: dict):
+        # agents that already terminated take the env's no-op (recorded as nan if it has none)
+        noop = getattr(self.env.unwrapped, 'noop_action', None)
+        finished = self._finished if self._finished is not None else np.zeros(self.num_agents, bool)
+        actions = dict(actions)
+        if noop is not None:
+            actions.update({int(a): noop for a in np.flatnonzero(finished)})
         obs, rewards, terminations, truncations, env_infos = self.env.step(actions)
         self._step_counter += 1
-        acts = [np.asarray(actions[a]) for a in range(self.num_agents)]
+        no_action = self._no_action()
+        acts = [no_action[a] if finished[a] and noop is None else np.asarray(actions[a]) for a in range(self.num_agents)]
+        self._finished = np.array([terminations[a] for a in range(self.num_agents)], bool)
         info = self._info(obs, rewards, terminations, truncations, acts, env_infos)
         return obs, rewards, terminations, truncations, info
 

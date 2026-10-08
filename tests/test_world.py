@@ -158,6 +158,23 @@ def dataset_clips():
         assert list(item['step_idx'].numpy()) == list(range(int(ds.lengths[-1]) - 4, int(ds.lengths[-1])))
 
 
+@test
+def finished_agents_record_the_noop():
+    """An agent that finished before the others records the env's no-op (FindGoal: `done`) until the episode ends."""
+    with tempfile.TemporaryDirectory() as tmp:
+        ds = collect(f'{tmp}/d.h5', 'MultiGrid-FindGoal-15x15-v0', episodes=6, policy=GoToGoalPolicy(), agents=3,
+                     size=9, num_obstacles=0, n_clutter=0, min_goal_spawn_distance=1, max_episode_steps=30)
+        noop, staggered = sm.make('MultiGrid-FindGoal-15x15-v0').noop_action, 0
+        for e in range(len(ds.lengths)):
+            ep = episode_columns(ds, e)
+            done_before = ep['terminated'][:-1]                       # row t: terminated before acting at t
+            assert (ep['action'][:-1][done_before] == noop).all()
+            assert not (ep['action'][:-1][~done_before] == noop).any()   # the expert never picks `done` itself
+            staggered += int(done_before.any(axis=1).sum() > 0)
+        assert staggered, "some agents must finish before the others"
+        ds.close()
+
+
 if __name__ == '__main__':
     failed = 0
     for fn in TESTS:

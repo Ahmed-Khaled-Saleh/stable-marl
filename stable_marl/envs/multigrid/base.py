@@ -301,6 +301,11 @@ def state_space(self: MultiGridEnv) -> spaces.Box:
     """
     return spaces.Box(low=0, high=255, shape=(self.width, self.height, WorldObj.dim), dtype=int)
 
+@patch(as_prop=True)
+def noop_action(self: MultiGridEnv) -> int:
+    "The ``done`` action, which changes nothing (given to and recorded for terminated agents)."
+    return int(self.actions.done)
+
 @patch
 def state(self: MultiGridEnv) -> ndarray[np.int_]:
     """
