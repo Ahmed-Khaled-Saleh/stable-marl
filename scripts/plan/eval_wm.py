@@ -47,12 +47,14 @@ def make_policy(cfg):
 def run(cfg):
     meta = load_dataset(cfg.dataset_name, cache_dir=cfg.cache_dir).metadata     # the env of the training data
     world = sm.World(meta['env_name'], num_envs=cfg.eval.num_envs, goal_conditioned=True,
-                     **{**meta['env_kwargs'], 'max_steps': cfg.eval.max_episode_steps})
+                     extra_wrappers=[hydra.utils.instantiate(w) for w in cfg.eval.wrappers] or None,
+                     **{**meta['env_kwargs'], **cfg.eval.env_kwargs, 'max_steps': cfg.eval.max_episode_steps})
+    options = OmegaConf.to_container(cfg.eval.options) if cfg.eval.options else None
     policy, checkpoint = make_policy(cfg)
     world.set_policy(policy)
 
     start = time.time()
-    results = world.evaluate(episodes=cfg.eval.episodes, seed=cfg.eval.seed)
+    results = world.evaluate(episodes=cfg.eval.episodes, seed=cfg.eval.seed, options=options)
     elapsed = time.time() - start
     metrics = {k: results[k] for k in ('success_rate', 'mean_length', 'mean_return')}
     logger.info(f'{cfg.policy}: {metrics} ({elapsed:.0f}s)')
@@ -69,7 +71,7 @@ def run(cfg):
     if cfg.eval.video_episodes:
         world.set_policy(policy)
         buffer = ReplayBuffer(max_steps=cfg.eval.video_episodes * (cfg.eval.max_episode_steps + 1))
-        world.collect(writer=buffer, episodes=cfg.eval.video_episodes, seed=cfg.eval.seed, progress=False)
+        world.collect(writer=buffer, episodes=cfg.eval.video_episodes, seed=cfg.eval.seed, options=options, progress=False)
         episodes = list(buffer.episodes())
         panels = {'views': [np.stack(ep['pixels']) for ep in episodes],     # (T, agents, H, W, 3)
                   'goals': [np.stack(ep['goal']) for ep in episodes]}

@@ -33,6 +33,7 @@ dependencies = [
     'hydra-core',           # stable_marl.configs, stable_marl.envs.registry.make_env
     'omegaconf',
     'h5py',                 # stable_marl.data: the hdf5 dataset format
+    'networkx',             # stable_marl.envs.rware (RWARE's collision resolution)
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,9 @@ pettingzoo = ['pettingzoo']
 torchrl = ['pettingzoo', 'torch', 'torchrl>=0.10,<0.12']
 train = ['torch']           # reading datasets as tensors (stable_marl.data.Dataset), FeedForwardPolicy
 rllib = ['ray[rllib]']
+gcrl = ['jax', 'flax', 'optax', 'distrax', 'ml_collections']   # stable_marl.wm.gcrl: MangoBench's JAX baselines
+vmas = ['vmas']             # the VMAS environments (GPL-3.0, not vendored)
+robofactory = ['mani_skill>=3.0.1', 'huggingface_hub']   # stable_marl.envs.robofactory; its expert (mplib 0.1.1) needs numpy<2
 render = [                  # GridRecorder videos / frames, dataset videos, plotting in tests and examples
     'pillow>=11.3.0',
     'moviepy==1.0.3',
@@ -54,6 +58,7 @@ dev = [                     # nbdev: `pip install -e ".[dev]"`
     'torch',
     'torchrl>=0.10,<0.12',
     'ray[rllib]',
+    'vmas',
     'pillow>=11.3.0',
     'moviepy==1.0.3',
     'imageio',
@@ -83,7 +88,7 @@ version = {attr = "stable_marl.__version__"}
 include = ["stable_marl*"]
 
 [tool.setuptools.package-data]
-stable_marl = ["configs/**/*.yaml"]
+stable_marl = ["configs/**/*.yaml", "envs/robofactory/upstream/configs/**/*.yaml"]
 
 [tool.nbdev]
 branch = "master"

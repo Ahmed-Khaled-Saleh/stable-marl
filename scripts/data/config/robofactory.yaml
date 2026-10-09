@@ -1,0 +1,27 @@
+# RoboFactory data collection (python scripts/data/collect_robofactory.py [key=value ...]); needs numpy<2
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null            # default: $STABLEMARL_HOME, else ~/.stable_marl (datasets go to <cache_dir>/datasets/)
+dataset_name: null         # default: robofactory_<task>
+format: hdf5               # hdf5, folder or video
+seed: 0
+shard: null                # an integer for one job of an array: its own seeds and file (<dataset_name>_shard<k>)
+
+env:
+  task: LiftBarrier        # LiftBarrier, PassShoe, PlaceFood, TwoRobotsStackCube, CameraAlignment,
+                           # ThreeRobotsStackCube, TakePhoto, LongPipelineDelivery
+  scene: table             # table or robocasa (needs download_assets(robocasa=True))
+  observations: [pixels, vector]
+  camera_size: null        # [height, width] of the arms' cameras; null: RoboFactory's [240, 320] (MangoBench trains on 64 x 64)
+  shader: default          # minimal (fastest), default, rt
+
+world:
+  num_envs: 1              # envs in this process (CPU simulation); parallelize with shards
+  max_episode_steps: null  # null: the task's limit
+
+expert_episodes: 150       # RoboFactory's motion planner (150: MangoBench's datasets)
+only_success: true         # keep only the expert episodes that solved the task (as RoboFactory's --only-count-success)
+random_episodes: 0         # uniformly random actions

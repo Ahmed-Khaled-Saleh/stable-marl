@@ -1,0 +1,27 @@
+# Feed-forward policy evaluation (python scripts/plan/eval_ff.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null
+dataset_name: findgoal         # the env (and its settings) of this dataset is evaluated
+policy: gcbc_findgoal          # a checkpoint in <cache_dir>/checkpoints: scripts/train/gcrl.py or scripts/train/mamba.py
+temperature: 0.0               # action sampling temperature (0: the most likely action; OGBench uses 0.3 on Powderworld);
+                               # MAMBA: 0 = most likely action, otherwise sampled
+seed: 0
+
+eval:
+  episodes: 20
+  seed: 100000                 # episodes unseen in the dataset
+  num_envs: 2
+  max_episode_steps: 40
+  # evaluate under other settings than the training data's (see scripts/examples/generalization.py):
+  env_kwargs: {}               # env arguments, e.g. {num_obstacles: 3}
+  options: null                # reset options, e.g. {variation_values: {wall.color: 0}} or {variation: [agent.color]}
+  wrappers: []                 # visual wrappers, e.g. [{_target_: stable_marl.wrappers.NoiseWrapper, _partial_: true, std: 30}]
+  video_episodes: 2            # episodes saved as videos (0: none)
+
+output:
+  dir: null                    # default: next to the checkpoint
+  filename: findgoal_results.txt

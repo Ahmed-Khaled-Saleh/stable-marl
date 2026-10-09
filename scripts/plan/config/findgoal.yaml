@@ -26,6 +26,10 @@ eval:
   seed: 100000                 # episodes unseen in the dataset
   num_envs: 2
   max_episode_steps: 40
+  # evaluate under other settings than the training data's (see scripts/examples/generalization.py):
+  env_kwargs: {}               # env arguments, e.g. {num_obstacles: 3}
+  options: null                # reset options, e.g. {variation_values: {wall.color: 0}} or {variation: [agent.color]}
+  wrappers: []                 # visual wrappers, e.g. [{_target_: stable_marl.wrappers.NoiseWrapper, _partial_: true, std: 30}]
   video_episodes: 2            # episodes saved as panel videos (0: none)
 
 output:

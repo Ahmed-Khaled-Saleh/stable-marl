@@ -31,6 +31,9 @@ TESTS = [
     ('variations / goals', ['test_variations.py']),
     ('planning', ['test_planning.py']),
     ('world models', ['test_wm.py']),
+    ('gcrl baselines', ['test_gcrl.py']),
+    ('mamba', ['test_mamba.py']),
+    ('rware / vmas / robofactory', ['test_env_families.py']),
 ]
 
 # scenes exported for the Sionna RT check: (folder, CLI arguments)

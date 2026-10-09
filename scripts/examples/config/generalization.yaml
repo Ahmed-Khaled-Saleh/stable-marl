@@ -1,0 +1,54 @@
+# Generalization to environment changes at evaluation (python scripts/examples/generalization.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+seed: 0
+models: [lewm, gcbc]            # lewm (planning with one LeWM per agent), gcbc / crl / hiql / gcivl / gciql (JAX)
+
+env:                            # training settings: grey walls, green goal, red and blue agents, 6 inner walls
+  name: MultiGrid-FindGoal-15x15-v0
+  agents: 2
+  size: 15                      # 15 x 15 grid: goals start 8.7 cells away on average, often out of view
+  agent_view_size: 7            # each agent sees the 7 x 7 cells around it
+  obs_mode: allo                # world-aligned view centred on the agent (ego: rotated with it)
+  see_through_walls: true       # FindGoal's default; false: inner walls hide the cells behind them
+  tile_size: 4                  # 28 x 28 views
+  num_obstacles: 6
+  n_clutter: 0
+  min_goal_spawn_distance: 1
+
+data:
+  num_envs: 4
+  max_episode_steps: 40         # the expert needs 14 steps on average (24 at most)
+  expert_episodes: 300
+  random_episodes: 150          # in the LeWM data only (behaviour cloning learns from the expert)
+
+lewm:                           # as scripts/examples/end_to_end_lewm.py
+  model: {image_size: 32, patch_size: 8, embed_dim: 64, depth: 3, heads: 4, dim_head: 16, mlp_dim: 256,
+          projector_hidden: 256, history_size: 3, dropout: 0.0, encoder_kwargs: {dim: 64, depth: 3, heads: 4, mlp_dim: 256}}
+  train: {epochs: 20, batch_size: 64, lr: 1e-3, sigreg_num_proj: 256}
+  planner: {num_samples: 128, n_steps: 5, topk: 16, horizon: 8, receding_horizon: 2, history_len: 3, step_reduction: min}
+
+gcrl:                           # the JAX baselines
+  obs_keys: [pixels]
+  steps: 3000
+  agent_config: {batch_size: 64}
+
+eval:
+  episodes: 20
+  seed: 100000
+  num_envs: 2
+  max_episode_steps: 60
+
+# evaluation settings: each changes one thing from training (env arguments, factor values, or the agents' views)
+shifts:
+  in-distribution: {}
+  purple walls: {options: {variation_values: {wall.color: 3}}}
+  yellow goal: {options: {variation_values: {goal.color: 4}}}
+  yellow / purple agents: {options: {variation_values: {agent.color: [4, 3]}}}
+  goals 12+ cells away: {env_kwargs: {min_goal_spawn_distance: 12}}   # training: 1+ (8.7 on average)
+  12 inner walls: {options: {variation_values: {obstacles.number: 12}}}   # training: 6
+  pixel noise: {wrappers: [{_target_: stable_marl.wrappers.NoiseWrapper, _partial_: true, std: 30.0, seed: 0}]}
+  occlusions: {wrappers: [{_target_: stable_marl.wrappers.OcclusionWrapper, _partial_: true, num_patches: 2, size: [0.2, 0.35], seed: 0}]}

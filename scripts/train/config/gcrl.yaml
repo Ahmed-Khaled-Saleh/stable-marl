@@ -1,0 +1,21 @@
+# Decentralized goal-conditioned RL baselines (python scripts/train/gcrl.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null                 # datasets from <cache_dir>/datasets/, checkpoints to <cache_dir>/checkpoints/
+dataset_name: findgoal          # see scripts/data/collect_findgoal.py
+agent: gcbc                     # gcbc (MangoBench's GCMBC), crl (ICRL), hiql (IHIQL), gcivl (IGCIVL) or gciql
+output_model_name: ${agent}_${dataset_name}
+seed: 0
+
+# each agent's observations: its view `pixels` (goal: `goal`), or feature keys with goals (e.g. [position])
+obs_keys: [pixels]
+
+train:
+  steps: 50000                  # gradient steps of every agent (OGBench: 500k on Powderworld, on a GPU)
+  log_every: 1000
+
+# overrides of the agent's config (see stable_marl.wm.gcrl.gcrl_config), e.g. {batch_size: 64, alpha: 0.1}
+agent_config: {}

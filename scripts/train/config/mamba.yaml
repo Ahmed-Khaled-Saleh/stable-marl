@@ -1,0 +1,37 @@
+# MAMBA / GC-MAMBA, trained online (python scripts/train/mamba.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null                 # checkpoints to <cache_dir>/checkpoints/
+goal_conditioned: false         # false: MAMBA with its Flatland-style shaped reward; true: GC-MAMBA (goal offset + hindsight)
+output_model_name: null         # default: mamba_findgoal, or gc_mamba_findgoal
+seed: 0
+
+env:                            # the setting of scripts/examples/config/generalization.yaml
+  name: MultiGrid-FindGoal-15x15-v0
+  agents: 2
+  size: 15
+  agent_view_size: 7
+  obs_mode: allo
+  see_through_walls: true
+  tile_size: 4
+  num_obstacles: 6
+  n_clutter: 0
+  min_goal_spawn_distance: 1
+  max_steps: 60
+
+obs_keys: [image, direction]    # each agent's symbolic local view and heading
+
+train:
+  episodes: 2000
+  log_every: 20
+
+rewards:
+  finish_value: 10.0            # reaching the goal (MAMBA's Flatland FinishRewardConfig)
+  near_coeff: 0.01              # per cell of progress towards the goal (NearRewardConfig; MAMBA only)
+relabel_k: 4                    # hindsight copies per episode (GC-MAMBA only)
+
+# MAMBA's settings (DreamerLearnerConfig attributes), e.g. {HIDDEN: 128, MIN_BUFFER_SIZE: 500, DEVICE: cuda}
+mamba_config: {}

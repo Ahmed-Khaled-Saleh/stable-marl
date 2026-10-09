@@ -15,6 +15,10 @@ Short scripts showing one part of the library each, runnable on a CPU in a few m
 | `variations_and_wrappers.py` | factors of variation (colors, layouts) as reset options, visual wrappers (noise schedules, occlusions, grayscale), panel videos |
 | `planning_with_known_dynamics.py` | the planning stack (dynamics, objective, solver, `WorldModelPolicy`) with the exact navigation model, joint vs per-agent planning, solver callbacks |
 | `end_to_end_lewm.py` | collecting data, training one LeWM per agent and planning with them, in one script (Hydra: `examples/config/end_to_end_lewm.yaml`, e.g. `env.obs_mode=global inputs=[pixels,position,direction] env.agents=1`) |
+| `rware_warehouse.py` | the RWARE environments (multi-robot warehouse): per-robot `vector` and `pixels` observations, the global state, datasets with both, vector-only worlds, videos of the whole warehouse |
+| `vmas_scenarios.py` | the VMAS environments (needs `pip install 'stable-marl[vmas]'`): continuous and discrete actions, agents of different kinds, datasets with the scenarios' infos, random policies on a few scenarios |
+| `robofactory_tasks.py` | the RoboFactory environments (needs `pip install 'stable-marl[robofactory]'`): 2 to 4 Panda arms, per-arm cameras and joint states, the simulation state and global camera, datasets and dataset-driven evaluation, and (with numpy < 2) the motion-planning expert with videos |
+| `generalization.py` | train once on FindGoal (15 x 15, 7 x 7 local views, 6 inner walls), then evaluate under environment changes never seen in training: other colors, farther goals, more inner walls, noisy or occluded views (Hydra: `examples/config/generalization.yaml`; `models=[lewm,gcbc]` by default, any of the `gcrl` baselines too). The eval scripts take the same shifts: `eval.env_kwargs`, `eval.options`, `eval.wrappers` |
 
 ## Pipeline (`data/` → `train/` → `plan/`)
 
@@ -23,14 +27,23 @@ Hydra scripts, as in stable-worldmodel; any config key can be overridden on the 
 (`cache_dir`: `$STABLEMARL_HOME`, else `~/.stable_marl`).
 
     python scripts/data/collect_findgoal.py                 # expert + random FindGoal episodes -> findgoal.h5
+    python scripts/data/collect_robofactory.py env.task=LiftBarrier   # RoboFactory motion-planning expert (numpy<2) -> robofactory_liftbarrier.h5
     python scripts/train/lewm.py                            # one LeWM per agent -> checkpoints/lewm_findgoal/
     python scripts/plan/eval_wm.py                          # plan with it: success rate, results file, videos
     python scripts/plan/eval_wm.py policy=random            # baselines: random, expert
+    python scripts/train/gcrl.py agent=hiql                 # MangoBench's goal-conditioned baselines (JAX) -> checkpoints/hiql_findgoal/
+    python scripts/plan/eval_ff.py policy=hiql_findgoal     # evaluate them (feed-forward policies, no planning)
+    python scripts/train/mamba.py goal_conditioned=true     # MAMBA, online (shaped reward) or goal-conditioned -> checkpoints/gc_mamba_findgoal/
+    python scripts/plan/eval_ff.py policy=gc_mamba_findgoal
 
 | Script | Config | Notes |
 |---|---|---|
 | `data/collect_findgoal.py` | `data/config/default.yaml` | `env.*` (agents, size, `obs_mode`, ...), `format` (`hdf5`, `folder`, `video`), episodes per policy, reset `options` (e.g. variations) |
+| `data/collect_robofactory.py` | `data/config/robofactory.yaml` | `env.*` (task, scene, observations, `camera_size`), `expert_episodes`, `only_success`, `random_episodes`, `shard` (one job of an array: own seeds and file, merged with `stable_marl.data.merge`); the expert needs numpy < 2, assets: `download_assets()` beforehand on machines without internet |
 | `train/lewm.py` | `train/config/lewm.yaml` | `inputs` (e.g. `[pixels,position,direction]`), model size, `wm.history_size`, `train.*`, `device` |
+| `train/gcrl.py` | `train/config/gcrl.yaml` | `agent` (`gcbc`, `crl`, `hiql`, `gcivl`, `gciql`: MangoBench's decentralized baselines, one agent per agent), `obs_keys`, `train.steps`, `agent_config.*` (needs `pip install 'stable-marl[gcrl]'`) |
+| `train/mamba.py` | `train/config/mamba.yaml` | `goal_conditioned` (false: MAMBA with its Flatland-style shaped reward; true: GC-MAMBA with goal offsets and hindsight relabelling), `env.*` (trained online, no dataset), `train.episodes`, `rewards.*`, `mamba_config.*` (MAMBA's settings) |
+| `plan/eval_ff.py` | `plan/config/eval_ff.yaml` | `policy` (a checkpoint of `train/gcrl.py`), `temperature`, `eval.*` (incl. shifts from the training settings: `eval.env_kwargs`, `eval.options`, `eval.wrappers`) |
 | `plan/eval_wm.py` | `plan/config/findgoal.yaml`, `solver/`, `objective/` | `policy` (a checkpoint, `random` or `expert`), `mode` (`per_agent` or `joint`), `solver=categorical_cem` / `categorical_mppi`, `plan_config.*`, `eval.*` |
 
 Generated videos (`examples/videos/`) and results (`plan/outputs/`) are not tracked by git.
