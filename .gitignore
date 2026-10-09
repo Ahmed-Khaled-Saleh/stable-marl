@@ -52,3 +52,6 @@ scripts/plan/outputs/
 _docs/
 _proc/
 nbs/sidebar.yml
+
+# Docker: Vulkan / EGL configs of the NVIDIA driver
+!docker/*.json

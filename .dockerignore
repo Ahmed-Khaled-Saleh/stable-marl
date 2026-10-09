@@ -1,0 +1,15 @@
+.git
+**/__pycache__
+**/*.pyc
+*.egg-info
+_docs
+_proc
+*.log
+*.h5
+*.pdf
+last conv
+scripts/examples/videos
+scripts/plan/outputs
+scripts/obs_modes_log
+scripts/sionna_scenes
+trained_models
