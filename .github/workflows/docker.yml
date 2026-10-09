@@ -1,7 +1,8 @@
 # Build the Docker images (docker/Dockerfile), check them and push them to the GitHub Container Registry:
-#   ghcr.io/<owner>/stable-marl:main              (and :main-<commit>)
-#   ghcr.io/<owner>/stable-marl:robofactory-data  (and :robofactory-data-<commit>)
-# On HPC clusters: apptainer pull docker://ghcr.io/<owner>/stable-marl:main (see docker/README.md).
+#   ghcr.io/<owner>/stable-marl:main              x86_64 + aarch64 (one multi-arch tag; also :main-<commit>)
+#   ghcr.io/<owner>/stable-marl:robofactory-data  x86_64 (also :robofactory-data-<commit>)
+# Each architecture is built natively (GitHub's x86 and Arm runners), then :main joins them.
+# On HPC clusters: apptainer build x.sif docker://ghcr.io/<owner>/stable-marl:main (see docker/README.md).
 name: Docker images
 
 on:
@@ -20,11 +21,14 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        target: [main, robofactory-data]
+        include:
+          - {target: main, arch: amd64, runner: ubuntu-latest}
+          - {target: main, arch: arm64, runner: ubuntu-24.04-arm}
+          - {target: robofactory-data, arch: amd64, runner: ubuntu-latest}
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free disk space (the main image holds the CUDA libraries of torch and JAX)
         run: |
@@ -34,29 +38,49 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Image name (lowercase owner)
-        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/stable-marl" >> "$GITHUB_ENV"
+      - name: Image name (lowercase owner) and tags
+        run: |
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/stable-marl" >> "$GITHUB_ENV"
+          echo "TAG=${{ matrix.target }}-${{ matrix.arch }}" >> "$GITHUB_ENV"
 
       - name: Build
-        run: docker build -f docker/Dockerfile --target ${{ matrix.target }} -t $IMAGE:${{ matrix.target }} .
+        run: docker build -f docker/Dockerfile --target ${{ matrix.target }} -t $IMAGE:$TAG .
 
       - name: Check (main)
         if: matrix.target == 'main'
         run: |
-          docker run --rm $IMAGE:main python -c "
-          import numpy, torch, jax, mani_skill, vmas, stable_marl
+          docker run --rm $IMAGE:$TAG python -c "
+          import platform, numpy, torch, jax, vmas, stable_marl
           from stable_marl.wm import gcrl, mamba
           assert numpy.__version__ >= '2', numpy.__version__
-          print('numpy', numpy.__version__, 'torch', torch.__version__, 'jax', jax.__version__)"
-          docker run --rm $IMAGE:main python tests/test_env_families.py
+          if platform.machine() == 'x86_64':
+              import mani_skill
+          print(platform.machine(), 'numpy', numpy.__version__, 'torch', torch.__version__, 'jax', jax.__version__)"
+          docker run --rm $IMAGE:$TAG python tests/test_env_families.py
 
       - name: Check (robofactory-data, with the expert on the CPU renderer)
         if: matrix.target == 'robofactory-data'
-        run: docker run --rm $IMAGE:robofactory-data python scripts/examples/robofactory_tasks.py
+        run: docker run --rm $IMAGE:$TAG python scripts/examples/robofactory_tasks.py
 
       - name: Push
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker tag $IMAGE:${{ matrix.target }} $IMAGE:${{ matrix.target }}-${GITHUB_SHA::7}
-          docker push $IMAGE:${{ matrix.target }}
-          docker push $IMAGE:${{ matrix.target }}-${GITHUB_SHA::7}
+          docker push $IMAGE:$TAG
+          if [ "${{ matrix.target }}" = robofactory-data ]; then
+            docker tag $IMAGE:$TAG $IMAGE:robofactory-data
+            docker tag $IMAGE:$TAG $IMAGE:robofactory-data-${GITHUB_SHA::7}
+            docker push $IMAGE:robofactory-data
+            docker push $IMAGE:robofactory-data-${GITHUB_SHA::7}
+          fi
+
+  main-manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Join the x86_64 and aarch64 builds under :main
+        run: |
+          IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/stable-marl
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker buildx imagetools create -t $IMAGE:main -t $IMAGE:main-${GITHUB_SHA::7} \
+              $IMAGE:main-amd64 $IMAGE:main-arm64
+          docker buildx imagetools inspect $IMAGE:main
