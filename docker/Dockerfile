@@ -6,12 +6,13 @@
 # main              numpy 2: every environment, training (torch + JAX on CUDA), evaluation
 # robofactory-data  numpy < 2: RoboFactory's motion-planning expert (mplib 0.1.1), i.e. scripts/data/collect_robofactory.py
 
-FROM python:3.11-slim-bookworm AS base
+# Debian trixie: Mesa >= 23 (lavapipe in bookworm's Mesa 22.3 is rejected by SAPIEN's renderer)
+FROM python:3.11-slim-trixie AS base
 
 # Vulkan / EGL / GL for ManiSkill's renderer (NVIDIA through the configs below, Mesa's lavapipe on CPU),
 # git for ManiSkill (GitPython), ffmpeg for videos
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libvulkan1 mesa-vulkan-drivers vulkan-tools libegl1 libgl1 libglvnd0 libglib2.0-0 libxext6 libx11-6 \
+        libvulkan1 mesa-vulkan-drivers vulkan-tools libegl1 libgl1 libglvnd0 libglib2.0-0t64 libxext6 libx11-6 \
         git ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 COPY docker/nvidia_icd.json /usr/share/vulkan/icd.d/nvidia_icd.json
