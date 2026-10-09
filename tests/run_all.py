@@ -34,6 +34,7 @@ TESTS = [
     ('gcrl baselines', ['test_gcrl.py']),
     ('mamba', ['test_mamba.py']),
     ('rware / vmas / robofactory', ['test_env_families.py']),
+    ('communication', ['test_comm.py']),
 ]
 
 # scenes exported for the Sionna RT check: (folder, CLI arguments)

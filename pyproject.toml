@@ -44,6 +44,7 @@ rllib = ['ray[rllib]']
 gcrl = ['jax', 'flax', 'optax', 'distrax', 'ml_collections']   # stable_marl.wm.gcrl: MangoBench's JAX baselines
 vmas = ['vmas']             # the VMAS environments (GPL-3.0, not vendored)
 robofactory = ['mani_skill>=3.0.1', 'huggingface_hub']   # stable_marl.envs.robofactory; its expert (mplib 0.1.1) needs numpy<2
+comm = ['comm-core @ git+https://github.com/Ahmed-Khaled-Saleh/comm-core.git']   # stable_marl.comm: communication between agents
 render = [                  # GridRecorder videos / frames, dataset videos, plotting in tests and examples
     'pillow>=11.3.0',
     'moviepy==1.0.3',
