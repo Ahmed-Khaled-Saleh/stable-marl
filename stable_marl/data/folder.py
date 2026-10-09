@@ -47,8 +47,8 @@ __all__ = ['image_layout', 'is_image_column', 'FolderDataset', 'ImageDataset', '
 # %% ../../nbs/data/06_folder.ipynb #b774e90f
 def image_layout(vals) -> str | None:
     """
-    How a column's steps are images: ``'single'`` (``uint8`` ``(H, W, 1|3)``), ``'agents'``
-    (``uint8`` ``(num_agents, H, W, 1|3)``), or None (not images).
+    How a column's steps are images: `'single'` (`uint8` `(H, W, 1|3)`), `'agents'`
+    (`uint8` `(num_agents, H, W, 1|3)`), or None (not images).
     """
     if not len(vals):
         return None
@@ -86,30 +86,18 @@ def _write_image(arr: np.ndarray, path: Path):
 
 # %% ../../nbs/data/06_folder.ipynb #76c474df
 class FolderDataset(Dataset):
-    """
-    Dataset of a folder (see above): `.npz` columns loaded into memory, images read per step.
-
-    Parameters
-    ----------
-    name : str
-        Dataset name, read from ``<cache dir>/datasets/<name>`` (or pass `path`)
-    frameskip, num_steps, transform
-        See :class:`Dataset`
-    keys_to_load : list of str
-        Columns to load (default: all)
-    folder_keys : list of str
-        Image columns (default: the subdirectories)
-    """
+    "Dataset of a folder (see above): `.npz` columns loaded into memory, images read per step."
     def __init__(
         self,
-        name: str | None = None,
-        frameskip: int = 1,
-        num_steps: int = 1,
-        transform: Callable[[dict], dict] | None = None,
-        keys_to_load: list[str] | None = None,
-        folder_keys: list[str] | None = None,
+        name: str | None = None, # Dataset name, read from `<cache dir>/datasets/<name>` (or pass `path`)
+        frameskip: int = 1, # See `Dataset`
+        num_steps: int = 1, # See `Dataset`
+        transform: Callable[[dict], dict] | None = None, # See `Dataset`
+        keys_to_load: list[str] | None = None, # Columns to load (default: all)
+        folder_keys: list[str] | None = None, # Image columns (default: the subdirectories)
         cache_dir: str | Path | None = None,
-        path: str | Path | None = None):
+        path: str | Path | None = None
+    ):
         if path is not None:
             self.path = Path(path)
         else:
@@ -143,7 +131,7 @@ class FolderDataset(Dataset):
         return self._keys
 
     def _load_file(self, ep_idx: int, step: int, key: str) -> np.ndarray:
-        "The image of `key` at a step: ``(H, W, C)``, or per agent ``(num_agents, H, W, C)``."
+        "The image of `key` at a step: `(H, W, C)`, or per agent `(num_agents, H, W, C)`."
         base = self.path / key / f'ep_{ep_idx}_step_{step}'
         A = self._agents.get(key)
         if A is None:
@@ -177,7 +165,7 @@ class FolderDataset(Dataset):
 
 
 class ImageDataset(FolderDataset):
-    "``FolderDataset`` with ``pixels`` as the image folder."
+    "`FolderDataset` with `pixels` as the image folder."
     def __init__(self, name: str | None = None, image_keys: list[str] | None = None, **kw: Any):
         super().__init__(name=name, folder_keys=image_keys or ['pixels'], **kw)
 
@@ -306,7 +294,7 @@ class _NpzEpisodeWriter:
 class FolderWriter(_NpzEpisodeWriter):
     """
     Appends episodes to a folder dataset (layout above): image columns as one JPEG per step (and
-    per agent). `mode`: ``'append'`` (default), ``'overwrite'`` or ``'error'`` if a dataset is there.
+    per agent). `mode`: `'append'` (default), `'overwrite'` or `'error'` if a dataset is there.
     """
     label = 'FolderWriter'
 
@@ -321,7 +309,7 @@ class FolderWriter(_NpzEpisodeWriter):
 
 @register_format
 class Folder(Format):
-    "A folder with ``ep_len.npz`` (and no ``.mp4``: that is the video format)."
+    "A folder with `ep_len.npz` (and no `.mp4`: that is the video format)."
     name = 'folder'
 
     @classmethod

@@ -54,11 +54,11 @@ def save_pretrained(
     filename: str = 'weights.pt',
     cache_dir: str | Path | None = None) -> Path:
     """
-    Save the weights of `model` to ``<cache_dir>/checkpoints/<run_name>/<filename>``, and
-    `config` (``config[config_key]`` if given; a dict or an OmegaConf config with a Hydra
-    ``_target_``) to ``config.json`` next to them, from which :func:`load_pretrained` rebuilds the
-    model. Without `config`, the model's ``pretrained_config`` is used (e.g. a
-    :class:`DecentralizedWorldModel` made with ``build_lewm``). Returns the weights' path.
+    Save the weights of `model` to `<cache_dir>/checkpoints/<run_name>/<filename>`, and
+    `config` (`config[config_key]` if given; a dict or an OmegaConf config with a Hydra
+    `_target_`) to `config.json` next to them, from which `load_pretrained` rebuilds the
+    model. Without `config`, the model's `pretrained_config` is used (e.g. a
+    `DecentralizedWorldModel` made with `build_lewm`). Returns the weights' path.
     """
     ckpt_dir = get_cache_dir(cache_dir, sub_folder='checkpoints') / run_name
     ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -82,17 +82,7 @@ def save_pretrained(
 
 # %% ../../nbs/wm/06_utils.ipynb #4fc1ed68
 def load_pretrained(name: str, cache_dir: str | Path | None = None, extra_args: dict | None = None) -> torch.nn.Module:
-    """
-    Load a model saved by :func:`save_pretrained`. `name` is, relative to ``<cache_dir>/checkpoints/``:
-
-    1. a ``.pt`` file (its folder holds the ``config.json``): ``'my_run/weights_epoch_10.pt'``
-    2. a folder with one ``.pt`` file and a ``config.json``: ``'my_run'``
-    3. a HuggingFace repository ``<user>/<repo>`` (its ``config.json`` and ``weights.pt``), cached
-       under ``models--<user>--<repo>``
-
-    The model is built with Hydra's ``instantiate`` from the config, overridden by `extra_args`
-    (dotted keys, e.g. ``{'dropout': 0.0}``), and the weights are loaded on the CPU.
-    """
+    "Load a model saved by `save_pretrained`. `name` is, relative to `<cache_dir>/checkpoints/`."
     from hydra.utils import instantiate
     cache_dir = get_cache_dir(cache_dir, sub_folder='checkpoints')
     checkpoint_path, config = _resolve(name, cache_dir)
@@ -109,7 +99,7 @@ def load_pretrained(name: str, cache_dir: str | Path | None = None, extra_args: 
 
 
 def _resolve(name: str, cache_dir: Path) -> tuple[Path, dict]:
-    "``(checkpoint_path, config)`` of `name`: a .pt file, a folder, else a HuggingFace repo."
+    "`(checkpoint_path, config)` of `name`: a .pt file, a folder, else a HuggingFace repo."
     local = cache_dir / name
     if local.suffix == '.pt':
         if not local.exists():
@@ -132,7 +122,7 @@ def _resolve_folder(folder: Path) -> tuple[Path, dict]:
 
 
 def _resolve_hf(repo_id: str, cache_dir: Path) -> tuple[Path, dict]:
-    "A HuggingFace repo, downloaded once to ``<cache_dir>/models--<user>--<repo>/``."
+    "A HuggingFace repo, downloaded once to `<cache_dir>/models--<user>--<repo>/`."
     local_dir = cache_dir / f'models--{repo_id.replace("/", "--")}'
     if local_dir.is_dir():
         return _resolve_folder(local_dir)

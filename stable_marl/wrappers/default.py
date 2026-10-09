@@ -90,7 +90,7 @@ class EverythingToInfoWrapper(gym.Wrapper):
         return [np.full(self.env.action_space[a].shape, np.nan, np.float32) for a in range(self.num_agents)]
 
     def step(self, action: dict):
-        "`action`: the agents' actions, ``{agent_index: action}``."
+        "`action`: the agents' actions, `{agent_index: action}`."
         # agents that already terminated take the env's no-op (recorded as nan if it has none)
         noop = getattr(self.env.unwrapped, 'noop_action', None)
         finished = self._finished if self._finished is not None else np.zeros(self.num_agents, bool)
@@ -121,13 +121,10 @@ def _resolve_resample(resample: str | int | None) -> int | None:
 
 class AddPixelsWrapper(gym.Wrapper):
     """
-    Adds a render of the whole env (``env.render()``, so ``render_mode='rgb_array'``) to the
-    info as ``pixels``, or as ``render`` when the env already provides ``pixels`` (e.g. the
+    Adds a render of the whole env (`env.render()`, so `render_mode='rgb_array'`) to the
+    info as `pixels`, or as `render` when the env already provides `pixels` (e.g. the
     agents' views of MultiGrid envs), resized to `pixels_shape` (H, W) if given, then passed
-    through `torchvision_transform`. Also adds ``render_time`` (seconds).
-
-    Same arguments as stable-worldmodel's, but `pixels_shape` defaults to the render's own size
-    (stable-worldmodel: 84 x 84).
+    through `torchvision_transform`. Also adds `render_time` (seconds).
     """
     def __init__(
         self,
@@ -190,7 +187,7 @@ class EnsureInfoKeysWrapper(gym.Wrapper):
 
 # %% ../../nbs/wrappers/02_default.ipynb #d9a86053
 class TransformInfoWrapper(gym.Wrapper):
-    "Applies `transform` to ``info[key]`` (when present) after every reset and step."
+    "Applies `transform` to `info[key]` (when present) after every reset and step."
 
     def __init__(self, env: gym.Env, key: str, transform: Callable[[Any], Any]):
         super().__init__(env)
@@ -212,37 +209,21 @@ class TransformInfoWrapper(gym.Wrapper):
 
 class MegaWrapper(gym.Wrapper):
     """
-    The standard preprocessing of every env of a :class:`World`: everything goes to the info dict
-    (:class:`EverythingToInfoWrapper`), plus the render as ``pixels`` (``render`` if the env has its own ``pixels``) if `add_pixels`
-    (:class:`AddPixelsWrapper`), and a check of the `required_keys`.
-
-    Parameters
-    ----------
-    image_shape : (H, W), optional
-        Size the render is resized to (default: the render's size)
-    pixels_transform : callable, optional
-        Applied to the render
-    required_keys : list of str, optional
-        Info keys (regular expressions) that must be present
-    image_resample : str or int, optional
-        PIL resampling used to resize the render ('nearest', 'bilinear', ...), default bilinear
-    add_pixels : bool
-        Render the env into ``pixels``, or ``render`` if the env has its own ``pixels`` (needs ``render_mode='rgb_array'``)
-    goal_transform : callable, optional
-        Applied to ``goal`` (the agents' goal observations)
-    separate_goal : bool
-        Require a ``goal`` in the info (goal-conditioned envs)
+    The standard preprocessing of every env of a `World`: everything goes to the info dict
+    (`EverythingToInfoWrapper`), plus the render as `pixels` (`render` if the env has its own `pixels`) if `add_pixels`
+    (`AddPixelsWrapper`), and a check of the `required_keys`.
     """
     def __init__(
         self,
         env: gym.Env,
-        image_shape: tuple[int, int] | None = None,
-        pixels_transform: Callable[[np.ndarray], Any] | None = None,
-        required_keys: Iterable[str] | None = None,
-        image_resample: str | int | None = None,
-        add_pixels: bool = False,
-        goal_transform: Callable[[Any], Any] | None = None,
-        separate_goal: bool = False):
+        image_shape: tuple[int, int] | None = None, # Size the render is resized to (default: the render's size)
+        pixels_transform: Callable[[np.ndarray], Any] | None = None, # Applied to the render
+        required_keys: Iterable[str] | None = None, # Info keys (regular expressions) that must be present
+        image_resample: str | int | None = None, # PIL resampling used to resize the render ('nearest', 'bilinear', ...), default bilinear
+        add_pixels: bool = False, # Render the env into `pixels`, or `render` if the env has its own `pixels` (needs `render_mode='rgb_array'`)
+        goal_transform: Callable[[Any], Any] | None = None, # Applied to `goal` (the agents' goal observations)
+        separate_goal: bool = False # Require a `goal` in the info (goal-conditioned envs)
+    ):
         super().__init__(env)
         required = list(required_keys or [])
         env = EverythingToInfoWrapper(env)
@@ -262,7 +243,7 @@ def _image_hw(image) -> tuple[int, int]:
 
 
 class EnsureImageShape(gym.Wrapper):
-    "Checks that ``info[image_key]`` (one image, or one per agent) has the (H, W) `image_shape`."
+    "Checks that `info[image_key]` (one image, or one per agent) has the (H, W) `image_shape`."
 
     def __init__(self, env: gym.Env, image_key: str, image_shape: tuple[int, int]):
         super().__init__(env)
@@ -284,7 +265,7 @@ class EnsureImageShape(gym.Wrapper):
 
 
 class EnsureGoalInfoWrapper(gym.Wrapper):
-    "Checks that the info has a ``goal`` after a reset (`check_reset`) and after every step (`check_step`)."
+    "Checks that the info has a `goal` after a reset (`check_reset`) and after every step (`check_step`)."
 
     def __init__(self, env: gym.Env, check_reset: bool, check_step: bool = False):
         super().__init__(env)
@@ -305,8 +286,8 @@ class EnsureGoalInfoWrapper(gym.Wrapper):
 
 class MapKeysWrapper(gym.Wrapper):
     """
-    Renames info keys, ``{source: destination}``: e.g. ``{'image': 'pixels'}`` makes the agents'
-    encoded views the ``pixels`` the rest of the pipeline reads. A missing source is an error.
+    Renames info keys, `{source: destination}`: e.g. `{'image': 'pixels'}` makes the agents'
+    encoded views the `pixels` the rest of the pipeline reads. A missing source is an error.
     """
     def __init__(self, env: gym.Env, key_map: dict[str, str]):
         super().__init__(env)
@@ -330,9 +311,9 @@ class MapKeysWrapper(gym.Wrapper):
 
 class ResizeGoalWrapper(gym.Wrapper):
     """
-    Resizes ``info['goal']`` (one image, or one per agent) to `pixels_shape` (H, W), then applies
+    Resizes `info['goal']` (one image, or one per agent) to `pixels_shape` (H, W), then applies
     `torchvision_transform` to each image (a PIL image, as in stable-worldmodel). Infos without
-    a ``goal`` are left as they are.
+    a `goal` are left as they are.
     """
     def __init__(
         self,

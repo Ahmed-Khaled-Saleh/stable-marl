@@ -27,7 +27,7 @@ _DIR_VEC = {0: (1, 0), 1: (0, 1), 2: (-1, 0), 3: (0, -1)}   # library directions
 def _tile(tile_size: int, goal: bool, shelf: int, agent: tuple | None) -> np.ndarray:
     """
     One cell: `shelf` 0 (none), 1 (shelf) or 2 (requested shelf); `agent` None or
-    ``(direction, loaded)``.
+    `(direction, loaded)`.
     """
     T = tile_size
     img = np.empty((T, T, 3), np.uint8)
@@ -61,7 +61,7 @@ class _Renderer:
         return self._cache[key]
 
     def window(self, cells: dict, x0: int, y0: int, w: int, h: int, width: int, height: int) -> np.ndarray:
-        "The cells ``[x0, x0 + w) x [y0, y0 + h)`` (outside the warehouse: black)."
+        "The cells `[x0, x0 + w) x [y0, y0 + h)` (outside the warehouse: black)."
         T = self.tile_size
         img = np.empty((h * T, w * T, 3), np.uint8)
         img[:] = _OUTSIDE
@@ -80,46 +80,26 @@ OBSERVATIONS = ('vector', 'pixels')
 
 
 class RwareEnv(MultiAgentEnv):
-    """
-    RWARE as a stable-marl env.
-
-    Parameters
-    ----------
-    size : str
-        'tiny' (10 x 11), 'small' (10 x 20), 'medium' (16 x 20) or 'large' (16 x 29), RWARE's presets
-    agents : int
-        Number of robots
-    difficulty : str
-        Requested shelves per robot: 'easy' (2), 'normal' (1), 'hard' (0.5), as RWARE's ids
-    request_queue_size : int, optional
-        Number of requested shelves (overrides `difficulty`)
-    sensor_range : int
-        Radius of the square each robot observes
-    max_steps : int
-        Step limit (truncation)
-    max_inactivity_steps : int, optional
-        Truncation after this many steps without a delivery
-    reward_type : str
-        'individual' (the delivering robot), 'global' (every robot) or 'two_stage', as in RWARE
-    layout : str, optional
-        A custom warehouse (RWARE's format: ``x`` shelves, ``g`` goals, ``.`` corridors)
-    column_height : int
-        Height of the shelf columns (RWARE's ids: 8)
-    observations : tuple of str
-        ``vector`` and / or ``pixels``
-    tile_size : int
-        Pixels per cell of the images
-    render_mode : str, optional
-        'rgb_array' for :meth:`render`
-    """
+    "RWARE as a stable-marl env."
     metadata = {'render_modes': ['rgb_array'], 'render_fps': 10}
     noop_action = 0
 
-    def __init__(self, size: str = 'tiny', agents: int = 2, difficulty: str = 'normal',
-                 request_queue_size: int | None = None, sensor_range: int = 1, max_steps: int = 500,
-                 max_inactivity_steps: int | None = None, reward_type: str = 'individual', layout: str | None = None,
-                 column_height: int = 8, observations: Sequence[str] = OBSERVATIONS, tile_size: int = 8,
-                 render_mode: str | None = None):
+    def __init__(
+        self,
+        size: str = 'tiny', # 'tiny' (10 x 11), 'small' (10 x 20), 'medium' (16 x 20) or 'large' (16 x 29), RWARE's presets
+        agents: int = 2, # Number of robots
+        difficulty: str = 'normal', # Requested shelves per robot: 'easy' (2), 'normal' (1), 'hard' (0.5), as RWARE's ids
+        request_queue_size: int | None = None, # Number of requested shelves (overrides `difficulty`)
+        sensor_range: int = 1, # Radius of the square each robot observes
+        max_steps: int = 500, # Step limit (truncation)
+        max_inactivity_steps: int | None = None, # Truncation after this many steps without a delivery
+        reward_type: str = 'individual', # 'individual' (the delivering robot), 'global' (every robot) or 'two_stage', as in RWARE
+        layout: str | None = None, # A custom warehouse (RWARE's format: `x` shelves, `g` goals, `.` corridors)
+        column_height: int = 8, # Height of the shelf columns (RWARE's ids: 8)
+        observations: Sequence[str] = OBSERVATIONS, # `vector` and / or `pixels`
+        tile_size: int = 8, # Pixels per cell of the images
+        render_mode: str | None = None # 'rgb_array' for `render`
+    ):
         from stable_marl.envs.rware.upstream.warehouse import ObservationType, RewardType, Warehouse
         if size not in _SIZES:
             raise ValueError(f"size must be one of {list(_SIZES)}, got {size!r}")
@@ -209,7 +189,7 @@ class RwareEnv(MultiAgentEnv):
                 {a: end for a in agents}, {a: {} for a in agents})
 
     def render(self) -> np.ndarray | None:
-        "The whole warehouse as an RGB image (``render_mode='rgb_array'``)."
+        "The whole warehouse as an RGB image (`render_mode='rgb_array'`)."
         if self.render_mode != 'rgb_array':
             return None
         return self._renderer.window(self._cells(), 0, 0, self.width, self.height, self.width, self.height)

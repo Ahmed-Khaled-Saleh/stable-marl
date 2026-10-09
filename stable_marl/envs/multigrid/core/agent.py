@@ -41,57 +41,7 @@ def front_pos(agent_x: int, agent_y: int, agent_dir: int):
 
 # %% ../../../../nbs/envs/multigrid/core/04_agent.ipynb #f744d9c7
 class AgentState(np.ndarray):
-    """
-    State for an :class:`.Agent` object.
-
-    ``AgentState`` objects also support vectorized operations,
-    in which case the ``AgentState`` object represents the states of multiple agents.
-
-    Attributes
-    ----------
-    color : Color or ndarray[str]
-        Agent color
-    dir : Direction or ndarray[int]
-        Agent direction (0: right, 1: down, 2: left, 3: up)
-    pos : tuple[int, int] or ndarray[int]
-        Agent (x, y) position
-    terminated : bool or ndarray[bool]
-        Whether the agent has terminated
-    carrying : WorldObj or None or ndarray[object]
-        Object the agent is carrying
-
-    Examples
-    --------
-    Create a vectorized agent state for 3 agents:
-
-    >>> agent_state = AgentState(3)
-    >>> agent_state
-    AgentState(3)
-
-    Access and set state attributes for one agent at a time:
-
-    >>> a = agent_state[0]
-    >>> a
-    AgentState()
-    >>> a.color
-    'red'
-    >>> a.color = 'yellow'
-
-    The underlying vectorized state is automatically updated as well:
-
-    >>> agent_state.color
-    array(['yellow', 'green', 'blue'])
-
-    Access and set state attributes all at once:
-
-    >>> agent_state.dir
-    array([-1, -1, -1])
-    >>> agent_state.dir = np.random.randint(4, size=(len(agent_state)))
-    >>> agent_state.dir
-    array([2, 3, 0])
-    >>> a.dir
-    2
-    """
+    "State for an `.Agent` object."
     # State vector indices
     TYPE = 0
     COLOR = 1
@@ -104,13 +54,10 @@ class AgentState(np.ndarray):
     # State vector dimension
     dim = 6 + WorldObj.dim
 
-    def __new__(cls, *dims: int):
-        """
-        Parameters
-        ----------
-        dims : int, optional
-            Shape of vectorized agent state
-        """
+    def __new__(
+        cls,
+        *dims: int # Shape of vectorized agent state
+    ):
         obj = np.zeros(dims + (cls.dim,), dtype=int).view(cls)
 
         # Set default values
@@ -221,56 +168,15 @@ class AgentState(np.ndarray):
 
 # %% ../../../../nbs/envs/multigrid/core/04_agent.ipynb #d1a63e18
 class Agent:
-    """
-    Class representing an agent in the environment.
-
-    :Observation Space:
-
-        Observations are dictionaries with the following entries:
-
-            * image : ndarray[int] of shape (view_size, view_size, :attr:`.WorldObj.dim`)
-                Encoding of the agent's view of the environment
-            * direction : int
-                Agent's direction (0: right, 1: down, 2: left, 3: up)
-            * mission : Mission
-                Task string corresponding to the current environment configuration
-
-    :Action Space:
-
-        Actions are discrete integers, as enumerated in :class:`.Action`.
-
-    Attributes
-    ----------
-    index : int
-        Index of the agent in the environment
-    state : AgentState
-        State of the agent
-    mission : Mission
-        Current mission string for the agent
-    action_space : gym.spaces.Discrete
-        Action space for the agent
-    observation_space : gym.spaces.Dict
-        Observation space for the agent
-    """
+    "Class representing an agent in the environment."
 
     def __init__(
         self,
-        index: int,
-        mission_space: MissionSpace = MissionSpace.from_string('maximize reward'),
-        view_size: int = 7,
-        see_through_walls: bool = False):
-        """
-        Parameters
-        ----------
-        index : int
-            Index of the agent in the environment
-        mission_space : MissionSpace
-            The mission space for the agent
-        view_size : int
-            The size of the agent's view (must be odd)
-        see_through_walls : bool
-            Whether the agent can see through walls
-        """
+        index: int, # Index of the agent in the environment
+        mission_space: MissionSpace = MissionSpace.from_string('maximize reward'), # The mission space for the agent
+        view_size: int = 7, # The size of the agent's view (must be odd)
+        see_through_walls: bool = False # Whether the agent can see through walls
+    ):
         self.index: int = index
         self.state: AgentState = AgentState()
         self.mission: Mission = None
@@ -305,15 +211,15 @@ class Agent:
 
     # AgentState Properties
     color = PropertyAlias(
-        'state', 'color', doc='Alias for :attr:`AgentState.color`.')
+        'state', 'color', doc='Alias for `AgentState.color`.')
     dir = PropertyAlias(
-        'state', 'dir', doc='Alias for :attr:`AgentState.dir`.')
+        'state', 'dir', doc='Alias for `AgentState.dir`.')
     pos = PropertyAlias(
-        'state', 'pos', doc='Alias for :attr:`AgentState.pos`.')
+        'state', 'pos', doc='Alias for `AgentState.pos`.')
     terminated = PropertyAlias(
-        'state', 'terminated', doc='Alias for :attr:`AgentState.terminated`.')
+        'state', 'terminated', doc='Alias for `AgentState.terminated`.')
     carrying = PropertyAlias(
-        'state', 'carrying', doc='Alias for :attr:`AgentState.carrying`.')
+        'state', 'carrying', doc='Alias for `AgentState.carrying`.')
 
     
     
@@ -331,15 +237,11 @@ def front_pos(self: Agent) -> tuple[int, int]:
 
 # %% ../../../../nbs/envs/multigrid/core/04_agent.ipynb #7d9e4ef9
 @patch
-def reset(self: Agent, mission: Mission | None = None):
-    """
-    Reset the agent to an initial state.
-
-    Parameters
-    ----------
-    mission : Mission
-        Mission string to use for the new episode (default: 'maximize reward')
-    """
+def reset(
+    self: Agent,
+    mission: Mission | None = None # Mission string to use for the new episode (default: 'maximize reward')
+):
+    "Reset the agent to an initial state."
     self.mission = Mission('maximize reward') if mission is None else mission
     self.state.pos = (-1, -1)
     self.state.dir = -1
@@ -350,31 +252,20 @@ def reset(self: Agent, mission: Mission | None = None):
 @patch
 def encode(self: Agent) -> tuple[int, int, int]:
         """
-        Encode a description of this agent as a 3-tuple of integers.
+    Encode a description of this agent as a 3-tuple of integers.
 
-        Returns
-        -------
-        type_idx : int
-            The index of the agent type
-        color_idx : int
-            The index of the agent color
-        agent_dir : int
-            The direction of the agent (0: right, 1: down, 2: left, 3: up)
-        """
+    Returns: type_idx: The index of the agent type; color_idx: The index of the agent color; agent_dir: The direction of the agent (0: right, 1: down, 2: left, 3: up)
+    """
         return (Type.agent.to_index(), self.state.color.to_index(), self.state.dir)
 
 
 # %% ../../../../nbs/envs/multigrid/core/04_agent.ipynb #37a6129c
 @patch
-def render(self: Agent, img: ndarray[np.uint8]):
-    """
-    Draw the agent.
-
-    Parameters
-    ----------
-    img : ndarray[int] of shape (width, height, 3)
-        RGB image array to render agent on
-    """
+def render(
+    self: Agent,
+    img: ndarray[np.uint8] # RGB image array to render agent on
+):
+    "Draw the agent."
     tri_fn = point_in_triangle(
         (0.12, 0.19),
         (0.87, 0.50),
@@ -389,56 +280,15 @@ def render(self: Agent, img: ndarray[np.uint8]):
 
 # %% ../../../../nbs/envs/multigrid/core/04_agent.ipynb #e66fca19
 class NavigationAgent(Agent):
-    """
-    Class representing an agent in the environment.
-
-    :Observation Space:
-
-        Observations are dictionaries with the following entries:
-
-            * image : ndarray[int] of shape (view_size, view_size, :attr:`.WorldObj.dim`)
-                Encoding of the agent's view of the environment
-            * direction : int
-                Agent's direction (0: right, 1: down, 2: left, 3: up)
-            * mission : Mission
-                Task string corresponding to the current environment configuration
-
-    :Action Space:
-
-        Actions are discrete integers, as enumerated in :class:`.Action`.
-
-    Attributes
-    ----------
-    index : int
-        Index of the agent in the environment
-    state : AgentState
-        State of the agent
-    mission : Mission
-        Current mission string for the agent
-    action_space : gym.spaces.Discrete
-        Action space for the agent
-    observation_space : gym.spaces.Dict
-        Observation space for the agent
-    """
+    "Class representing an agent in the environment."
 
     def __init__(
         self,
-        index: int,
-        mission_space: MissionSpace = MissionSpace.from_string('maximize reward'),
-        view_size: int = 7,
-        see_through_walls: bool = False):
-        """
-        Parameters
-        ----------
-        index : int
-            Index of the agent in the environment
-        mission_space : MissionSpace
-            The mission space for the agent
-        view_size : int
-            The size of the agent's view (must be odd)
-        see_through_walls : bool
-            Whether the agent can see through walls
-        """
+        index: int, # Index of the agent in the environment
+        mission_space: MissionSpace = MissionSpace.from_string('maximize reward'), # The mission space for the agent
+        view_size: int = 7, # The size of the agent's view (must be odd)
+        see_through_walls: bool = False # Whether the agent can see through walls
+    ):
         self.index: int = index
         self.state: AgentState = AgentState()
         self.mission: Mission = None
@@ -473,15 +323,15 @@ class NavigationAgent(Agent):
 
     # AgentState Properties
     color = PropertyAlias(
-        'state', 'color', doc='Alias for :attr:`AgentState.color`.')
+        'state', 'color', doc='Alias for `AgentState.color`.')
     dir = PropertyAlias(
-        'state', 'dir', doc='Alias for :attr:`AgentState.dir`.')
+        'state', 'dir', doc='Alias for `AgentState.dir`.')
     pos = PropertyAlias(
-        'state', 'pos', doc='Alias for :attr:`AgentState.pos`.')
+        'state', 'pos', doc='Alias for `AgentState.pos`.')
     terminated = PropertyAlias(
-        'state', 'terminated', doc='Alias for :attr:`AgentState.terminated`.')
+        'state', 'terminated', doc='Alias for `AgentState.terminated`.')
     carrying = PropertyAlias(
-        'state', 'carrying', doc='Alias for :attr:`AgentState.carrying`.')
+        'state', 'carrying', doc='Alias for `AgentState.carrying`.')
 
     
     

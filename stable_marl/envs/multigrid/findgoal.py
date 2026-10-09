@@ -216,10 +216,9 @@ class FindGoalEnv(MultiGridEnv):
 @patch
 def _variation_factors(self: FindGoalEnv) -> dict:
     """
-    :meta public:
 
-    The MultiGrid factors, plus ``goal.color``, ``goal.min_spawn_distance``, ``obstacles.number``
-    and ``clutter.number`` (each from 0 to twice the constructor's value).
+    The MultiGrid factors, plus `goal.color`, `goal.min_spawn_distance`, `obstacles.number`
+    and `clutter.number` (each from 0 to twice the constructor's value).
     """
     factors = MultiGridEnv._variation_factors(self)
     factors['goal'] = {
@@ -260,23 +259,9 @@ def place_obj(
     top: tuple[int, int] = None,
     size: tuple[int, int] = None,
     reject_fn: Callable[[FindGoalEnv, tuple[int, int]], bool] | None = None,
-    max_tries=math.inf) -> tuple[int, int]:
-    """
-    Place an object at an empty position in the grid.
-
-    Parameters
-    ----------
-    obj: WorldObj
-        Object to place in the grid
-    top: tuple[int, int]
-        Top-left position of the rectangular area where to place the object
-    size: tuple[int, int]
-        Width and height of the rectangular area where to place the object
-    reject_fn: Callable[FindGoalEnv, tuple[int, int]] -> bool
-        Function to filter out potential positions
-    max_tries: int
-        Maximum number of attempts to place the object
-    """
+    max_tries=math.inf
+) -> tuple[int, int]:
+    "Place an object at an empty position in the grid."
     if top is None:
         top = (0, 0)
     else:
@@ -334,33 +319,16 @@ def place_obj(
 @patch
 def step(
     self: FindGoalEnv,
-    actions: dict[AgentID, NavigationAction]) -> tuple[
+    actions: dict[AgentID, NavigationAction] # Navigation action for each agent acting at this timestep
+) -> tuple[
         dict[AgentID, ObsType],
         dict[AgentID, SupportsFloat],
         dict[AgentID, bool],
         dict[AgentID, bool],
-        dict[AgentID, dict[str, Any]]]:
+        dict[AgentID, dict[str, Any]]]: # observations: Observation for each agent; rewards: Reward for each agent; terminations: Whether the episode has been terminated for each agent (success or failure); truncations: Whether the episode has been truncated for each agent (max steps reached); infos: Additional information for each agent
     """
     Run one timestep of the environment’s dynamics
     using the provided agent actions.
-
-    Parameters
-    ----------
-    actions : dict[AgentID, NavigationAction]
-        Navigation action for each agent acting at this timestep
-
-    Returns
-    -------
-    observations : dict[AgentID, ObsType]
-        Observation for each agent
-    rewards : dict[AgentID, SupportsFloat]
-        Reward for each agent
-    terminations : dict[AgentID, bool]
-        Whether the episode has been terminated for each agent (success or failure)
-    truncations : dict[AgentID, bool]
-        Whether the episode has been truncated for each agent (max steps reached)
-    infos : dict[AgentID, dict[str, Any]]
-        Additional information for each agent
     """
     self.step_count += 1
     rewards = self.handle_actions(actions)
@@ -382,20 +350,10 @@ def step(
 # %% ../../../nbs/envs/multigrid/09_findgoal.ipynb #715d3532
 @patch
 def handle_actions(
-    self: FindGoalEnv, actions: dict[AgentID, NavigationAction]) -> dict[AgentID, SupportsFloat]:
-    """
-    Handle actions taken by agents.
-
-    Parameters
-    ----------
-    actions : dict[AgentID, NavigationAction]
-        Navigation action for each agent acting at this timestep
-
-    Returns
-    -------
-    rewards : dict[AgentID, SupportsFloat]
-        Reward for each agent
-    """
+    self: FindGoalEnv,
+    actions: dict[AgentID, NavigationAction] # Navigation action for each agent acting at this timestep
+) -> dict[AgentID, SupportsFloat]: # Reward for each agent
+    "Handle actions taken by agents."
     rewards = {agent_index: 0 for agent_index in range(self.num_agents)}
 
     # Randomize agent action order
@@ -515,14 +473,7 @@ def gen_obs(self: FindGoalEnv) -> dict[AgentID, ObsType]:
     """
     Generate observations for each agent (partially observable, low-res encoding).
 
-    Returns
-    -------
-    observations : dict[AgentID, ObsType]
-        Mapping from agent ID to observation dict, containing:
-            * 'image': partially observable view of the environment
-            * 'direction': agent's direction / orientation (acting as a compass)
-            * 'position': agent's (x, y) cell in the grid
-            * 'mission': textual mission string (instructions for the agent)
+    Returns: Mapping from agent ID to observation dict, containing: * 'image': partially observable view of the environment * 'direction': agent's direction / orientation (acting as a compass) * 'position': agent's (x, y) cell in the grid * 'mission': textual mission string (instructions for the agent)
     """
     direction = self.agent_states.dir
     position = np.array(self.agent_states.pos)

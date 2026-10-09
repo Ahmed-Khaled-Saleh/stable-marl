@@ -71,12 +71,12 @@ def cosine(start, end, horizon):
 
 
 def exponential(start, decay, floor=0.0):
-    "Exponential decay ``start * decay**step``, lower-bounded by `floor`."
+    "Exponential decay `start * decay**step`, lower-bounded by `floor`."
     return lambda step: max(start * (decay ** step), floor)
 
 
 def sinusoidal(low, high, period):
-    "Sinusoid oscillating in ``[low, high]`` with the given `period` (in steps)."
+    "Sinusoid oscillating in `[low, high]` with the given `period` (in steps)."
     amp, mid = 0.5 * (high - low), 0.5 * (high + low)
     return lambda step: mid + amp * math.sin(2 * math.pi * step / max(1.0, period))
 
@@ -86,13 +86,13 @@ def _is_view_key(k) -> bool:
 
 
 class _PixelTransform(gym.Wrapper):
-    "Applies ``_apply`` (one ``(H, W, C)`` frame) to ``render()`` and to the views (see above)."
+    "Applies `_apply` (one `(H, W, C)` frame) to `render()` and to the views (see above)."
 
     def _apply(self, frame):
         raise NotImplementedError
 
     def _apply_frames(self, value):
-        "One frame ``(H, W, C)``, or one per agent ``(num_agents, H, W, C)``."
+        "One frame `(H, W, C)`, or one per agent `(num_agents, H, W, C)`."
         value = np.asarray(value)
         if value.ndim == 4:
             return np.stack([self._apply(f) for f in value])
@@ -105,7 +105,7 @@ class _PixelTransform(gym.Wrapper):
         return info
 
     def _apply_to_obs(self, obs):
-        "Each agent's ``pixels`` observation (before MegaWrapper, where there is no info dict yet)."
+        "Each agent's `pixels` observation (before MegaWrapper, where there is no info dict yet)."
         if isinstance(obs, dict) and obs and all(isinstance(o, dict) for o in obs.values()):
             return {a: ({**o, 'pixels': self._apply_frames(o['pixels'])} if 'pixels' in o else o) for a, o in obs.items()}
         return obs
@@ -175,7 +175,7 @@ class ChromaKeyWrapper(_PixelTransform):
 class NoiseWrapper(_PixelTransform):
     """
     Gaussian pixel noise with a step-dependent standard deviation: `std` is a float or a schedule
-    ``f(step) -> float``, evaluated at the number of ``env.step`` calls so far.
+    `f(step) -> float`, evaluated at the number of `env.step` calls so far.
     """
     def __init__(self, env, std=10.0, seed=None):
         super().__init__(env)
@@ -185,7 +185,7 @@ class NoiseWrapper(_PixelTransform):
 
     @property
     def step_count(self):
-        "Number of ``env.step`` calls seen (the value fed to the schedule)."
+        "Number of `env.step` calls seen (the value fed to the schedule)."
         return self._step
 
     def _apply(self, frame):
@@ -390,7 +390,7 @@ class RandomConvWrapper(_PixelTransform):
 
 
 class GrayscaleWrapper(_PixelTransform):
-    "Convert to grayscale; ``keep_channels=True`` broadcasts back to 3 channels."
+    "Convert to grayscale; `keep_channels=True` broadcasts back to 3 channels."
     def __init__(self, env, keep_channels=True):
         super().__init__(env)
         self._keep = bool(keep_channels)

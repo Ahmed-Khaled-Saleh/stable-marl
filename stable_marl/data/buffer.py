@@ -54,34 +54,16 @@ def _uniform_sampler(step: int, buffer: ReplayBuffer, batch_size: int, history_l
 
 
 class ReplayBuffer(Dataset):
-    """
-    In-memory ring-storage replay buffer.
-
-    Parameters
-    ----------
-    max_steps : int
-        Capacity in steps; whole episodes are evicted oldest first when a new one would not fit
-    history_len : int
-        Steps per clip of ``__getitem__`` (the Dataset's ``num_steps``) and default of :meth:`sample`
-    frameskip : int
-        Stride between the steps of a clip; ``action`` keeps every step, reshaped to
-        ``(history_len, frameskip * action_dim)``
-    sampler : callable, optional
-        ``fn(step, buffer, batch_size, history_len) -> indices`` in ``[0, buffer.num_valid_ends(history_len))``
-        (default: uniform)
-    transform : callable, optional
-        Dict-in / dict-out transform applied to each clip of ``__getitem__``
-    key_filter : callable, optional
-        ``fn(ep_data) -> ep_data`` choosing the columns stored (e.g. :func:`classic_filter`)
-    """
+    "In-memory ring-storage replay buffer."
     def __init__(
         self,
-        max_steps: int,
-        history_len: int = 1,
-        frameskip: int = 1,
-        sampler: Sampler | None = None,
-        transform: Callable[[dict], dict] | None = None,
-        key_filter: Callable[[dict], dict] | None = None):
+        max_steps: int, # Capacity in steps; whole episodes are evicted oldest first when a new one would not fit
+        history_len: int = 1, # Steps per clip of `__getitem__` (the Dataset's `num_steps`) and default of `sample`
+        frameskip: int = 1, # Stride between the steps of a clip; `action` keeps every step, reshaped to `(history_len, frameskip * action_dim)`
+        sampler: Sampler | None = None, # `fn(step, buffer, batch_size, history_len) -> indices` in `[0, buffer.num_valid_ends(history_len))` (default: uniform)
+        transform: Callable[[dict], dict] | None = None, # Dict-in / dict-out transform applied to each clip of `__getitem__`
+        key_filter: Callable[[dict], dict] | None = None # `fn(ep_data) -> ep_data` choosing the columns stored (e.g. `classic_filter`)
+    ):
         for name, value in (('max_steps', max_steps), ('history_len', history_len), ('frameskip', frameskip)):
             if value <= 0:
                 raise ValueError(f"{name} must be positive, got {value}")
@@ -171,7 +153,7 @@ class ReplayBuffer(Dataset):
 
     @property
     def clip_indices(self) -> list[tuple[int, int]]:
-        "``(episode, start)`` of every clip of ``__getitem__``, in order (as :class:`Dataset`)."
+        "`(episode, start)` of every clip of `__getitem__`, in order (as `Dataset`)."
         return [(ep, start) for ep, (_, ln) in enumerate(self._episodes) for start in range(max(0, ln - self.span + 1))]
 
     def num_valid_ends(self, history_len: int | None = None) -> int:
@@ -182,8 +164,8 @@ class ReplayBuffer(Dataset):
     # ---- sampling
     def sample(self, batch_size: int, history_len: int | None = None, step: int | None = None) -> dict[str, np.ndarray]:
         """
-        A batch of clips drawn by the sampler: ``{column: (batch_size, history_len, ...)}`` numpy
-        arrays (``transform`` is not applied). `step` is passed to the sampler (default: a counter
+        A batch of clips drawn by the sampler: `{column: (batch_size, history_len, ...)}` numpy
+        arrays (`transform` is not applied). `step` is passed to the sampler (default: a counter
         of the calls).
         """
         if batch_size <= 0:
@@ -235,8 +217,8 @@ class ReplayBuffer(Dataset):
     # ---- export
     def episodes(self) -> Iterable[dict]:
         """
-        The stored episodes as ``{column: [row, ...]}`` (what ``World.collect`` writes and every
-        :class:`Writer` takes), with their episode-scoped data under ``EPISODE_DATA_KEY``.
+        The stored episodes as `{column: [row, ...]}` (what `World.collect` writes and every
+        `Writer` takes), with their episode-scoped data under `EPISODE_DATA_KEY`.
         """
         for (ring_start, ep_len), extra in zip(list(self._episodes), list(self._episode_meta)):
             positions = (ring_start + np.arange(ep_len)) % self.max_steps
@@ -247,7 +229,7 @@ class ReplayBuffer(Dataset):
 
     def dump(self, path: str | Path, format: str, mode: str = 'overwrite', **kwargs: Any) -> None:
         """
-        Save the contents with the writer of `format` (`kwargs` go to it), with ``metadata``.
+        Save the contents with the writer of `format` (`kwargs` go to it), with `metadata`.
         Episode-scoped data is dropped, with a warning, if the format does not store it.
         """
         fmt = get_format(format)
@@ -329,7 +311,7 @@ class ReplayBuffer(Dataset):
         return flat.astype(np.int64, copy=False)
 
     def _flat_to_clip(self, flat: np.ndarray, span: int) -> tuple[np.ndarray, np.ndarray]:
-        "Flat clip indices -> ``(episode index, clip start in the episode)``."
+        "Flat clip indices -> `(episode index, clip start in the episode)`."
         starts = self._get_clip_starts(span)
         total = int(starts[-1])
         if flat.size and (flat.min() < 0 or flat.max() >= total):
@@ -338,7 +320,7 @@ class ReplayBuffer(Dataset):
         return ep_idx, flat - starts[ep_idx]
 
     def _get_clip_starts(self, span: int) -> np.ndarray:
-        "Cumulative clip counts per episode, ``(N + 1,)``, cached per `span` until the episodes change."
+        "Cumulative clip counts per episode, `(N + 1,)`, cached per `span` until the episodes change."
         if self._clip_starts is None or self._clip_starts_span != span:
             n = len(self._episodes)
             valid = np.fromiter((max(0, ln - span + 1) for _, ln in self._episodes), dtype=np.int64, count=n)
@@ -352,7 +334,7 @@ class ReplayBuffer(Dataset):
         self._clip_starts = self._clip_starts_span = None
 
     def _gather_clip(self, ring_start: int, clip_local_start: int, history_len: int) -> dict[str, np.ndarray]:
-        "One clip: columns every `frameskip` steps, ``action`` dense, reshaped to ``(history_len, -1)``."
+        "One clip: columns every `frameskip` steps, `action` dense, reshaped to `(history_len, -1)`."
         base = ring_start + clip_local_start
         obs_idx = (base + np.arange(history_len) * self.frameskip) % self.max_steps
         action_idx = obs_idx if self.frameskip == 1 else (base + np.arange(history_len * self.frameskip)) % self.max_steps
@@ -364,8 +346,8 @@ class ReplayBuffer(Dataset):
 
 def classic_filter(ep_data: dict) -> dict:
     """
-    ``key_filter`` keeping the classic replay-buffer columns: ``pixels`` (each agent's view),
-    ``action``, ``reward``, ``terminated`` and ``truncated``.
+    `key_filter` keeping the classic replay-buffer columns: `pixels` (each agent's view),
+    `action`, `reward`, `terminated` and `truncated`.
     """
     classic_keys = ('pixels', 'action', 'reward', 'terminated', 'truncated')
     return {k: v for k, v in ep_data.items() if k in classic_keys}

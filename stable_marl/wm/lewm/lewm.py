@@ -39,27 +39,17 @@ __all__ = ['LeWM', 'build_lewm']
 
 # %% ../../../nbs/wm/02_lewm.ipynb #7be8d0a6
 class LeWM(nn.Module):
-    """
-    Parameters
-    ----------
-    encoder : nn.Module
-        Images ``(N, C, h, w)`` -> embeddings ``(N, D)``
-    predictor : Predictor
-        Next embeddings from embeddings and action embeddings
-    action_encoder : Embedder
-        Actions ``(B, T, action_dim)`` -> ``(B, T, D)``
-    projector, pred_proj : nn.Module, optional
-        Heads applied to the encoder output and to the predictions
-    preprocessor : nn.Module, optional
-        Raw frames -> encoder input (e.g. :class:`ImagePreprocessor`)
-    obs_key : str
-        Info key of the frames, ``(B, T, ...)``
-    extra_encoders : dict of nn.Module, optional
-        Encoders of extra inputs (info key -> module, e.g. an :class:`ExtraEncoder` of ``position``),
-        whose features are concatenated with the image features before the projector
-    """
-    def __init__(self, encoder, predictor, action_encoder, projector=None, pred_proj=None, preprocessor=None,
-                 obs_key: str = 'pixels', extra_encoders: dict[str, nn.Module] | None = None):
+    def __init__(
+        self,
+        encoder, # Images `(N, C, h, w)` -> embeddings `(N, D)` (nn.Module)
+        predictor, # Next embeddings from embeddings and action embeddings (Predictor)
+        action_encoder, # Actions `(B, T, action_dim)` -> `(B, T, D)` (Embedder)
+        projector=None, # Heads applied to the encoder output and to the predictions (nn.Module)
+        pred_proj=None, # Heads applied to the encoder output and to the predictions (nn.Module)
+        preprocessor=None, # Raw frames -> encoder input (e.g. `ImagePreprocessor`) (nn.Module)
+        obs_key: str = 'pixels', # Info key of the frames, `(B, T, ...)`
+        extra_encoders: dict[str, nn.Module] | None = None # Encoders of extra inputs (info key -> module, e.g. an `ExtraEncoder` of `position`), whose features are concatenated with the image features before the projector
+    ):
         super().__init__()
         self.encoder, self.predictor, self.action_encoder = encoder, predictor, action_encoder
         self.projector = projector or nn.Identity()
@@ -74,7 +64,7 @@ class LeWM(nn.Module):
         return [self.obs_key, *self.extra_encoders.keys()]
 
     def encode(self, info: dict) -> dict:
-        "Adds ``emb`` ``(B, T, D)`` (and ``act_emb`` if ``action`` is given)."
+        "Adds `emb` `(B, T, D)` (and `act_emb` if `action` is given)."
         frames = self.preprocessor(info[self.obs_key])
         B, T = frames.shape[:2]
         frames = frames.reshape(B * T, *frames.shape[2:]).to(next(self.encoder.parameters()).dtype)
@@ -90,17 +80,17 @@ class LeWM(nn.Module):
         return info
 
     def predict(self, emb: torch.Tensor, act_emb: torch.Tensor) -> torch.Tensor:
-        "Next embeddings ``(B, T, D)`` of every position of ``emb`` ``(B, T, D)``, ``act_emb`` ``(B, T, A_emb)``."
+        "Next embeddings `(B, T, D)` of every position of `emb` `(B, T, D)`, `act_emb` `(B, T, A_emb)`."
         preds = self.predictor(emb, act_emb)
         B, T = preds.shape[:2]
         return self.pred_proj(preds.reshape(B * T, -1)).reshape(B, T, -1)
 
     def rollout(self, info: dict, action_sequence: torch.Tensor, history_size: int | None = None) -> dict:
         """
-        Roll the candidates ``(B, S, T, action_dim)`` out from the ``H`` context frames
-        ``info[obs_key]`` ``(B, S, H, ...)``; ``info['action_history']`` ``(B, S, H - 1, action_dim)``
-        holds the actions executed between them (required when ``H > 1``). Adds ``predicted_emb``
-        ``(B, S, H + T, D)``, whose first ``H`` entries are the encoded context (cached as ``emb``).
+        Roll the candidates `(B, S, T, action_dim)` out from the `H` context frames
+        `info[obs_key]` `(B, S, H, ...)`; `info['action_history']` `(B, S, H - 1, action_dim)`
+        holds the actions executed between them (required when `H > 1`). Adds `predicted_emb`
+        `(B, S, H + T, D)`, whose first `H` entries are the encoded context (cached as `emb`).
         """
         history_size = history_size or getattr(self.predictor, 'num_frames', 3)
         H = info[self.obs_key].size(2)
@@ -145,9 +135,9 @@ def build_lewm(
     extra_scale: float = 0.1) -> LeWM:
     """
     A LeWM with stable-worldmodel's default configuration (ViT-tiny encoder, 6-layer predictor),
-    for actions of size `action_dim` per planning step (``action_block * D``, or ``action_block * K``
-    one-hot for discrete actions). `extra_inputs` (info key -> input size, e.g. ``{'position': 2}``)
-    adds an :class:`ExtraEncoder` (output `extra_dim`, inputs times `extra_scale`) per extra input.
+    for actions of size `action_dim` per planning step (`action_block * D`, or `action_block * K`
+    one-hot for discrete actions). `extra_inputs` (info key -> input size, e.g. `{'position': 2}`)
+    adds an `ExtraEncoder` (output `extra_dim`, inputs times `extra_scale`) per extra input.
     """
     encoder = ViTEncoder.from_scale(encoder_scale, image_size=image_size, patch_size=patch_size, **(encoder_kwargs or {}))
     extras = {key: ExtraEncoder(size, extra_dim, scale=extra_scale) for key, size in (extra_inputs or {}).items()}

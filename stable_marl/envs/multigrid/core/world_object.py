@@ -25,28 +25,7 @@ __all__ = ['WorldObjMeta', 'WorldObj', 'Goal', 'Floor', 'Lava', 'Wall', 'Door', 
 
 # %% ../../../../nbs/envs/multigrid/core/03_world_object.ipynb #2a2bb0ec
 class WorldObjMeta(type):
-    """
-    Metaclass for world objects.
-
-    Each subclass is associated with a unique :class:`Type` enumeration value.
-
-    By default, the type name is the class name (in lowercase), but this can be
-    overridden by setting the `type_name` attribute in the class definition.
-    Type names are dynamically added to the :class:`Type` enumeration
-    if not already present.
-
-    Examples
-    --------
-    >>> class A(WorldObj): pass
-    >>> A().type
-    <Type.a: 'a'>
-
-    >>> class B(WorldObj): type_name = 'goal'
-    >>> B().type
-    <Type.goal: 'goal'>
-
-    :meta private:
-    """
+    "Metaclass for world objects."
 
     # Registry of object classes
     _TYPE_IDX_TO_CLASS = {}
@@ -70,24 +49,7 @@ class WorldObjMeta(type):
 
 # %% ../../../../nbs/envs/multigrid/core/03_world_object.ipynb #beb70b24
 class WorldObj(np.ndarray, metaclass=WorldObjMeta):
-    """
-    Base class for grid world objects.
-
-    Attributes
-    ----------
-    type : Type
-        The object type
-    color : Color
-        The object color
-    state : State
-        The object state
-    contains : WorldObj or None
-        The object contained by this object, if any
-    init_pos : tuple[int, int] or None
-        The initial position of the object
-    cur_pos : tuple[int, int] or None
-        The current position of the object
-    """
+    "Base class for grid world objects."
     # WorldObj vector indices
     TYPE = 0
     COLOR = 1
@@ -96,15 +58,11 @@ class WorldObj(np.ndarray, metaclass=WorldObjMeta):
     # WorldObj vector dimension
     dim = len([TYPE, COLOR, STATE])
 
-    def __new__(cls, type: str | None = None, color: str = Color.from_index(0)):
-        """
-        Parameters
-        ----------
-        type : str or None
-            Object type
-        color : str
-            Object color
-        """
+    def __new__(
+        cls,
+        type: str | None = None, # Object type
+        color: str = Color.from_index(0) # Object color
+    ):
         # If not provided, infer the object type from the class
         type_name = type or getattr(cls, 'type_name', cls.__name__.lower())
         type_idx = Type(type_name).to_index()
@@ -143,15 +101,10 @@ class WorldObj(np.ndarray, metaclass=WorldObjMeta):
         return WorldObj(type=Type.empty)
 
     @staticmethod
-    def from_array(arr: ArrayLike[int]) -> 'WorldObj' | None:
-        """
-        Convert an array to a WorldObj instance.
-
-        Parameters
-        ----------
-        arr : ArrayLike[int]
-            Array encoding the object type, color, and state
-        """
+    def from_array(
+        arr: ArrayLike[int] # Array encoding the object type, color, and state
+    ) -> 'WorldObj' | None:
+        "Convert an array to a WorldObj instance."
         type_idx = arr[WorldObj.TYPE]
 
         if type_idx == Type.empty.to_index():
@@ -206,19 +159,12 @@ class WorldObj(np.ndarray, metaclass=WorldObjMeta):
 
     
     @staticmethod
-    def decode(type_idx: int, color_idx: int, state_idx: int) -> 'WorldObj' | None:
-        """
-        Create an object from a 3-tuple description.
-
-        Parameters
-        ----------
-        type_idx : int
-            The index of the object type
-        color_idx : int
-            The index of the object color
-        state_idx : int
-            The index of the object state
-        """
+    def decode(
+        type_idx: int, # The index of the object type
+        color_idx: int, # The index of the object color
+        state_idx: int # The index of the object state
+    ) -> 'WorldObj' | None:
+        "Create an object from a 3-tuple description."
         arr = np.array([type_idx, color_idx, state_idx])
         return WorldObj.from_array(arr)
 
@@ -247,24 +193,13 @@ def can_contain(self: WorldObj) -> bool:
     return False
 
 @patch
-def toggle(self: WorldObj, env, agent, pos: tuple[int, int]) -> bool:
-    """
-    Toggle the state of this object or trigger an action this object performs.
-
-    Parameters
-    ----------
-    env : MultiGridEnv
-        The environment this object is contained in
-    agent : Agent
-        The agent performing the toggle action
-    pos : tuple[int, int]
-        The (x, y) position of this object in the environment grid
-
-    Returns
-    -------
-    success : bool
-        Whether the toggle action was successful
-    """
+def toggle(
+    self: WorldObj,
+    env, # The environment this object is contained in (MultiGridEnv)
+    agent, # The agent performing the toggle action (Agent)
+    pos: tuple[int, int] # The (x, y) position of this object in the environment grid
+) -> bool: # Whether the toggle action was successful
+    "Toggle the state of this object or trigger an action this object performs."
     return False
 
 @patch
@@ -272,29 +207,18 @@ def encode(self: WorldObj) -> tuple[int, int, int]:
     """
     Encode a 3-tuple description of this object.
 
-    Returns
-    -------
-    type_idx : int
-        The index of the object type
-    color_idx : int
-        The index of the object color
-    state_idx : int
-        The index of the object state
+    Returns: type_idx: The index of the object type; color_idx: The index of the object color; state_idx: The index of the object state
     """
     return tuple(self)
 
 
 # %% ../../../../nbs/envs/multigrid/core/03_world_object.ipynb #b75423e3
 @patch
-def render(self: WorldObj, img: ndarray[np.uint8]):
-    """
-    Draw the world object.
-
-    Parameters
-    ----------
-    img : ndarray[int] of shape (width, height, 3)
-        RGB image array to render object on
-    """
+def render(
+    self: WorldObj,
+    img: ndarray[np.uint8] # RGB image array to render object on
+):
+    "Draw the world object."
     raise NotImplementedError
 
 # %% ../../../../nbs/envs/multigrid/core/03_world_object.ipynb #d0dcb808
@@ -307,15 +231,9 @@ class Goal(WorldObj):
         return super().__new__(cls, color=color)
 
     def can_overlap(self) -> bool:
-        """
-        :meta private:
-        """
         return True
 
     def render(self, img):
-        """
-        :meta private:
-        """
         fill_coords(img, point_in_rect(0, 1, 0, 1), self.color.rgb())
 
 
@@ -325,25 +243,16 @@ class Floor(WorldObj):
     Colored floor tile an agent can walk over.
     """
 
-    def __new__(cls, color: str = Color.blue):
-        """
-        Parameters
-        ----------
-        color : str
-            Object color
-        """
+    def __new__(
+        cls,
+        color: str = Color.blue # Object color
+    ):
         return super().__new__(cls, color=color)
 
     def can_overlap(self) -> bool:
-        """
-        :meta private:
-        """
         return True
 
     def render(self, img):
-        """
-        :meta private:
-        """
         # Give the floor a pale color
         color = self.color.rgb() / 2
         fill_coords(img, point_in_rect(0.031, 1, 0.031, 1), color)
@@ -357,20 +266,12 @@ class Lava(WorldObj):
     """
 
     def __new__(cls):
-        """
-        """
         return super().__new__(cls, color=Color.red)
 
     def can_overlap(self) -> bool:
-        """
-        :meta private:
-        """
         return True
 
     def render(self, img):
-        """
-        :meta private:
-        """
         c = (255, 128, 0)
 
         # Background color
@@ -393,48 +294,27 @@ class Wall(WorldObj):
     """
 
     @functools.cache # reuse instances, since object is effectively immutable
-    def __new__(cls, color: str = Color.grey):
-        """
-        Parameters
-        ----------
-        color : str
-            Object color
-        """
+    def __new__(
+        cls,
+        color: str = Color.grey # Object color
+    ):
         return super().__new__(cls, color=color)
 
     def render(self, img):
-        """
-        :meta private:
-        """
         fill_coords(img, point_in_rect(0, 1, 0, 1), self.color.rgb())
 
 
 
 # %% ../../../../nbs/envs/multigrid/core/03_world_object.ipynb #6f87085d
 class Door(WorldObj):
-    """
-    Door object that may be opened or closed. Locked doors require a key to open.
-
-    Attributes
-    ----------
-    is_open: bool
-        Whether the door is open
-    is_locked: bool
-        Whether the door is locked
-    """
+    "Door object that may be opened or closed. Locked doors require a key to open."
 
     def __new__(
-        cls, color: str = Color.blue, is_open: bool = False, is_locked: bool = False):
-        """
-        Parameters
-        ----------
-        color : str
-            Object color
-        is_open : bool
-            Whether the door is open
-        is_locked : bool
-            Whether the door is locked
-        """
+        cls,
+        color: str = Color.blue, # Object color
+        is_open: bool = False, # Whether the door is open
+        is_locked: bool = False # Whether the door is locked
+    ):
         door = super().__new__(cls, color=color)
         door.is_open = is_open
         door.is_locked = is_locked
@@ -478,15 +358,9 @@ class Door(WorldObj):
             self.state = State.closed # set state to closed (unless already open)
 
     def can_overlap(self) -> bool:
-        """
-        :meta private:
-        """
         return self.is_open
 
     def toggle(self, env, agent, pos):
-        """
-        :meta private:
-        """
         if self.is_locked:
             # Check if the player has the right key to unlock the door
             carried_obj = agent.state.carrying
@@ -502,9 +376,6 @@ class Door(WorldObj):
         return True
 
     def render(self, img):
-        """
-        :meta private:
-        """
         c = self.color.rgb()
 
         if self.is_open:
@@ -536,25 +407,16 @@ class Key(WorldObj):
     Key object that can be picked up and used to unlock doors.
     """
 
-    def __new__(cls, color: str = Color.blue):
-        """
-        Parameters
-        ----------
-        color : str
-            Object color
-        """
+    def __new__(
+        cls,
+        color: str = Color.blue # Object color
+    ):
         return super().__new__(cls, color=color)
 
     def can_pickup(self) -> bool:
-        """
-        :meta private:
-        """
         return True
 
     def render(self, img):
-        """
-        :meta private:
-        """
         c = self.color.rgb()
 
         # Vertical quad
@@ -576,25 +438,16 @@ class Ball(WorldObj):
     Ball object that can be picked up by agents.
     """
 
-    def __new__(cls, color: str = Color.blue):
-        """
-        Parameters
-        ----------
-        color : str
-            Object color
-        """
+    def __new__(
+        cls,
+        color: str = Color.blue # Object color
+    ):
         return super().__new__(cls, color=color)
 
     def can_pickup(self) -> bool:
-        """
-        :meta private:
-        """
         return True
 
     def render(self, img):
-        """
-        :meta private:
-        """
         fill_coords(img, point_in_circle(0.5, 0.5, 0.31), self.color.rgb())
 
 
@@ -605,35 +458,22 @@ class Box(WorldObj):
     Box object that may contain other objects.
     """
 
-    def __new__(cls, color: str = Color.yellow, contains: WorldObj | None = None):
-        """
-        Parameters
-        ----------
-        color : str
-            Object color
-        contains : WorldObj or None
-            Object contents
-        """
+    def __new__(
+        cls,
+        color: str = Color.yellow, # Object color
+        contains: WorldObj | None = None # Object contents
+    ):
         box = super().__new__(cls, color=color)
         box.contains = contains
         return box
 
     def can_pickup(self) -> bool:
-        """
-        :meta private:
-        """
         return True
 
     def can_contain(self) -> bool:
-        """
-        :meta private:
-        """
         return True
 
     def toggle(self, env, agent, pos):
-        """
-        :meta private:
-        """
         # Replace the box by its contents
         env.grid.set(*pos, self.contains)
         if self.contains is not None:
@@ -641,9 +481,6 @@ class Box(WorldObj):
         return True
 
     def render(self, img):
-        """
-        :meta private:
-        """
         # Outline
         fill_coords(img, point_in_rect(0.12, 0.88, 0.12, 0.88), self.color.rgb())
         fill_coords(img, point_in_rect(0.18, 0.82, 0.18, 0.82), (0, 0, 0))

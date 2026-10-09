@@ -57,7 +57,7 @@ def default(val: Any, d: Any) -> Any:
 
 
 def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
-    "A nested dict as one level, keys joined by `sep` (e.g. ``{'a': {'b': 1}}`` -> ``{'a.b': 1}``)."
+    "A nested dict as one level, keys joined by `sep` (e.g. `{'a': {'b': 1}}` -> `{'a.b': 1}`)."
     items = {}
     for k, v in d.items():
         key = f'{parent_key}{sep}{k}' if parent_key else k
@@ -69,7 +69,7 @@ def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
 
 
 def get_in(mapping: Any, path: Iterable[str]) -> Any:
-    "The value at the end of `path` in nested mappings, e.g. ``get_in(space, ['wall', 'color'])``."
+    "The value at the end of `path` in nested mappings, e.g. `get_in(space, ['wall', 'color'])`."
     current = mapping
     for key in list(path):
         current = current[key]
@@ -83,8 +83,8 @@ def pretraining(
     dump_object: bool = True,
     args: str = '') -> None:
     """
-    Run the training script `script_path` with Hydra overrides `args`, ``dataset_name``,
-    ``output_model_name`` and ``++dump_object``. A failing script exits with its return code.
+    Run the training script `script_path` with Hydra overrides `args`, `dataset_name`,
+    `output_model_name` and `++dump_object`. A failing script exits with its return code.
     """
     import shlex, subprocess, sys
     if not os.path.isfile(script_path):
@@ -101,7 +101,7 @@ def pretraining(
 
 # %% ../../nbs/utils/03_core.ipynb #38a10783
 def _frames_hwc(x) -> np.ndarray:
-    "A view as ``(T, H, W, C)`` uint8 frames: channel-first images transposed, agents side by side."
+    "A view as `(T, H, W, C)` uint8 frames: channel-first images transposed, agents side by side."
     arr = x.detach().cpu().numpy() if type(x).__module__.startswith('torch') else np.asarray(x)
     if arr.ndim == 4 and arr.shape[1] in (1, 3) and arr.shape[-1] not in (1, 3):
         arr = arr.transpose(0, 2, 3, 1)
@@ -122,8 +122,8 @@ def record_video_from_dataset(
     fps: int = 30,
     viewname: str | list[str] = 'pixels') -> list[Path]:
     """
-    Save episodes of `dataset` as ``<video_path>/episode_<i>.mp4``, from the image column(s)
-    `viewname` (first `max_steps` steps). Returns the files written. Needs ``imageio`` with ffmpeg.
+    Save episodes of `dataset` as `<video_path>/episode_<i>.mp4`, from the image column(s)
+    `viewname` (first `max_steps` steps). Returns the files written. Needs `imageio` with ffmpeg.
     """
     import imageio
 

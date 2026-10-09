@@ -44,8 +44,8 @@ class _Recorder:
 class RoboFactoryExpert(ExpertPolicy):
     """
     RoboFactory's motion-planning solution of the task, as a policy of a `World` of
-    `RoboFactoryEnv` (see above; needs numpy < 2). ``plan_failed[i]`` / ``plan_success[i]``: whether
-    planning failed / whether the plan solved the task in the private copy, for env ``i``'s current episode.
+    `RoboFactoryEnv` (see above; needs numpy < 2). `plan_failed[i]` / `plan_success[i]`: whether
+    planning failed / whether the plan solved the task in the private copy, for env `i`'s current episode.
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -63,7 +63,9 @@ class RoboFactoryExpert(ExpertPolicy):
         return self._planning_envs[key]
 
     def plan(self, env) -> dict:
-        "Plan the current episode of `env` (a `RoboFactoryEnv`): ``actions`` (T, num_agents, 8), ``failed``, ``success``."
+        """
+        Plan the current episode of `env` (a `RoboFactoryEnv`): `actions` (T, num_agents, 8), `failed`, `success`.
+        """
         if np.lib.NumpyVersion(np.__version__) >= '2.0.0':
             raise RuntimeError("RoboFactory's motion planner (mplib 0.1.1) crashes with numpy 2: "
                                "collect expert data in an environment with numpy<2")

@@ -45,8 +45,8 @@ __all__ = ['GaussianSolverBase', 'CEMSolver', 'ICEMSolver', 'MPPISolver', 'Predi
 class GaussianSolverBase(SolverBase):
     """
     Base of the continuous sampling solvers: a Gaussian over the candidates
-    ``(n_envs, H, A, action_dim)``, warm-started from `init_action` (completed by the model's actor
-    when it is :class:`Actionable`). Returns ``actions`` ``(n_envs, H, A, action_dim)``.
+    `(n_envs, H, A, action_dim)`, warm-started from `init_action` (completed by the model's actor
+    when it is `Actionable`). Returns `actions` `(n_envs, H, A, action_dim)`.
     """
     discrete = False
 
@@ -178,7 +178,7 @@ class ICEMSolver(GaussianSolverBase):
 class MPPISolver(GaussianSolverBase):
     """
     Model predictive path integral: the mean becomes the average of the candidates (the `topk`
-    best, if `topk` < `num_samples`) weighted by ``softmax(-cost / temperature)`` (per agent in
+    best, if `topk` < `num_samples`) weighted by `softmax(-cost / temperature)` (per agent in
     'per_agent' mode); the noise scale stays `var_scale`.
     """
     def __init__(self, cost: Costable, topk: int | None = 30, temperature: float = 0.5, **kwargs):

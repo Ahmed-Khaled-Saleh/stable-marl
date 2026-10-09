@@ -50,7 +50,7 @@ class Solver(Protocol):
     "Protocol of model-based planning solvers (as in stable-worldmodel)."
 
     def configure(self, *, action_space: gym.Space, n_envs: int, config: Any) -> None:
-        "Configure the solver for the joint action space of one env, `n_envs` envs and a :class:`PlanConfig`."
+        "Configure the solver for the joint action space of one env, `n_envs` envs and a `PlanConfig`."
         ...
 
     @property
@@ -63,15 +63,15 @@ class Solver(Protocol):
     def horizon(self) -> int: ...
 
     def solve(self, info_dict: dict, init_action: torch.Tensor | None = None) -> dict:
-        "Plan; returns at least ``{'actions': ..., 'costs': [...]}``."
+        "Plan; returns at least `{'actions': ..., 'costs': [...]}`."
         ...
 
 
 def joint_action_layout(action_space: gym.Space) -> tuple[int, tuple[int, ...], int | None]:
     """
-    ``(num_agents, agent_action_shape, num_discrete_actions)`` of a joint action space:
-    MultiDiscrete ``(num_agents,)`` -> ``(A, (), K)``, Box ``(num_agents, *shape)`` ->
-    ``(A, shape, None)``; a single-agent Discrete or 1-d Box counts as one agent.
+    `(num_agents, agent_action_shape, num_discrete_actions)` of a joint action space:
+    MultiDiscrete `(num_agents,)` -> `(A, (), K)`, Box `(num_agents, *shape)` ->
+    `(A, shape, None)`; a single-agent Discrete or 1-d Box counts as one agent.
     """
     if isinstance(action_space, gym.spaces.Discrete):
         return 1, (), int(action_space.n)
@@ -88,31 +88,21 @@ def joint_action_layout(action_space: gym.Space) -> tuple[int, tuple[int, ...], 
 
 # %% ../../../nbs/planning/solver/00_base.ipynb #c3034674
 class SolverBase:
-    """
-    Shared machinery of the solvers: configuration, the joint / per-agent costs, info expansion.
-
-    Parameters
-    ----------
-    cost : Costable
-        What to minimise (e.g. a :class:`ShootingCostEvaluator`)
-    batch_size : int or None
-        Envs planned for at once (None: all)
-    num_samples : int
-        Candidate plans per env
-    mode : 'joint' or 'per_agent'
-        Centralised or decentralised planning (see above)
-    device, seed, verbose
-        Torch device, seed of the solver's random generator, print solve times
-    callbacks : list of Callback, optional
-        Per-iteration recorders (see :mod:`stable_marl.planning.solver.callbacks`), for the solvers
-        that report to them (``supports_callbacks``)
-    """
+    "Shared machinery of the solvers: configuration, the joint / per-agent costs, info expansion."
     discrete: bool | None = None   # True: needs discrete actions, False: continuous, None: both
     supports_callbacks: bool = False
 
-    def __init__(self, cost: Costable, batch_size: int | None = 1, num_samples: int = 300, mode: str = 'joint',
-                 device: str | torch.device = 'cpu', seed: int = 1234, verbose: bool = False,
-                 callbacks: list | None = None):
+    def __init__(
+        self,
+        cost: Costable, # What to minimise (e.g. a `ShootingCostEvaluator`)
+        batch_size: int | None = 1, # Envs planned for at once (None: all)
+        num_samples: int = 300, # Candidate plans per env
+        mode: str = 'joint', # Centralised or decentralised planning (see above)
+        device: str | torch.device = 'cpu', # Torch device, seed of the solver's random generator, print solve times
+        seed: int = 1234, # Torch device, seed of the solver's random generator, print solve times
+        verbose: bool = False, # Torch device, seed of the solver's random generator, print solve times
+        callbacks: list | None = None # Per-iteration recorders (see `stable_marl.planning.solver.callbacks`), for the solvers that report to them (`supports_callbacks`)
+    ):
         if mode not in PLANNING_MODES:
             raise ValueError(f"mode must be one of {PLANNING_MODES}, got {mode!r}")
         if callbacks and not self.supports_callbacks:
@@ -128,7 +118,7 @@ class SolverBase:
             self._dtype = torch.float32
 
     def configure(self, *, action_space: gym.Space, n_envs: int, config: Any):
-        "`action_space`: the joint action space of one env (see :func:`joint_action_layout`)."
+        "`action_space`: the joint action space of one env (see `joint_action_layout`)."
         A, shape, K = joint_action_layout(action_space)
         if self.discrete is True and K is None:
             raise TypeError(f"{type(self).__name__} plans discrete actions, got {action_space}")
@@ -157,7 +147,7 @@ class SolverBase:
 
     @property
     def action_dim(self) -> int:
-        "Size of one agent's candidate action over a block: ``action_block * D`` (``D = K`` one-hot if discrete)."
+        "Size of one agent's candidate action over a block: `action_block * D` (`D = K` one-hot if discrete)."
         return self.action_block * self._agent_size
 
     @property
@@ -225,7 +215,7 @@ class SolverBase:
             cb(**state)
 
     def _callbacks_output(self, outputs: dict) -> dict:
-        "Adds ``callbacks`` (``{output_key: history}``) to the solve's outputs, if there are callbacks."
+        "Adds `callbacks` (`{output_key: history}`) to the solve's outputs, if there are callbacks."
         if self.callbacks:
             outputs['callbacks'] = {}
             for cb in self.callbacks:
@@ -240,8 +230,8 @@ class SolverBase:
 
 def gather_agents(candidates: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
     """
-    For each agent, the candidates ``(B, S, H, A, X)`` at its own sample indices ``idx`` ``(B, k, A)``:
-    ``(B, k, H, A, X)``. With the same indices for every agent (joint mode), whole joint plans.
+    For each agent, the candidates `(B, S, H, A, X)` at its own sample indices `idx` `(B, k, A)`:
+    `(B, k, H, A, X)`. With the same indices for every agent (joint mode), whole joint plans.
     """
     B, S, H, A, X = candidates.shape
     index = idx[:, :, None, :, None].expand(B, idx.shape[1], H, A, X)
@@ -252,9 +242,9 @@ def prepare_init_action(model: Any, info_dict: dict, init_action: torch.Tensor |
                         n_envs: int, num_agents: int, action_dim: int,
                         device: str | torch.device | None = None) -> torch.Tensor:
     """
-    The warm start ``init_action`` ``(n_envs, t, num_agents, action_dim)``, ``t <= horizon``, extended
+    The warm start `init_action` `(n_envs, t, num_agents, action_dim)`, `t <= horizon`, extended
     to the full horizon: by the model's actor (``model.get_action(info_dict, horizon=remaining,
-    prefix_actions=init_action)``) if the model is :class:`Actionable`, with zeros otherwise.
+    prefix_actions=init_action)``) if the model is `Actionable`, with zeros otherwise.
     """
     if init_action is not None:
         assert init_action.shape[0] == n_envs, f"init_action has {init_action.shape[0]} envs, expected {n_envs}"

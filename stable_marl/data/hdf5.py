@@ -22,37 +22,20 @@ __all__ = ['HDF5Dataset', 'HDF5Writer', 'HDF5']
 
 # %% ../../nbs/data/02_hdf5.ipynb #979779c8
 class HDF5Dataset(Dataset):
-    """
-    Dataset reading one HDF5 file (opened lazily, so it works with DataLoader workers).
-
-    Parameters
-    ----------
-    name : str
-        Dataset name, read from ``<cache dir>/datasets/<name>.h5`` (see :func:`get_cache_dir`)
-    frameskip, num_steps, transform
-        See :class:`Dataset`
-    keys_to_load : list of str
-        Columns to load (default: all)
-    keys_to_cache : list of str
-        Columns read into memory once
-    keys_to_merge : dict
-        New columns made of others, ``{target: [source columns] or regex}`` (see :meth:`merge_col`)
-    path : str or Path
-        Path of the file (instead of `name`); remote paths (``s3://``, ``gs://``, ``https://``, ...)
-        are read with fsspec, configured by `storage_options`
-    """
+    "Dataset reading one HDF5 file (opened lazily, so it works with DataLoader workers)."
     def __init__(
         self,
-        name: str | None = None,
-        frameskip: int = 1,
-        num_steps: int = 1,
-        transform: Callable[[dict], dict] | None = None,
-        keys_to_load: list[str] | None = None,
-        keys_to_cache: list[str] | None = None,
-        keys_to_merge: dict[str, list[str] | str] | None = None,
+        name: str | None = None, # Dataset name, read from `<cache dir>/datasets/<name>.h5` (see `get_cache_dir`)
+        frameskip: int = 1, # See `Dataset`
+        num_steps: int = 1, # See `Dataset`
+        transform: Callable[[dict], dict] | None = None, # See `Dataset`
+        keys_to_load: list[str] | None = None, # Columns to load (default: all)
+        keys_to_cache: list[str] | None = None, # Columns read into memory once
+        keys_to_merge: dict[str, list[str] | str] | None = None, # New columns made of others, `{target: [source columns] or regex}` (see `merge_col`)
         cache_dir: str | Path | None = None,
-        path: str | Path | None = None,
-        storage_options: dict | None = None):
+        path: str | Path | None = None, # Path of the file (instead of `name`); remote paths (`s3://`, `gs://`, `https://`, ...) are read with fsspec, configured by `storage_options`
+        storage_options: dict | None = None
+    ):
         if path is None:
             if name is None:
                 raise TypeError("HDF5Dataset requires either `name` or `path`")
@@ -165,21 +148,14 @@ def _is_string_col(sample) -> bool:
 
 
 class HDF5Writer:
-    """
-    Appends episodes to one HDF5 file. The columns are taken from the first episode.
-
-    Parameters
-    ----------
-    path : str or Path
-        The ``.h5`` file
-    mode : str
-        ``'append'`` (default), ``'overwrite'`` or ``'error'`` if the file exists
-    compression : str or None
-        HDF5 compression of the columns (``'gzip'``, ``'lzf'`` (faster, larger) or None)
-
-    ``metadata`` (a dict) is written as file attributes when the writer closes.
-    """
-    def __init__(self, path, *, mode: str = 'append', compression: str | None = 'gzip'):
+    "Appends episodes to one HDF5 file. The columns are taken from the first episode."
+    def __init__(
+        self,
+        path, # The `.h5` file (str or Path)
+        *,
+        mode: str = 'append', # `'append'` (default), `'overwrite'` or `'error'` if the file exists
+        compression: str | None = 'gzip' # HDF5 compression of the columns (`'gzip'`, `'lzf'` (faster, larger) or None)
+    ):
         validate_write_mode(mode)
         self.path, self.mode, self.compression = Path(path), mode, compression
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -276,7 +252,7 @@ class HDF5Writer:
 # %% ../../nbs/data/02_hdf5.ipynb #4ce49c7f
 @register_format
 class HDF5(Format):
-    "A single ``.h5`` file (or a folder holding exactly one)."
+    "A single `.h5` file (or a folder holding exactly one)."
     name = 'hdf5'
 
     @classmethod

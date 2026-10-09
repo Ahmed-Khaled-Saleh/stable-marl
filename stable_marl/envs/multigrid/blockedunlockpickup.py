@@ -18,117 +18,15 @@ __all__ = ['BlockedUnlockPickupEnv']
 
 # %% ../../../nbs/envs/multigrid/06_blockedunlockpickup.ipynb #d712ae23
 class BlockedUnlockPickupEnv(RoomGrid):
-    """
-    .. image:: https://i.imgur.com/uSFi059.gif
-        :width: 275
-
-    ***********
-    Description
-    ***********
-
-    The objective is to pick up a box which is placed in another room, behind a
-    locked door. The door is also blocked by a ball which must be moved before
-    the door can be unlocked. Hence, agents must learn to move the ball,
-    pick up the key, open the door and pick up the object in the other
-    room.
-
-    The standard setting is cooperative, where all agents receive the reward
-    when the task is completed.
-
-    *************
-    Mission Space
-    *************
-
-    "pick up the ``{color}`` box"
-
-    ``{color}`` is the color of the box. Can be any :class:`.Color`.
-
-    *****************
-    Observation Space
-    *****************
-
-    The multi-agent observation space is a Dict mapping from agent index to
-    corresponding agent observation space.
-
-    Each agent observation is a dictionary with the following entries:
-
-    * image : ndarray[int] of shape (view_size, view_size, :attr:`.WorldObj.dim`)
-        Encoding of the agent's partially observable view of the environment,
-        where the object at each grid cell is encoded as a vector:
-        (:class:`.Type`, :class:`.Color`, :class:`.State`)
-    * direction : int
-        Agent's direction (0: right, 1: down, 2: left, 3: up)
-    * mission : Mission
-        Task string corresponding to the current environment configuration
-
-    ************
-    Action Space
-    ************
-
-    The multi-agent action space is a Dict mapping from agent index to
-    corresponding agent action space.
-
-    Agent actions are discrete integer values, given by:
-
-    +-----+--------------+-----------------------------+
-    | Num | Name         | Action                      |
-    +=====+==============+=============================+
-    | 0   | left         | Turn left                   |
-    +-----+--------------+-----------------------------+
-    | 1   | right        | Turn right                  |
-    +-----+--------------+-----------------------------+
-    | 2   | forward      | Move forward                |
-    +-----+--------------+-----------------------------+
-    | 3   | pickup       | Pick up an object           |
-    +-----+--------------+-----------------------------+
-    | 4   | drop         | Drop an object              |
-    +-----+--------------+-----------------------------+
-    | 5   | toggle       | Toggle / activate an object |
-    +-----+--------------+-----------------------------+
-    | 6   | done         | Done completing task        |
-    +-----+--------------+-----------------------------+
-
-    *******
-    Rewards
-    *******
-
-    A reward of ``1 - 0.9 * (step_count / max_steps)`` is given for success,
-    and ``0`` for failure.
-
-    ***********
-    Termination
-    ***********
-
-    The episode ends if any one of the following conditions is met:
-
-    * Any agent picks up the correct box
-    * Timeout (see ``max_steps``)
-
-    *************************
-    Registered Configurations
-    *************************
-
-    * ``MultiGrid-BlockedUnlockPickup-v0``
-    """
+    "The objective is to pick up a box which is placed in another room, behind a locked door."
 
     def __init__(
         self,
-        room_size: int = 6,
-        max_steps: int | None = None,
-        joint_reward: bool = True,
-        **kwargs):
-        """
-        Parameters
-        ----------
-        room_size : int, default=6
-            Width and height for each of the two rooms
-        max_steps : int, optional
-            Maximum number of steps per episode
-        joint_reward : bool, default=True
-            Whether all agents receive the reward when the task is completed
-        **kwargs
-            See :attr:`stable_marl.base.MultiGridEnv.__init__`
-        """
+        room_size: int = 6, # Width and height for each of the two rooms
+        max_steps: int | None = None, # Maximum number of steps per episode
+        joint_reward: bool = True, # Whether all agents receive the reward when the task is completed
+        **kwargs # See `stable_marl.base.MultiGridEnv.__init__`
+    ):
         assert room_size >= 4
         mission_space = MissionSpace(
             mission_func=self._gen_mission,
@@ -159,9 +57,6 @@ class BlockedUnlockPickupEnv(RoomGrid):
 # %% ../../../nbs/envs/multigrid/06_blockedunlockpickup.ipynb #c8daf676
 @patch
 def _gen_grid(self: BlockedUnlockPickupEnv, width, height):
-    """
-    :meta private:
-    """
     # super()
     RoomGrid._gen_grid(self, width, height)
 
@@ -188,9 +83,6 @@ def _gen_grid(self: BlockedUnlockPickupEnv, width, height):
 # %% ../../../nbs/envs/multigrid/06_blockedunlockpickup.ipynb #16b13f48
 @patch
 def step(self: BlockedUnlockPickupEnv, actions):
-    """
-    :meta private:
-    """
     obs, reward, terminated, truncated, info = RoomGrid.step(self, actions)
     for agent in self.agents:
         if agent.state.carrying == self.obj:
@@ -202,12 +94,6 @@ def step(self: BlockedUnlockPickupEnv, actions):
 # %% ../../../nbs/envs/multigrid/06_blockedunlockpickup.ipynb #4b9e2f7a
 @patch
 def on_toggle(self: BlockedUnlockPickupEnv, agent, obj, pos, rewards):
-    """
-    :meta private:
-
-    Opening the target box replaces it by its (empty) contents, after which the
-    task can no longer be solved: end the episode (failure) for every agent.
-    """
     if obj is self.obj:
         self.agent_states.terminated = True
 

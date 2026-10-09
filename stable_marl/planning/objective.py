@@ -50,16 +50,8 @@ STEP_REDUCTIONS = ('last', 'min', 'mean')
 
 class GoalMSE(nn.Module):
     """
-    Squared error between the predicted embeddings ``predicted_emb`` ``(B, S, T, ...)`` and the
-    last goal embedding ``goal_emb`` ``(B, T_goal, ...)``.
-
-    `step_reduction` chooses which predicted steps count: ``'last'`` (the end of the plan, as in
-    stable-worldmodel), or over the predicted future (the last ``horizon`` steps, ``horizon`` read
-    from ``action_candidates``) its ``'min'`` (the plan's best match, e.g. reaching the goal
-    mid-plan) or ``'mean'``.
-
-    Returns ``(B, S)``, or ``(B, S, num_agents)`` with ``per_agent=True``, where the agent axis
-    of the embeddings is `agent_dim` (3: ``(B, S, T, num_agents, ...)``).
+    Squared error between the predicted embeddings `predicted_emb` `(B, S, T, ...)` and the
+    last goal embedding `goal_emb` `(B, T_goal, ...)`.
     """
     def __init__(self, pred_key: str = 'predicted_emb', goal_key: str = 'goal_emb', reduction: str = 'sum',
                  per_agent: bool = False, agent_dim: int = 3, step_reduction: str = 'last'):
@@ -90,8 +82,8 @@ class GoalMSE(nn.Module):
 
 class ControlPenalty(nn.Module):
     """
-    Squared norm of the action candidates ``(B, S, horizon, num_agents, ...)``: ``(B, S)``, or
-    ``(B, S, num_agents)`` with ``per_agent=True``.
+    Squared norm of the action candidates `(B, S, horizon, num_agents, ...)`: `(B, S)`, or
+    `(B, S, num_agents)` with `per_agent=True`.
     """
     def __init__(self, action_key: str = 'action_candidates', per_agent: bool = False, agent_dim: int = 3):
         super().__init__()
@@ -102,7 +94,7 @@ class ControlPenalty(nn.Module):
 
 
 class WeightedSum(nn.Module):
-    "Linear combination ``sum(w * term(info_dict))`` of objectives (all joint or all per agent)."
+    "Linear combination `sum(w * term(info_dict))` of objectives (all joint or all per agent)."
     def __init__(self, terms: list[tuple[float, Objective]]):
         super().__init__()
         if not terms:

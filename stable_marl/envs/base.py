@@ -18,35 +18,19 @@ __all__ = ['MultiAgentEnv']
 
 # %% ../../nbs/envs/00_base.ipynb #55a2abce
 class MultiAgentEnv(gym.Env, ABC):
-    """
-    Base class of every stable-marl environment: a gymnasium env with the parallel multi-agent API.
-
-    All agents act at every step, and everything is keyed by agent id (``0 .. num_agents - 1``):
-
-    * ``reset(seed=None, options=None) -> (observations, infos)``
-    * ``step(actions) -> (observations, rewards, terminations, truncations, infos)``
-    * ``observation_space`` / ``action_space``: ``spaces.Dict`` mapping agent id to that agent's space
-
-    On top of the per-agent observations, every env exposes a global :meth:`state`
-    (described by :attr:`state_space`), for centralised critics and mixers
-    (centralised training, decentralised execution) and for centralised world models.
-
-    :attr:`noop_action` is an action that changes nothing, if the env has one: agents that
-    already terminated are given it (and it is what gets recorded for them), else their
-    recorded action is ``nan``.
-    """
+    "Base class of every stable-marl environment: a gymnasium env with the parallel multi-agent API."
     num_agents: int
     noop_action: Any = None
 
     @property
     def agent_ids(self) -> list[AgentID]:
-        "Ids of all agents, ``0 .. num_agents - 1``."
+        "Ids of all agents, `0 .. num_agents - 1`."
         return list(range(self.num_agents))
 
     @property
     @abstractmethod
     def state_space(self) -> spaces.Space:
-        "Space of the global state returned by :meth:`state`."
+        "Space of the global state returned by `state`."
 
     @abstractmethod
     def state(self) -> Any:

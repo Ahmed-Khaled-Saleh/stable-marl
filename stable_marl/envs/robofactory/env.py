@@ -33,15 +33,15 @@ ASSET_REPO = 'sparklexfantasy/RoboFactory_asset'   # RoboFactory's 3D assets (Hu
 
 
 def asset_dir() -> str:
-    "Where RoboFactory's assets live: ``$ROBOFACTORY_ASSET_DIR``, else ``<cache_dir>/robofactory/assets``."
+    "Where RoboFactory's assets live: `$ROBOFACTORY_ASSET_DIR`, else `<cache_dir>/robofactory/assets`."
     return os.path.expanduser(os.environ.get('ROBOFACTORY_ASSET_DIR') or os.path.join(
         os.environ.get('STABLEMARL_HOME', '~/.stable_marl'), 'robofactory', 'assets'))
 
 
 def download_assets(robocasa: bool = False) -> str:
     """
-    Download RoboFactory's 3D assets (objects and table, 40 MB) to :func:`asset_dir`, and with
-    `robocasa` ManiSkill's RoboCasa kitchens (for ``scene='robocasa'``, several GB, to ManiSkill's
+    Download RoboFactory's 3D assets (objects and table, 40 MB) to `asset_dir`, and with
+    `robocasa` ManiSkill's RoboCasa kitchens (for `scene='robocasa'`, several GB, to ManiSkill's
     asset folder). Done automatically by the first `RoboFactoryEnv`; call it beforehand on machines
     without internet access at run time (e.g. HPC compute nodes).
     """
@@ -60,31 +60,19 @@ def _numpy(x) -> np.ndarray:
 
 
 class RoboFactoryEnv(MultiAgentEnv):
-    """
-    The RoboFactory `task` (one of :data:`TASKS`) as a stable-marl env.
-
-    Parameters
-    ----------
-    task : str
-        RoboFactory task, e.g. 'LiftBarrier', 'TakePhoto'
-    scene : str
-        'table' (default) or 'robocasa' (a kitchen; needs ``download_assets(robocasa=True)``)
-    observations : tuple
-        Per-arm observations: 'pixels' (the arm's camera) and / or 'vector' (joint positions and velocities)
-    camera_size : tuple, optional
-        (height, width) of the arms' cameras; default RoboFactory's (240, 320)
-    max_steps : int, optional
-        Step limit (truncation); default the task's
-    render_size : tuple
-        (height, width) of :meth:`render`, the global camera
-    reward_mode : str
-        ManiSkill's reward: 'sparse' (1 on success) or 'none'
-    shader : str
-        ManiSkill's shader of the cameras: 'minimal' (fastest), 'default', 'rt' (ray tracing)
-    """
-    def __init__(self, task: str = 'LiftBarrier', scene: str = 'table', observations: tuple = ('pixels', 'vector'),
-                 camera_size: tuple | None = None, max_steps: int | None = None, render_size: tuple = (240, 320),
-                 reward_mode: str = 'sparse', shader: str = 'default', render_mode: str | None = 'rgb_array'):
+    "The RoboFactory `task` (one of `TASKS`) as a stable-marl env."
+    def __init__(
+        self,
+        task: str = 'LiftBarrier', # RoboFactory task, e.g. 'LiftBarrier', 'TakePhoto'
+        scene: str = 'table', # 'table' (default) or 'robocasa' (a kitchen; needs `download_assets(robocasa=True)`)
+        observations: tuple = ('pixels', 'vector'), # Per-arm observations: 'pixels' (the arm's camera) and / or 'vector' (joint positions and velocities)
+        camera_size: tuple | None = None, # (height, width) of the arms' cameras; default RoboFactory's (240, 320)
+        max_steps: int | None = None, # Step limit (truncation); default the task's
+        render_size: tuple = (240, 320), # (height, width) of `render`, the global camera
+        reward_mode: str = 'sparse', # ManiSkill's reward: 'sparse' (1 on success) or 'none'
+        shader: str = 'default', # ManiSkill's shader of the cameras: 'minimal' (fastest), 'default', 'rt' (ray tracing)
+        render_mode: str | None = 'rgb_array'
+    ):
         if task not in TASKS:
             raise ValueError(f"unknown RoboFactory task {task!r}: one of {list(TASKS)}")
         if scene not in SCENES:
@@ -152,7 +140,7 @@ class RoboFactoryEnv(MultiAgentEnv):
 
     def reset(self, seed: int | None = None, options: dict | None = None):
         """
-        `options`: ``{'sim_state': state}`` starts from a recorded :meth:`state` (after the reset of `seed`).
+        `options`: `{'sim_state': state}` starts from a recorded `state` (after the reset of `seed`).
         RoboFactory places the objects with numpy's global random generator, so it is seeded here too
         (and restored afterwards): a seed gives the same scene every time.
         """
@@ -197,7 +185,7 @@ class RoboFactoryEnv(MultiAgentEnv):
         return _numpy(self._env.render())
 
     def reset_options_from_dataset(self, init_row: dict, goal_row: dict) -> dict:
-        "Reset options restoring the recorded step `init_row` (its ``state``); the goal is the task's success."
+        "Reset options restoring the recorded step `init_row` (its `state`); the goal is the task's success."
         return {'sim_state': np.asarray(init_row['state'])}
 
     def close(self):

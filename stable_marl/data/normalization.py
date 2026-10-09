@@ -58,7 +58,7 @@ def _is_tensor(x) -> bool:
 
 
 def _to_numpy_2d(X) -> np.ndarray:
-    "``(N, D)`` rows of `X` (last axis kept), without rows holding a nan."
+    "`(N, D)` rows of `X` (last axis kept), without rows holding a nan."
     arr = X.detach().cpu().numpy() if _is_tensor(X) else np.asarray(X)
     arr = arr.reshape(-1, arr.shape[-1]) if arr.ndim > 1 else arr.reshape(-1, 1)
     return arr[~np.isnan(arr).any(axis=1)]
@@ -74,7 +74,7 @@ class IdentityScaler:
 
 
 class ZScoreScaler:
-    "``(x - mean) / std`` per entry of the last axis (statistics kept as numpy arrays, so it pickles)."
+    "`(x - mean) / std` per entry of the last axis (statistics kept as numpy arrays, so it pickles)."
     def __init__(self, mean=None, std=None, eps: float = 1e-8):
         self.mean = np.asarray(mean) if mean is not None else None
         self.std = np.asarray(std) if std is not None else None
@@ -104,7 +104,7 @@ class ZScoreScaler:
 
 
 class PercentileScaler:
-    "Maps ``[q_low, q_high]`` (the `low` / `high` percentiles) to ``[-1, 1]``, clipped: robust to outliers."
+    "Maps `[q_low, q_high]` (the `low` / `high` percentiles) to `[-1, 1]`, clipped: robust to outliers."
     def __init__(self, low: float = 1.0, high: float = 99.0, q_low=None, q_high=None, eps: float = 1e-8):
         self.low, self.high, self.eps = low, high, eps
         self.q_low = np.asarray(q_low) if q_low is not None else None
@@ -139,7 +139,7 @@ SCALERS = {'zscore': ZScoreScaler, 'percentile': PercentileScaler, 'none': Ident
 
 
 def get_scaler(method: str = 'zscore', **kwargs: Any):
-    "An unfitted scaler: ``'zscore'``, ``'percentile'`` or ``'none'``."
+    "An unfitted scaler: `'zscore'`, `'percentile'` or `'none'`."
     if method not in SCALERS:
         raise ValueError(f"Unknown normalizer method: {method!r}. Expected one of {list(SCALERS)}.")
     return SCALERS[method](**kwargs)
@@ -147,8 +147,8 @@ def get_scaler(method: str = 'zscore', **kwargs: Any):
 
 class ColumnTransform:
     """
-    Dataset ``transform`` applying `fn` to the item's `source` column, stored as `target`
-    (stable-pretraining's ``WrapTorchTransform``, without the dependency). Picklable.
+    Dataset `transform` applying `fn` to the item's `source` column, stored as `target`
+    (stable-pretraining's `WrapTorchTransform`, without the dependency). Picklable.
     """
     def __init__(self, fn, source: str, target: str | None = None):
         self.fn, self.source, self.target = fn, source, target or source

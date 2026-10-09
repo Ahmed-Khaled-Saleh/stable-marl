@@ -35,69 +35,22 @@ __all__ = ['RESET_MODES', 'World']
 
 # %% ../../nbs/world/01_world.ipynb #ed90bc4e
 class World:
-    """
-    Drives a policy through a pool of ``num_envs`` copies of a registered environment::
-
-        world = World('MultiGrid-FindGoal-15x15-v0', num_envs=8, agents=2)
-        world.set_policy(RandomPolicy(seed=0))
-        world.collect('data/findgoal.h5', episodes=500, seed=0)    # record a dataset
-        results = world.evaluate(episodes=100, seed=10_000)        # evaluate the policy
-
-    Same interface as stable-worldmodel's ``World``: every env is wrapped with ``pre_wrappers``,
-    then :class:`MegaWrapper` (everything into the info dict), then ``extra_wrappers``, and the
-    pool stacks their infos. One difference in behaviour: episodes are assigned to the envs in
-    advance (env ``i`` plays episodes ``i, i + num_envs, ...``) and episode ``k`` is reset with
-    seed ``seed + k``, so results only depend on `seed` and the policy, not on `num_envs` or on
-    which env finishes first.
-
-    Attributes populated during a run:
-
-    * ``infos``: stacked info dict of the last reset / step (see :class:`EnvPool`), plus
-      ``_needs_flush`` (num_envs,): the envs that just started an episode
-    * ``rewards``, ``terminateds``, ``truncateds``: (num_envs, num_agents) outputs of the last step
-
-    Parameters
-    ----------
-    env_name : str
-        Id of a registered environment (see ``stable_marl.list_envs()``)
-    num_envs : int
-        Number of envs in the pool
-    image_shape : (H, W), optional
-        Size the render is resized to (default: the render's size)
-    max_episode_steps : int, optional
-        Step limit of an episode (the env's ``max_steps``; default: the env's own)
-    pre_wrappers : list of callables
-        Applied to the raw env, before :class:`MegaWrapper` (e.g. ``FullyObsWrapper``)
-    extra_wrappers : list of callables
-        Applied after :class:`MegaWrapper`, on envs returning flat info dicts
-    image_transform : callable, optional
-        Applied to the render
-    image_resample : str or int, optional
-        PIL resampling used to resize the render (default bilinear)
-    add_pixels : bool
-        Add a render of the whole env to the infos, as ``pixels`` (as ``render`` if the env
-        already provides ``pixels``, e.g. the agents' views of MultiGrid envs)
-    goal_conditioned : bool
-        Require a ``goal`` in the infos (envs with goals, e.g. FindGoal)
-    goal_transform : callable, optional
-        Applied to ``goal``
-    **kwargs
-        Passed to the env (e.g. ``agents=2``, ``tile_size=16``)
-    """
+    "Drives a policy through a pool of `num_envs` copies of a registered environment."
     def __init__(
         self,
-        env_name: str,
-        num_envs: int = 1,
-        image_shape: tuple[int, int] | None = None,
-        max_episode_steps: int | None = None,
-        pre_wrappers: list[Callable] | None = None,
-        extra_wrappers: list[Callable] | None = None,
-        image_transform: Callable | None = None,
-        image_resample: str | int | None = None,
-        add_pixels: bool = False,
-        goal_conditioned: bool = False,
-        goal_transform: Callable | None = None,
-        **kwargs: Any):
+        env_name: str, # Id of a registered environment (see `stable_marl.list_envs()`)
+        num_envs: int = 1, # Number of envs in the pool
+        image_shape: tuple[int, int] | None = None, # Size the render is resized to (default: the render's size)
+        max_episode_steps: int | None = None, # Step limit of an episode (the env's `max_steps`; default: the env's own)
+        pre_wrappers: list[Callable] | None = None, # Applied to the raw env, before `MegaWrapper` (e.g. `FullyObsWrapper`)
+        extra_wrappers: list[Callable] | None = None, # Applied after `MegaWrapper`, on envs returning flat info dicts
+        image_transform: Callable | None = None, # Applied to the render
+        image_resample: str | int | None = None, # PIL resampling used to resize the render (default bilinear)
+        add_pixels: bool = False, # Add a render of the whole env to the infos, as `pixels` (as `render` if the env already provides `pixels`, e.g. the agents' views of MultiGrid envs)
+        goal_conditioned: bool = False, # Require a `goal` in the infos (envs with goals, e.g. FindGoal)
+        goal_transform: Callable | None = None, # Applied to `goal`
+        **kwargs: Any # Passed to the env (e.g. `agents=2`, `tile_size=16`)
+    ):
         if max_episode_steps is not None:
             kwargs['max_steps'] = max_episode_steps
         wrappers = [
@@ -130,14 +83,14 @@ class World:
         self.envs.close()
 
     def set_policy(self, policy: BasePolicy):
-        "Attach a policy, and apply its ``seed`` if it has one."
+        "Attach a policy, and apply its `seed` if it has one."
         self.policy = policy
         policy.set_env(self.envs)
         if hasattr(policy, '_set_seed') and getattr(policy, 'seed', None) is not None:
             policy._set_seed(policy.seed)
 
     def reset(self, seed=None, options=None):
-        "Reset every env and refresh ``infos``."
+        "Reset every env and refresh `infos`."
         _, self.infos = self.envs.reset(seed=seed, options=options)
         self.infos['_needs_flush'] = np.ones(self.num_envs, bool)
         shape = (self.num_envs, self.num_agents)
@@ -155,11 +108,11 @@ def _run_iter(
     mode: str = 'auto',
     on_step: Callable[[World, np.ndarray], None] | None = None) -> Iterator[tuple[int, int]]:
     """
-    Play `episodes` episodes with the policy, yielding ``(env_index, episode_index)`` when one
+    Play `episodes` episodes with the policy, yielding `(env_index, episode_index)` when one
     ends, before that env is reset (so its final state can still be read).
 
     `mode` 'auto' resets finished envs until `episodes` are played; 'wait' plays one episode per
-    env (at most `episodes`) and leaves finished envs idle. ``on_step(world, mask)`` is called
+    env (at most `episodes`) and leaves finished envs idle. `on_step(world, mask)` is called
     after every reset and step, `mask` marking the envs it concerns.
     """
     assert mode in RESET_MODES, f"reset_mode must be one of {RESET_MODES}"
@@ -212,35 +165,7 @@ def evaluate(
     goal_offset: int | None = None,
     eval_budget: int | None = None,
     callables: list[dict] | None = None) -> dict[str, Any]:
-    """
-    Run the policy and return, per episode (indexed by episode):
-
-    * ``episode_successes``: whether the episode ended by termination (every agent terminated)
-      rather than by the step limit
-    * ``episode_returns`` (episodes, num_agents): sum of each agent's rewards
-    * ``episode_lengths``: number of steps
-    * ``seeds``: reset seed (-1 if unseeded)
-
-    and ``success_rate`` (in percent, as in stable-worldmodel), ``mean_return`` (summed over
-    agents) and ``mean_length``.
-
-    Two modes, as in stable-worldmodel:
-
-    * **episodic** (default): `episodes` episodes; `reset_mode` 'wait' plays one episode per env
-    * **dataset-driven**: with `dataset`, env ``i`` starts from step ``start_steps[i]`` (default 0)
-      of episode ``episodes_idx[i]`` (``num_envs`` episodes) and must reach the state recorded
-      `goal_offset` steps later within `eval_budget` steps. Envs with a
-      ``reset_options_from_dataset(init_row, goal_row)`` method (MultiGrid envs) are reset with
-      the options it returns; for the others, the ``callables`` specs
-      (``{'method': name, 'args': {arg: {'value': ..., 'in_dataset': bool}}}``) are called on the
-      unwrapped env after a reset, with a dataset column as value if ``in_dataset``. The goal
-      (``goal`` from the recorded `pixels`, ``goal_<col>`` from the other columns) is written
-      into the infos at every step.
-
-    `video`: a directory for one mp4 per episode (episodic: ``episode_<k>.mp4``; dataset-driven:
-    ``env_<i>.mp4``, the run next to the recorded steps and the goal), made from the infos'
-    ``render`` (the env render), or else ``pixels`` (the agents' views side by side).
-    """
+    "Run the policy and return, per episode (indexed by episode)."
     if dataset is not None:
         return self._evaluate_from_dataset(dataset, episodes_idx, start_steps, goal_offset, eval_budget,
                                            callables, video, reset_mode or 'wait')
@@ -386,9 +311,9 @@ def _as_numpy_image(col: str, arr: np.ndarray) -> np.ndarray:
 
 def _extract_init_goal(dataset, episodes_idx, start_steps, goal_offset, video_key: str = 'pixels'):
     """
-    Per-episode rows of a dataset-driven evaluation: ``init_rows[i]`` (every column at the start
-    step, plus the episode columns), ``goal_rows[i]`` (the step `goal_offset` later, as ``goal``
-    for ``pixels`` and ``goal_<col>`` for the others) and ``dataset_videos[i]`` (the recorded
+    Per-episode rows of a dataset-driven evaluation: `init_rows[i]` (every column at the start
+    step, plus the episode columns), `goal_rows[i]` (the step `goal_offset` later, as `goal`
+    for `pixels` and `goal_<col>` for the others) and `dataset_videos[i]` (the recorded
     `video_key` images in between).
     """
     ep_idx, start = np.asarray(episodes_idx), np.asarray(start_steps)
@@ -418,7 +343,7 @@ def _extract_init_goal(dataset, episodes_idx, start_steps, goal_offset, video_ke
 
 
 def _apply_callables(env, callables: list[dict], init_state: dict):
-    "Call ``env.<method>(**args)`` for each spec, with dataset values for the args marked ``in_dataset``."
+    "Call `env.<method>(**args)` for each spec, with dataset values for the args marked `in_dataset`."
     from copy import deepcopy
     for spec in callables:
         method = spec['method']
@@ -446,17 +371,7 @@ def collect(
     progress: bool = True):
     """
     Play `episodes` episodes and write them to `path` in the dataset `format` (or to a
-    ready-made `writer`, e.g. a writer opened with ``mode='overwrite'``).
-
-    Every info key becomes a column with one row per step, from the reset to the last step,
-    as in stable-worldmodel: row ``t`` holds the infos at step ``t``, whose ``reward``,
-    ``terminated`` and ``truncated`` come from the step that led there (``nan`` / False on
-    the first row), while ``action`` is the action taken at step ``t`` (``nan`` on the last row).
-    Keys starting with ``_`` and non-array values are skipped.
-
-    Envs with a ``get_episode_data()`` method (on the unwrapped env: values constant within an
-    episode, e.g. a layout description) have it attached to each episode under
-    ``EPISODE_DATA_KEY``, for writers that store it (e.g. a :class:`ReplayBuffer`).
+    ready-made `writer`, e.g. a writer opened with `mode='overwrite'`).
     """
     from stable_marl.data import EPISODE_DATA_KEY, get_format
 

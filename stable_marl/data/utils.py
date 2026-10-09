@@ -90,14 +90,14 @@ _HF_DIR_SUFFIXES = ('.lance',)
 
 
 def _hf_list_tree(repo_id: str, sub_path: str = '') -> list[dict]:
-    "The entries at ``<repo>/tree/main/<sub_path>`` (one Hugging Face API call)."
+    "The entries at `<repo>/tree/main/<sub_path>` (one Hugging Face API call)."
     url = f"{HF_BASE_URL}/api/datasets/{repo_id}/tree/main{'/' + sub_path if sub_path else ''}"
     with urllib.request.urlopen(url) as resp:
         return json.loads(resp.read())
 
 
 def _hf_find_dataset_entry(repo_id: str) -> dict:
-    "The first top-level dataset entry: a ``*.lance`` folder, else a ``*.h5`` / ``*.hdf5`` file."
+    "The first top-level dataset entry: a `*.lance` folder, else a `*.h5` / `*.hdf5` file."
     entries = _hf_list_tree(repo_id)
     for kind, suffixes in (('directory', _HF_DIR_SUFFIXES), ('file', _HF_FILE_SUFFIXES)):
         for entry in entries:
@@ -153,8 +153,8 @@ def _download(url: str, dest: Path) -> None:
 # %% ../../nbs/data/04_utils.ipynb #cfb424df
 def _episode_steps(src, ep_idx: int) -> dict[str, list]:
     """
-    Episode `ep_idx` of `src` as the ``{column: [row, ...]}`` writers take: the stored rows where the
-    reader gives them (``get_row_data``), the other columns (e.g. image files) from ``load_episode``.
+    Episode `ep_idx` of `src` as the `{column: [row, ...]}` writers take: the stored rows where the
+    reader gives them (`get_row_data`), the other columns (e.g. image files) from `load_episode`.
     """
     length = int(src.lengths[ep_idx])
     rows = {}
@@ -168,9 +168,9 @@ def _episode_steps(src, ep_idx: int) -> dict[str, list]:
 
 def _episode_to_step_lists(ep: dict, ep_len: int) -> dict[str, list]:
     """
-    A reader's episode (tensors) as ``{column: [row, ...]}``: channel-first images
-    ``(T, C, H, W)`` back to ``(T, H, W, C)``, float images (``(T, H, W, C)`` or per agent
-    ``(T, num_agents, H, W, C)``, values in ``[0, 1]``) to ``uint8``, scalars repeated.
+    A reader's episode (tensors) as `{column: [row, ...]}`: channel-first images
+    `(T, C, H, W)` back to `(T, H, W, C)`, float images (`(T, H, W, C)` or per agent
+    `(T, num_agents, H, W, C)`, values in `[0, 1]`) to `uint8`, scalars repeated.
     """
     out = {}
     for col, val in ep.items():
@@ -215,8 +215,8 @@ def convert(
     progress: bool = True,
     **dest_kwargs: Any) -> None:
     """
-    Rewrite the dataset `source` (anything :func:`load_dataset` takes) at `dest` in `dest_format`,
-    episode by episode; `dest_kwargs` go to the writer (e.g. ``mode``, ``compression``).
+    Rewrite the dataset `source` (anything `load_dataset` takes) at `dest` in `dest_format`,
+    episode by episode; `dest_kwargs` go to the writer (e.g. `mode`, `compression`).
     Episode-scoped data is kept if the destination format supports it.
     """
     src = load_dataset(source, cache_dir=cache_dir, format=source_format)
@@ -243,8 +243,8 @@ def merge(
     **dest_kwargs) -> None:
     """
     Write the episodes of every source, in order, into one dataset at `dest` (episodes renumbered
-    ``0 .. N-1``). The sources must have the same columns (checked before anything is written).
-    `mode`: ``'error'`` if `dest` exists (default), ``'overwrite'`` or ``'append'``.
+    `0 .. N-1`). The sources must have the same columns (checked before anything is written).
+    `mode`: `'error'` if `dest` exists (default), `'overwrite'` or `'append'`.
     """
     sources = list(sources)
     if len(sources) < 2:
@@ -286,8 +286,8 @@ def merge(
 # %% ../../nbs/data/04_utils.ipynb #b21b89d7
 def column_normalizer(dataset: Dataset, source: str, target: str, method: str = 'zscore') -> ColumnTransform:
     """
-    A dataset ``transform`` normalizing column `source` into `target`, with a scaler
-    (``'zscore'``, ``'percentile'`` or ``'none'``) fitted on the whole column.
+    A dataset `transform` normalizing column `source` into `target`, with a scaler
+    (`'zscore'`, `'percentile'` or `'none'`) fitted on the whole column.
     """
     scaler = get_scaler(method)
     if method != 'none':

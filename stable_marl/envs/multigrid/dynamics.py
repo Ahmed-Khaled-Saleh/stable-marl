@@ -27,9 +27,9 @@ def walkable(state: torch.Tensor) -> torch.Tensor:
 
 class NavigationDynamics(torch.nn.Module):
     """
-    Exact MultiGrid navigation model (``Dynamics`` protocol). Reads the infos ``position``
-    (..., num_agents, 2), ``direction`` (..., num_agents) and ``state`` (..., W, H, 3), at the
-    last context frame (it is Markovian: earlier frames and ``action_history`` are not needed).
+    Exact MultiGrid navigation model (`Dynamics` protocol). Reads the infos `position`
+    (..., num_agents, 2), `direction` (..., num_agents) and `state` (..., W, H, 3), at the
+    last context frame (it is Markovian: earlier frames and `action_history` are not needed).
     Each planning step covers `action_block` env steps.
     """
     def __init__(self, action_block: int = 1):
@@ -37,15 +37,15 @@ class NavigationDynamics(torch.nn.Module):
         self.action_block = action_block
 
     def encode(self, x: dict) -> dict:
-        "Embedding: the agents' positions, ``emb`` (..., num_agents, 2)."
+        "Embedding: the agents' positions, `emb` (..., num_agents, 2)."
         x['emb'] = x['position'].float()
         return x
 
     def rollout(self, info_dict: dict, action_candidates: torch.Tensor) -> dict:
         """
         Roll the candidates out from the last context frame: one-hot ``(B, S, horizon, num_agents,
-        action_block * K)``, or action indices ``(B, S, horizon, num_agents[, action_block])``. Adds
-        ``predicted_emb`` ``(B, S, 1 + horizon, num_agents, 2)``: the positions after each planning
+        action_block * K)`, or action indices `(B, S, horizon, num_agents[, action_block])``. Adds
+        `predicted_emb` `(B, S, 1 + horizon, num_agents, 2)`: the positions after each planning
         step, the current one first.
         """
         ab = self.action_block

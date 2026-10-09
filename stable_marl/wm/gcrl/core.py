@@ -20,7 +20,7 @@ GCRL_AGENTS = ('gcbc', 'crl', 'hiql', 'gcivl', 'gciql')
 
 
 def goal_key(obs_key: str) -> str:
-    "Info key of the goal matching observation key `obs_key`: ``goal`` for ``pixels``, else ``goal_<key>``."
+    "Info key of the goal matching observation key `obs_key`: `goal` for `pixels`, else `goal_<key>`."
     return 'goal' if obs_key == 'pixels' else f'goal_{obs_key}'
 
 
@@ -41,9 +41,9 @@ def _agent_obs(columns: dict[str, np.ndarray], keys: list[str]) -> np.ndarray:
 
 def agent_datasets(dataset, obs_keys: str | Sequence[str] = 'pixels') -> list[dict[str, np.ndarray]]:
     """
-    One OGBench dataset (compact format: ``observations``, ``actions``, ``terminals``, ``valids``) per
-    agent of `dataset` (episodes of ``(steps, num_agents, ...)`` columns, with ``action`` and
-    ``terminated``). Agent ``a``'s trajectory in an episode runs from the reset to the step where it
+    One OGBench dataset (compact format: `observations`, `actions`, `terminals`, `valids`) per
+    agent of `dataset` (episodes of `(steps, num_agents, ...)` columns, with `action` and
+    `terminated`). Agent `a`'s trajectory in an episode runs from the reset to the step where it
     terminated (its goal), or to the end of the episode.
     """
     keys = _obs_keys(obs_keys)
@@ -84,8 +84,8 @@ def _agent_module(name: str):
 
 def gcrl_config(agent_name: str, images: bool = True, **overrides):
     """
-    The ``ml_collections.ConfigDict`` of `agent_name` for discrete actions: OGBench's defaults, its
-    discrete-action settings, the ``impala_small`` encoder if `images`, then `overrides`.
+    The `ml_collections.ConfigDict` of `agent_name` for discrete actions: OGBench's defaults, its
+    discrete-action settings, the `impala_small` encoder if `images`, then `overrides`.
     """
     config = _agent_module(agent_name).get_config()
     config.discrete = True
@@ -105,29 +105,17 @@ def _gc_dataset(data: dict, config):
 
 
 class IndependentGCRL:
-    """
-    One goal-conditioned agent (`agent_name` in :data:`GCRL_AGENTS`) per agent, trained independently.
-
-    Parameters
-    ----------
-    agents : list
-        The agents (vendored OGBench agents), one per MultiGrid agent
-    agent_name : str
-        Their algorithm
-    config : ml_collections.ConfigDict
-        Their configuration (see :func:`gcrl_config`)
-    obs_keys : str or list of str
-        Info keys of the observations: ``'pixels'`` (each agent's view), or feature keys (e.g.
-        ``['position']``); each needs a goal (see :func:`goal_key`)
-    num_actions : int
-        Number of discrete actions
-    temperature : float
-        Action sampling temperature when acting (0: the most likely action)
-    seed : int
-        Seed of the action sampling
-    """
-    def __init__(self, agents: list, agent_name: str, config, obs_keys: str | Sequence[str], num_actions: int,
-                 temperature: float = 0.0, seed: int = 0):
+    "One goal-conditioned agent (`agent_name` in `GCRL_AGENTS`) per agent, trained independently."
+    def __init__(
+        self,
+        agents: list, # The agents (vendored OGBench agents), one per MultiGrid agent
+        agent_name: str, # Their algorithm
+        config, # Their configuration (see `gcrl_config`) (ml_collections.ConfigDict)
+        obs_keys: str | Sequence[str], # Info keys of the observations: `'pixels'` (each agent's view), or feature keys (e.g. `['position']`); each needs a goal (see `goal_key`)
+        num_actions: int, # Number of discrete actions
+        temperature: float = 0.0, # Action sampling temperature when acting (0: the most likely action)
+        seed: int = 0 # Seed of the action sampling
+    ):
         import jax
         self.agents, self.agent_name, self.config = list(agents), agent_name, config
         self.obs_keys, self.num_actions, self.temperature = _obs_keys(obs_keys), num_actions, temperature
@@ -142,8 +130,8 @@ class IndependentGCRL:
     def create(cls, agent_name: str, agent_data: list[dict], num_actions: int, obs_keys: str | Sequence[str] = 'pixels',
                seed: int = 0, temperature: float = 0.0, **overrides) -> IndependentGCRL:
         """
-        Agents for the per-agent datasets `agent_data` (see :func:`agent_datasets`), agent ``i`` seeded
-        with ``seed + i``; `overrides` go to :func:`gcrl_config`.
+        Agents for the per-agent datasets `agent_data` (see `agent_datasets`), agent `i` seeded
+        with `seed + i`; `overrides` go to `gcrl_config`.
         """
         keys = _obs_keys(obs_keys)
         config = gcrl_config(agent_name, images=keys == ['pixels'], **overrides)
@@ -170,8 +158,8 @@ class IndependentGCRL:
     def train(self, agent_data: list[dict], steps: int, log_every: int = 1000, seed: int | None = None,
               log: Callable[[dict], None] | None = None) -> dict[str, list]:
         """
-        `steps` updates of every agent on batches of its dataset (``config.batch_size``). Every
-        `log_every` steps, each agent's losses are averaged into ``history`` (and passed to `log`).
+        `steps` updates of every agent on batches of its dataset (`config.batch_size`). Every
+        `log_every` steps, each agent's losses are averaged into `history` (and passed to `log`).
         OGBench's datasets sample with numpy's global generator: `seed` seeds it.
         """
         if len(agent_data) != self.num_agents:
@@ -203,7 +191,7 @@ class IndependentGCRL:
         return iter(())
 
     def _inputs(self, info: dict, keys: list[str], a: int) -> np.ndarray:
-        "Agent `a`'s inputs at the latest step, (num_envs, ...), prepared as in :func:`agent_datasets`."
+        "Agent `a`'s inputs at the latest step, (num_envs, ...), prepared as in `agent_datasets`."
         cols = []
         for k in keys:
             if k not in info:
@@ -215,7 +203,7 @@ class IndependentGCRL:
         return np.concatenate([np.asarray(c, np.float32).reshape(len(c), -1) for c in cols], axis=1)
 
     def get_action(self, info: dict) -> np.ndarray:
-        "Actions (num_envs, num_agents) for stacked infos ``(num_envs, time, num_agents, ...)``."
+        "Actions (num_envs, num_agents) for stacked infos `(num_envs, time, num_agents, ...)`."
         import jax
         goal_keys = [goal_key(k) for k in self.obs_keys]
         actions = []

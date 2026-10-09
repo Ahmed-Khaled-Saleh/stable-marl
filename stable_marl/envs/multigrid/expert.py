@@ -24,9 +24,6 @@ class GoToGoalPolicy(ExpertPolicy):
     Navigation expert (e.g. for the Empty and FindGoal envs): every agent follows a shortest
     path to the nearest goal, over the cells it can walk on, turning towards the next cell
     and then moving forward.
-
-    Agents without a path to a goal (or already terminated) turn left. Other agents are not
-    treated as obstacles.
     """
     def act(self, env: MultiGridEnv) -> np.ndarray:
         distance = goal_distances(env)

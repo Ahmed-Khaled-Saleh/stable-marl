@@ -394,13 +394,7 @@ def clear_scene_dir(out_dir: str):
 def export_scene(env, out_dir: str, config: SceneConfig | None = None, frequency: float | None = None,
                  blend: bool = False, blender: str | None = None, info: dict | None = None,
                  overwrite: bool = False) -> dict:
-    """
-    Export the current layout of `env` (any MultiGrid env, already reset) to a Sionna RT scene.
-
-    Raises `FileExistsError` if `out_dir` already holds a scene, unless `overwrite=True`
-    (which first removes the previous scene's files, so no stale meshes are left).
-    Returns the scene metadata (also written to `<out_dir>/scene.json`).
-    """
+    "Export the current layout of `env` (any MultiGrid env, already reset) to a Sionna RT scene."
     config = config or SceneConfig()
     check_materials(config, frequency)
     env = env.unwrapped
@@ -512,10 +506,6 @@ def build_blend_subprocess(out_dir: str, blender: str | None = None):
     """
     Build the .blend in a separate process, with the Blender binary `blender` (or the
     BLENDER environment variable), else with the `bpy` module of this Python.
-
-    A .blend file can only be opened by the Blender version that saved it, or newer
-    (e.g. a file saved by Blender 5.x cannot be opened in Blender 4.2), so pass the
-    Blender you will open the scene with.
     """
     script = _module_file()
     blender = blender or os.environ.get('BLENDER')

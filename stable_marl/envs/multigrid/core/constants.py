@@ -71,31 +71,22 @@ class Color(str, IndexedEnum):
     grey = 'grey'
 
     @classmethod
-    def add_color(cls, name: str, rgb: ndarray[np.uint8]):
-        """
-        Add a new color to the ``Color`` enumeration.
-
-        Parameters
-        ----------
-        name : str
-            Name of the new color
-        rgb : ndarray[np.uint8] of shape (3,)
-            RGB value of the new color
-        """
+    def add_color(
+        cls,
+        name: str, # Name of the new color
+        rgb: ndarray[np.uint8] # RGB value of the new color
+    ):
+        "Add a new color to the `Color` enumeration."
         cls.add_item(name, name)
         COLORS[name] = np.asarray(rgb, dtype=np.uint8)
 
     @staticmethod
     def cycle(n: int) -> tuple['Color', ...]:
-        """
-        Return a cycle of ``n`` colors.
-        """
+        "Return a cycle of `n` colors."
         return tuple(Color.from_index(i % len(Color)) for i in range(int(n)))
 
     def rgb(self) -> ndarray[np.uint8]:
-        """
-        Return the RGB value of this ``Color``.
-        """
+        "Return the RGB value of this `Color`."
         return COLORS[self]
 
 
@@ -121,9 +112,7 @@ class Direction(enum.IntEnum):
     up = 3
 
     def to_vec(self) -> ndarray[np.int8]:
-        """
-        Return the vector corresponding to this ``Direction``.
-        """
+        "Return the vector corresponding to this `Direction`."
         return DIR_TO_VEC[self]
 
 
