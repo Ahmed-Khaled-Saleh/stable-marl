@@ -30,33 +30,16 @@ __all__ = ['Grid']
 
 # %% ../../../../nbs/envs/multigrid/core/05_grid.ipynb #afb69c44
 class Grid:
-    """
-    Class representing a grid of :class:`.WorldObj` objects.
-
-    Attributes
-    ----------
-    width : int
-        Width of the grid
-    height : int
-        Height of the grid
-    world_objects : dict[tuple[int, int], WorldObj]
-        Dictionary of world objects in the grid, indexed by (x, y) location
-    state : ndarray[int] of shape (width, height, WorldObj.dim)
-        Grid state, where each (x, y) entry is a world object encoding
-    """
+    "Class representing a grid of `.WorldObj` objects."
 
     # Static cache of pre-renderer tiles
     _tile_cache: dict[tuple[Any, ...], Any] = {}
 
-    def __init__(self, width: int, height: int):
-        """
-        Parameters
-        ----------
-        width : int
-            Width of the grid
-        height : int
-            Height of the grid
-        """
+    def __init__(
+        self,
+        width: int, # Width of the grid
+        height: int # Height of the grid
+    ):
         assert width >= 3
         assert height >= 3
         self.world_objects: dict[tuple[int, int], WorldObj] = {} # indexed by location
@@ -88,19 +71,13 @@ def grid(self: Grid) -> list[WorldObj | None]:
 
 # %% ../../../../nbs/envs/multigrid/core/05_grid.ipynb #a6fab5ab
 @patch
-def set(self: Grid, x: int, y: int, obj: WorldObj | None):
-    """
-    Set a world object at the given coordinates.
-
-    Parameters
-    ----------
-    x : int
-        Grid x-coordinate
-    y : int
-        Grid y-coordinate
-    obj : WorldObj or None
-        Object to place
-    """
+def set(
+    self: Grid,
+    x: int, # Grid x-coordinate
+    y: int, # Grid y-coordinate
+    obj: WorldObj | None # Object to place
+):
+    "Set a world object at the given coordinates."
     # Update world object dictionary
     self.world_objects[x, y] = obj
 
@@ -114,17 +91,12 @@ def set(self: Grid, x: int, y: int, obj: WorldObj | None):
 
 # %% ../../../../nbs/envs/multigrid/core/05_grid.ipynb #0ed77d03
 @patch
-def get(self: Grid, x: int, y: int) -> WorldObj | None:
-    """
-    Get the world object at the given coordinates.
-
-    Parameters
-    ----------
-    x : int
-        Grid x-coordinate
-    y : int
-        Grid y-coordinate
-    """
+def get(
+    self: Grid,
+    x: int, # Grid x-coordinate
+    y: int # Grid y-coordinate
+) -> WorldObj | None:
+    "Get the world object at the given coordinates."
     # Create WorldObj instance if none exists
     if (x, y) not in self.world_objects:
         self.world_objects[x, y] = WorldObj.from_array(self.state[x, y])
@@ -133,17 +105,12 @@ def get(self: Grid, x: int, y: int) -> WorldObj | None:
 
 # %% ../../../../nbs/envs/multigrid/core/05_grid.ipynb #1ec0bf6c
 @patch
-def update(self: Grid, x: int, y: int):
-    """
-    Update the grid state from the world object at the given coordinates.
-
-    Parameters
-    ----------
-    x : int
-        Grid x-coordinate
-    y : int
-        Grid y-coordinate
-    """
+def update(
+    self: Grid,
+    x: int, # Grid x-coordinate
+    y: int # Grid y-coordinate
+):
+    "Update the grid state from the world object at the given coordinates."
     if (x, y) in self.world_objects:
         self.state[x, y] = self.world_objects[x, y]
 
@@ -151,23 +118,12 @@ def update(self: Grid, x: int, y: int):
 @patch
 def horz_wall(
     self: Grid,
-    x: int, y: int,
-    length: int | None = None,
-    obj_type: Callable[[], WorldObj] = Wall):
-    """
-    Create a horizontal wall.
-
-    Parameters
-    ----------
-    x : int
-        Leftmost x-coordinate of wall
-    y : int
-        Y-coordinate of wall
-    length : int or None
-        Length of wall. If None, wall extends to the right edge of the grid.
-    obj_type : Callable() -> WorldObj
-        Function that returns a WorldObj instance to use for the wall
-    """
+    x: int, # Leftmost x-coordinate of wall
+    y: int, # Y-coordinate of wall
+    length: int | None = None, # Length of wall. If None, wall extends to the right edge of the grid.
+    obj_type: Callable[[], WorldObj] = Wall # Function that returns a WorldObj instance to use for the wall
+):
+    "Create a horizontal wall."
     length = self.width - x if length is None else length
     self.state[x:x+length, y] = obj_type()
     for i in range(x, x + length):
@@ -177,23 +133,12 @@ def horz_wall(
 @patch
 def vert_wall(
     self: Grid,
-    x: int, y: int,
-    length: int | None = None,
-    obj_type: Callable[[], WorldObj] = Wall):
-    """
-    Create a vertical wall.
-
-    Parameters
-    ----------
-    x : int
-        X-coordinate of wall
-    y : int
-        Topmost y-coordinate of wall
-    length : int or None
-        Length of wall. If None, wall extends to the bottom edge of the grid.
-    obj_type : Callable() -> WorldObj
-        Function that returns a WorldObj instance to use for the wall
-    """
+    x: int, # X-coordinate of wall
+    y: int, # Topmost y-coordinate of wall
+    length: int | None = None, # Length of wall. If None, wall extends to the bottom edge of the grid.
+    obj_type: Callable[[], WorldObj] = Wall # Function that returns a WorldObj instance to use for the wall
+):
+    "Create a vertical wall."
     length = self.height - y if length is None else length
     self.state[x, y:y+length] = obj_type()
     for j in range(y, y + length):
@@ -201,21 +146,14 @@ def vert_wall(
 
 # %% ../../../../nbs/envs/multigrid/core/05_grid.ipynb #d3110f08
 @patch
-def wall_rect(self: Grid, x: int, y: int, w: int, h: int):
-    """
-    Create a walled rectangle.
-
-    Parameters
-    ----------
-    x : int
-        X-coordinate of top-left corner
-    y : int
-        Y-coordinate of top-left corner
-    w : int
-        Width of rectangle
-    h : int
-        Height of rectangle
-    """
+def wall_rect(
+    self: Grid,
+    x: int, # X-coordinate of top-left corner
+    y: int, # Y-coordinate of top-left corner
+    w: int, # Width of rectangle
+    h: int # Height of rectangle
+):
+    "Create a walled rectangle."
     self.horz_wall(x, y, w)
     self.horz_wall(x, y + h - 1, w)
     self.vert_wall(x, y, h)
@@ -226,27 +164,13 @@ def wall_rect(self: Grid, x: int, y: int, w: int, h: int):
 @patch(cls_method= True)
 def render_tile(
     cls: Grid,
-    obj: WorldObj | None = None,
-    agent: Agent | None = None,
-    highlight: bool = False,
-    tile_size: int = TILE_PIXELS,
-    subdivs: int = 3) -> ndarray[np.uint8]:
-    """
-    Render a tile and cache the result.
-
-    Parameters
-    ----------
-    obj : WorldObj or None
-        Object to render
-    agent : Agent or None
-        Agent to render
-    highlight : bool
-        Whether to highlight the tile
-    tile_size : int
-        Tile size (in pixels)
-    subdivs : int
-        Downsampling factor for supersampling / anti-aliasing
-    """
+    obj: WorldObj | None = None, # Object to render
+    agent: Agent | None = None, # Agent to render
+    highlight: bool = False, # Whether to highlight the tile
+    tile_size: int = TILE_PIXELS, # Tile size (in pixels)
+    subdivs: int = 3 # Downsampling factor for supersampling / anti-aliasing
+) -> ndarray[np.uint8]:
+    "Render a tile and cache the result."
     # Hash map lookup key for the cache
     key: tuple[Any, ...] = (highlight, tile_size)
     if agent:
@@ -292,19 +216,9 @@ def render(
     self: Grid,
     tile_size: int,
     agents: Iterable[Agent] = (),
-    highlight_mask: ndarray[np.bool_] | None = None) -> ndarray[np.uint8]:
-    """
-    Render this grid at a given scale.
-
-    Parameters
-    ----------
-    tile_size: int
-        Tile size (in pixels)
-    agents: Iterable[Agent]
-        Agents to render
-    highlight_mask: ndarray
-        Boolean mask indicating which grid locations to highlight
-    """
+    highlight_mask: ndarray[np.bool_] | None = None
+) -> ndarray[np.uint8]:
+    "Render this grid at a given scale."
     if highlight_mask is None:
         highlight_mask = np.zeros(shape=(self.width, self.height), dtype=bool)
 
@@ -342,15 +256,11 @@ def render(
 
 # %% ../../../../nbs/envs/multigrid/core/05_grid.ipynb #cab17c52
 @patch
-def encode(self: Grid, vis_mask: ndarray[np.bool_] | None = None) -> ndarray[np.int64]:
-    """
-    Produce a compact numpy encoding of the grid.
-
-    Parameters
-    ----------
-    vis_mask : ndarray[bool] of shape (width, height)
-        Visibility mask
-    """
+def encode(
+    self: Grid,
+    vis_mask: ndarray[np.bool_] | None = None # Visibility mask
+) -> ndarray[np.int64]:
+    "Produce a compact numpy encoding of the grid."
     if vis_mask is None:
         vis_mask = np.ones((self.width, self.height), dtype=bool)
 
@@ -362,22 +272,11 @@ def encode(self: Grid, vis_mask: ndarray[np.bool_] | None = None) -> ndarray[np.
 
 # %% ../../../../nbs/envs/multigrid/core/05_grid.ipynb #cbac6cdb
 @patch(cls_method=True)
-def decode(cls: Grid, array: ndarray[np.int64]) -> tuple['Grid', ndarray[np.bool_]]:
-    """
-    Decode an array grid encoding back into a `Grid` instance.
-
-    Parameters
-    ----------
-    array : ndarray[int] of shape (width, height, dim)
-        Grid encoding
-
-    Returns
-    -------
-    grid : Grid
-        Decoded `Grid` instance
-    vis_mask : ndarray[bool] of shape (width, height)
-        Visibility mask
-    """
+def decode(
+    cls: Grid,
+    array: ndarray[np.int64] # Grid encoding
+) -> tuple['Grid', ndarray[np.bool_]]: # grid: Decoded `Grid` instance; vis_mask: Visibility mask
+    "Decode an array grid encoding back into a `Grid` instance."
     width, height, dim = array.shape
     assert dim == WorldObj.dim
 

@@ -38,8 +38,8 @@ def _feature(key: str, value: np.ndarray, grid_size: int) -> np.ndarray:
 def agent_features(info: dict, i: int, keys: Sequence[str], grid_size: int,
                    goal: np.ndarray | None = None) -> np.ndarray:
     """
-    Observations ``(num_agents, dim)`` of env `i` in stacked infos ``(num_envs, 1, num_agents, ...)``:
-    the `keys` of each agent, plus its offset to `goal` ``(num_agents, 2)`` if given.
+    Observations `(num_agents, dim)` of env `i` in stacked infos `(num_envs, 1, num_agents, ...)`:
+    the `keys` of each agent, plus its offset to `goal` `(num_agents, 2)` if given.
     """
     num_agents = info[keys[0]].shape[2]
     rows = []
@@ -55,32 +55,21 @@ _DEFAULTS = dict(CAPACITY=100_000)   # MAMBA: 500k steps; fewer for a CPU
 
 
 class Mamba:
-    """
-    MAMBA's learner and controller for `num_agents` agents with `num_actions` discrete actions.
-
-    Parameters
-    ----------
-    goal_conditioned : bool
-        GC-MAMBA (goal offset in the observations, goal-reaching reward, hindsight relabelling), or
-        MAMBA with its shaped reward
-    obs_keys : list of str
-        Info keys of each agent's observation (``image``, ``direction``, ``position``, ``pixels``, ...)
-    grid_size : int
-        Size of the grid (scales positions and goal offsets)
-    finish_value : float
-        Reward for reaching the goal (MAMBA's Flatland ``FinishRewardConfig(finish_value=10)``)
-    near_coeff : float
-        Reward per cell of progress towards the goal (``NearRewardConfig(coeff=0.01)``; MAMBA only)
-    relabel_k : int
-        Hindsight copies of each episode (GC-MAMBA only)
-    seed : int
-        Seed of torch and numpy (MAMBA samples with their global generators)
-    **config
-        MAMBA settings (``DreamerLearnerConfig`` attributes)
-    """
-    def __init__(self, num_agents: int, num_actions: int, goal_conditioned: bool = False,
-                 obs_keys: Sequence[str] = ('image', 'direction'), grid_size: int = 15, finish_value: float = 10.0,
-                 near_coeff: float = 0.01, relabel_k: int = 4, seed: int = 0, obs_dim: int | None = None, **config):
+    "MAMBA's learner and controller for `num_agents` agents with `num_actions` discrete actions."
+    def __init__(
+        self,
+        num_agents: int,
+        num_actions: int,
+        goal_conditioned: bool = False, # GC-MAMBA (goal offset in the observations, goal-reaching reward, hindsight relabelling), or MAMBA with its shaped reward
+        obs_keys: Sequence[str] = ('image', 'direction'), # Info keys of each agent's observation (`image`, `direction`, `position`, `pixels`, ...)
+        grid_size: int = 15, # Size of the grid (scales positions and goal offsets)
+        finish_value: float = 10.0, # Reward for reaching the goal (MAMBA's Flatland `FinishRewardConfig(finish_value=10)`)
+        near_coeff: float = 0.01, # Reward per cell of progress towards the goal (`NearRewardConfig(coeff=0.01)`; MAMBA only)
+        relabel_k: int = 4, # Hindsight copies of each episode (GC-MAMBA only)
+        seed: int = 0, # Seed of torch and numpy (MAMBA samples with their global generators)
+        obs_dim: int | None = None,
+        **config # MAMBA settings (`DreamerLearnerConfig` attributes)
+    ):
         from stable_marl.wm.mamba.mamba_marl.configs.dreamer.DreamerControllerConfig import DreamerControllerConfig
         from stable_marl.wm.mamba.mamba_marl.configs.dreamer.DreamerLearnerConfig import DreamerLearnerConfig
         from stable_marl.wm.mamba.mamba_marl.environments import Env
@@ -134,9 +123,9 @@ class Mamba:
     def train(self, world, episodes: int, seed: int = 0, log_every: int = 10,
               log: Callable[[dict], None] | None = None) -> dict[str, list]:
         """
-        Play and learn from `episodes` episodes of `world` (one env), episode ``k`` reset with seed
-        ``seed + k``. Every `log_every` episodes, the success rate, mean episode length and return
-        (the env's), and MAMBA's latest losses go to ``history`` (and to `log`).
+        Play and learn from `episodes` episodes of `world` (one env), episode `k` reset with seed
+        `seed + k`. Every `log_every` episodes, the success rate, mean episode length and return
+        (the env's), and MAMBA's latest losses go to `history` (and to `log`).
         """
         from stable_marl.wm.mamba.mamba_marl.log import wandb
         if world.num_envs != 1:
@@ -184,7 +173,7 @@ def _shaping_distances(env) -> np.ndarray:
 
 
 def _absorbing_rows(controller, num_agents: int, num_actions: int, obs_dim: int):
-    "MAMBA's two closing steps: absorbing observations, random actions, ``fake`` = ``done`` = 1."
+    "MAMBA's two closing steps: absorbing observations, random actions, `fake` = `done` = 1."
     for _ in range(2):
         action = torch.zeros(1, num_agents, num_actions)
         action.scatter_(2, torch.randint(0, num_actions, (1, num_agents, 1)), 1.0)
@@ -280,7 +269,7 @@ def _relabel(self: Mamba, episode: dict) -> list[tuple]:
 
 # %% ../../../nbs/wm/mamba/00_core.ipynb #88bc1169
 class MambaPolicy(BasePolicy):
-    "Actions of a trained :class:`Mamba` for every env of a World."
+    "Actions of a trained `Mamba` for every env of a World."
     def __init__(self, mamba: Mamba, deterministic: bool = False, **kwargs: Any):
         super().__init__(**kwargs)
         self.type = 'mamba'
@@ -318,7 +307,7 @@ class MambaPolicy(BasePolicy):
 
 @patch
 def policy(self: Mamba, deterministic: bool = False) -> MambaPolicy:
-    "A :class:`MambaPolicy` with the current parameters."
+    "A `MambaPolicy` with the current parameters."
     return MambaPolicy(self, deterministic)
 
 

@@ -19,20 +19,14 @@ __all__ = ['DecentralizedWorldModel']
 
 # %% ../../nbs/wm/04_decentralized.ipynb #9e0364a2
 class DecentralizedWorldModel(nn.Module):
-    """
-    Parameters
-    ----------
-    models : list of nn.Module
-        One world model per agent (e.g. :class:`LeWM`), each with ``encode`` / ``rollout``
-    obs_key : str
-        Info key of the agents' observation frames, ``(B, T, num_agents, ...)``
-    num_actions : int, optional
-        Number of discrete actions (actions fed one-hot); None for continuous actions
-    action_block : int
-        Env steps per planning step
-    """
-    def __init__(self, models: list[nn.Module], obs_key: str = 'pixels', num_actions: int | None = None,
-                 action_block: int = 1, config: dict | None = None):
+    def __init__(
+        self,
+        models: list[nn.Module], # One world model per agent (e.g. `LeWM`), each with `encode` / `rollout`
+        obs_key: str = 'pixels', # Info key of the agents' observation frames, `(B, T, num_agents, ...)`
+        num_actions: int | None = None, # Number of discrete actions (actions fed one-hot); None for continuous actions
+        action_block: int = 1, # Env steps per planning step
+        config: dict | None = None
+    ):
         super().__init__()
         self.models = nn.ModuleList(models)
         self.obs_key, self.num_actions, self.action_block = obs_key, num_actions, action_block
@@ -42,7 +36,7 @@ class DecentralizedWorldModel(nn.Module):
     def build_lewm(cls, num_agents: int, num_actions: int | None = None, action_size: int | None = None,
                    action_block: int = 1, obs_key: str = 'pixels', **lewm_kwargs) -> DecentralizedWorldModel:
         """
-        One independent :func:`build_lewm` per agent, for discrete actions (`num_actions`) or continuous
+        One independent `build_lewm` per agent, for discrete actions (`num_actions`) or continuous
         actions of size `action_size`.
         """
         if (num_actions is None) == (action_size is None):
@@ -59,8 +53,8 @@ class DecentralizedWorldModel(nn.Module):
 
     def agent_actions(self, actions: torch.Tensor) -> torch.Tensor:
         """
-        Executed actions of one agent, ``(..., action_block)`` indices (discrete) or
-        ``(..., action_block * D)`` values -> model input ``(..., action_block * K)`` one-hot / values.
+        Executed actions of one agent, `(..., action_block)` indices (discrete) or
+        `(..., action_block * D)` values -> model input `(..., action_block * K)` one-hot / values.
         NaNs (no action, e.g. after a reset) become zeros.
         """
         actions = torch.nan_to_num(actions.float(), nan=-1.0 if self.num_actions else 0.0)
@@ -77,16 +71,16 @@ class DecentralizedWorldModel(nn.Module):
         return inputs
 
     def encode(self, x: dict) -> dict:
-        "Adds ``emb`` ``(B, T, num_agents, D)``: each agent's inputs encoded by its own model."
+        "Adds `emb` `(B, T, num_agents, D)`: each agent's inputs encoded by its own model."
         embs = [model.encode(self._agent_inputs(x, model, a, 2))['emb'] for a, model in enumerate(self.models)]
         x['emb'] = torch.stack(embs, dim=2)
         return x
 
     def rollout(self, info_dict: dict, action_candidates: torch.Tensor) -> dict:
         """
-        Roll each agent's candidates ``(B, S, horizon, num_agents, action_dim)`` out with its own
-        model, from its own context. Adds ``predicted_emb`` ``(B, S, H + horizon, num_agents, D)``
-        (and caches the encoded context ``emb``).
+        Roll each agent's candidates `(B, S, horizon, num_agents, action_dim)` out with its own
+        model, from its own context. Adds `predicted_emb` `(B, S, H + horizon, num_agents, D)`
+        (and caches the encoded context `emb`).
         """
         history = info_dict.get('action_history')                # (B, S, H - 1, A, action_block * D)
         cached = info_dict.get('emb')
@@ -106,13 +100,13 @@ class DecentralizedWorldModel(nn.Module):
 
     @property
     def pretrained_config(self) -> dict | None:
-        "Config rebuilding the model with Hydra's ``instantiate`` (used by :func:`save_pretrained`)."
+        "Config rebuilding the model with Hydra's `instantiate` (used by `save_pretrained`)."
         if self.config is None:
             return None
         return {'_target_': 'stable_marl.wm.decentralized.DecentralizedWorldModel.build_lewm', **self.config}
 
     def save(self, path: str | Path):
-        "Save the weights and the build configuration (models made with :meth:`build_lewm`)."
+        "Save the weights and the build configuration (models made with `build_lewm`)."
         torch.save({'config': self.config, 'state_dict': self.state_dict()}, path)
 
     @classmethod

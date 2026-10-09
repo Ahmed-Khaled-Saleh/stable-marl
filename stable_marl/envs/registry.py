@@ -37,7 +37,7 @@ def register(
     family: str | None = None) -> EnvSpec:
     """
     Register an environment under `id`, in stable-marl and in gymnasium
-    (so ``gym.make(id)`` keeps working).
+    (so `gym.make(id)` keeps working).
     """
     spec = EnvSpec(id, entry_point, dict(kwargs or {}), family)
     _REGISTRY[id] = spec
@@ -49,7 +49,7 @@ def register(
 def make(id: str, **kwargs) -> MultiAgentEnv:
     """
     Create the registered environment `id`, `kwargs` overriding its registered defaults.
-    Unlike ``gym.make``, the env is returned unwrapped.
+    Unlike `gym.make`, the env is returned unwrapped.
     """
     if id not in _REGISTRY:
         raise KeyError(f"Unknown environment {id!r}, registered ones are: {', '.join(list_envs())}")

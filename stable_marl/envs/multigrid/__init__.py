@@ -19,23 +19,23 @@ Configurations
 **************
 
 * `Blocked Unlock Pickup <./stable_marl.envs.multigrid.blockedunlockpickup>`_
-    * ``MultiGrid-BlockedUnlockPickup-v0``
+    * `MultiGrid-BlockedUnlockPickup-v0`
 * `Empty <./stable_marl.envs.multigrid.empty>`_
-    * ``MultiGrid-Empty-5x5-v0``
-    * ``MultiGrid-Empty-Random-5x5-v0``
-    * ``MultiGrid-Empty-6x6-v0``
-    * ``MultiGrid-Empty-Random-6x6-v0``
-    * ``MultiGrid-Empty-8x8-v0``
-    * ``MultiGrid-Empty-16x16-v0``
+    * `MultiGrid-Empty-5x5-v0`
+    * `MultiGrid-Empty-Random-5x5-v0`
+    * `MultiGrid-Empty-6x6-v0`
+    * `MultiGrid-Empty-Random-6x6-v0`
+    * `MultiGrid-Empty-8x8-v0`
+    * `MultiGrid-Empty-16x16-v0`
 * `Locked Hallway <./stable_marl.envs.multigrid.locked_hallway>`_
-    * ``MultiGrid-LockedHallway-2Rooms-v0``
-    * ``MultiGrid-LockedHallway-4Rooms-v0``
-    * ``MultiGrid-LockedHallway-6Rooms-v0``
+    * `MultiGrid-LockedHallway-2Rooms-v0`
+    * `MultiGrid-LockedHallway-4Rooms-v0`
+    * `MultiGrid-LockedHallway-6Rooms-v0`
 * `Playground <./stable_marl.envs.multigrid.playground>`_
-    * ``MultiGrid-Playground-v0``
+    * `MultiGrid-Playground-v0`
 * `Red Blue Doors <./stable_marl.envs.multigrid.redbluedoors>`_
-    * ``MultiGrid-RedBlueDoors-6x6-v0``
-    * ``MultiGrid-RedBlueDoors-8x8-v0``
+    * `MultiGrid-RedBlueDoors-6x6-v0`
+    * `MultiGrid-RedBlueDoors-8x8-v0`
 """
 
 

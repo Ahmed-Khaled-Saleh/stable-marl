@@ -19,14 +19,7 @@ from omegaconf import MISSING, OmegaConf
 # %% ../../nbs/configs/00_env.ipynb #9ad43e6c
 @dataclass
 class MultiGridEnvConfig:
-    """
-    Arguments shared by every MultiGrid env (forwarded to `MultiGridEnv.__init__`).
-
-    Env configs below inherit these and add their own arguments / defaults.
-    Base arguments that an env fixes internally (e.g. `mission_space`, the grid
-    size, or `success_termination_mode` for some envs) are intentionally left out,
-    since passing them would clash with, or silently override, the env.
-    """
+    "Arguments shared by every MultiGrid env (forwarded to `MultiGridEnv.__init__`)."
     _target_: str = MISSING            # hydra instantiation target
     _convert_: str = "all"             # pass lists / dicts to the env as plain python objects
     agents: int = 1

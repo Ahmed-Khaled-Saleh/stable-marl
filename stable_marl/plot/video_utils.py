@@ -38,7 +38,7 @@ __all__ = ['save_video', 'save_panel_videos']
 
 # %% ../../nbs/plot/00_video_utils.ipynb #da3ef6a6
 def save_video(path: Path, frames: list[np.ndarray], fps: int = 15) -> None:
-    "Write `frames` (``(H, W, C)`` uint8) as an MP4 at `path` (libx264)."
+    "Write `frames` (`(H, W, C)` uint8) as an MP4 at `path` (libx264)."
     if not len(frames):
         return
     import imageio
@@ -51,7 +51,7 @@ def save_video(path: Path, frames: list[np.ndarray], fps: int = 15) -> None:
 
 
 def _panel_frames(p) -> np.ndarray:
-    "A panel as ``(T, H, W, C)`` frames (a still is one frame; per-agent views side by side)."
+    "A panel as `(T, H, W, C)` frames (a still is one frame; per-agent views side by side)."
     p = np.asarray(p)
     if p.ndim == 3:
         return p[None]
@@ -62,7 +62,7 @@ def _panel_frames(p) -> np.ndarray:
 
 def save_panel_videos(video_dir, panels, fps: int = 15) -> None:
     """
-    Save ``env_<i>.mp4`` per env with labelled panels side by side. ``panels`` maps a label to
+    Save `env_<i>.mp4` per env with labelled panels side by side. `panels` maps a label to
     per-env data indexable by env index (see above for the shapes of an entry).
     """
     from PIL import Image, ImageDraw, ImageFont

@@ -25,28 +25,9 @@ __all__ = ['FullyObsWrapper', 'ImgObsWrapper', 'OneHotObsWrapper', 'SingleAgentW
 
 # %% ../../nbs/wrappers/00_base.ipynb #195d4d3e
 class FullyObsWrapper(ObservationWrapper):
-    """
-    Fully observable gridworld using a compact grid encoding instead of agent view.
-
-    Examples
-    --------
-    >>> import gymnasium as gym
-    >>> import stable_marl.envs
-    >>> env = gym.make('MultiGrid-Empty-16x16-v0')
-    >>> obs, _ = env.reset()
-    >>> obs[0]['image'].shape
-    (7, 7, 3)
-
-    >>> from stable_marl.wrappers import FullyObsWrapper
-    >>> env = FullyObsWrapper(env)
-    >>> obs, _ = env.reset()
-    >>> obs[0]['image'].shape
-    (16, 16, 3)
-    """
+    "Fully observable gridworld using a compact grid encoding instead of agent view."
 
     def __init__(self, env: MultiGridEnv):
-        """
-        """
         super().__init__(env)
 
         # Update agent observation spaces ('image' is indexed [x, y], like the grid)
@@ -56,9 +37,6 @@ class FullyObsWrapper(ObservationWrapper):
                 low=0, high=255, shape=(base.width, base.height, WorldObj.dim), dtype=int)
 
     def observation(self, obs: dict[AgentID, ObsType]) -> dict[AgentID, ObsType]:
-        """
-        :meta private:
-        """
         base = self.env.unwrapped
         img = base.grid.encode()
         for agent in base.agents:
@@ -74,28 +52,9 @@ class FullyObsWrapper(ObservationWrapper):
 
 # %% ../../nbs/wrappers/00_base.ipynb #68baef66
 class ImgObsWrapper(ObservationWrapper):
-    """
-    Use the image as the only observation output for each agent.
-
-    Examples
-    --------
-    >>> import gymnasium as gym
-    >>> import stable_marl.envs
-    >>> env = gym.make('MultiGrid-Empty-8x8-v0')
-    >>> obs, _ = env.reset()
-    >>> obs[0].keys()
-    dict_keys(['image', 'direction', 'mission'])
-
-    >>> from stable_marl.wrappers import ImgObsWrapper
-    >>> env = ImgObsWrapper(env)
-    >>> obs, _ = env.reset()
-    >>> obs.shape
-    (7, 7, 3)
-    """
+    "Use the image as the only observation output for each agent."
 
     def __init__(self, env: MultiGridEnv):
-        """
-        """
         super().__init__(env)
 
         # Update agent observation spaces
@@ -104,9 +63,6 @@ class ImgObsWrapper(ObservationWrapper):
             agent.observation_space.dtype = np.uint8
 
     def observation(self, obs: dict[AgentID, ObsType]) -> dict[AgentID, ObsType]:
-        """
-        :meta private:
-        """
         for agent_id in obs:
             obs[agent_id] = obs[agent_id]['image'].astype(np.uint8)
 
@@ -119,39 +75,9 @@ class OneHotObsWrapper(ObservationWrapper):
     """
     Wrapper to get a one-hot encoding of a partially observable
     agent view as observation.
-
-    Examples
-    --------
-    >>> import gymnasium as gym
-    >>> import stable_marl.envs
-    >>> env = gym.make('MultiGrid-Empty-5x5-v0')
-    >>> obs, _ = env.reset()
-    >>> obs[0]['image'][0, :, :]
-    array([[2, 5, 0],
-            [2, 5, 0],
-            [2, 5, 0],
-            [2, 5, 0],
-            [2, 5, 0],
-            [2, 5, 0],
-            [2, 5, 0]])
-
-    >>> from stable_marl.wrappers import OneHotObsWrapper
-    >>> env = OneHotObsWrapper(env)
-    >>> obs, _ = env.reset()
-    >>> obs[0]['image'][0, :, :]
-    array([[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0]],
-            dtype=uint8)
     """
 
     def __init__(self, env: MultiGridEnv):
-        """
-        """
         super().__init__(env)
         self.dim_sizes = np.array([
             len(Type), len(Color), max(len(State), len(Direction))])
@@ -164,9 +90,6 @@ class OneHotObsWrapper(ObservationWrapper):
                 low=0, high=1, shape=(view_height, view_width, dim), dtype=np.uint8)
 
     def observation(self, obs: dict[AgentID, ObsType]) -> dict[AgentID, ObsType]:
-        """
-        :meta private:
-        """
         for agent_id in obs:
             obs[agent_id]['image'] = self.one_hot(obs[agent_id]['image'], self.dim_sizes)
 
@@ -174,24 +97,13 @@ class OneHotObsWrapper(ObservationWrapper):
 
     @staticmethod
     @nb.njit(cache=True)
-    def one_hot(x: ndarray[np.int64], dim_sizes: ndarray[np.int64]) -> ndarray[np.uint8]:
+    def one_hot(
+        x: ndarray[np.int64], # 3D array of integers to be one-hot encoded
+        dim_sizes: ndarray[np.int64] # Number of possible values for each dimension
+    ) -> ndarray[np.uint8]: # out: One-hot encoding; 
         """
         Return a one-hot encoding of a 3D integer array,
         where each 2D slice is encoded separately.
-
-        Parameters
-        ----------
-        x : ndarray[int] of shape (view_height, view_width, dim)
-            3D array of integers to be one-hot encoded
-        dim_sizes : ndarray[int] of shape (dim,)
-            Number of possible values for each dimension
-
-        Returns
-        -------
-        out : ndarray[uint8] of shape (view_height, view_width, sum(dim_sizes))
-            One-hot encoding
-
-        :meta private:
         """
         out = np.zeros((x.shape[0], x.shape[1], sum(dim_sizes)), dtype=np.uint8)
 
@@ -213,41 +125,18 @@ class SingleAgentWrapper(gym.Wrapper):
     """
     Wrapper to convert a multi-agent environment into a
     single-agent environment.
-
-    Examples
-    --------
-    >>> import gymnasium as gym
-    >>> import stable_marl.envs
-    >>> env = gym.make('MultiGrid-Empty-5x5-v0')
-    >>> obs, _ = env.reset()
-    >>> obs[0].keys()
-    dict_keys(['image', 'direction', 'mission'])
-
-    >>> from stable_marl.wrappers import SingleAgentWrapper
-    >>> env = SingleAgentWrapper(env)
-    >>> obs, _ = env.reset()
-    >>> obs.keys()
-    dict_keys(['image', 'direction', 'mission'])
     """
 
     def __init__(self, env: MultiGridEnv):
-        """
-        """
         super().__init__(env)
         self.observation_space = env.agents[0].observation_space
         self.action_space = env.agents[0].action_space
 
     def reset(self, *args, **kwargs):
-        """
-        :meta private:
-        """
         result = super().reset(*args, **kwargs)
         return tuple(item[0] for item in result)
 
     def step(self, action):
-        """
-        :meta private:
-        """
         result = super().step({0: action})
         return tuple(item[0] for item in result)
 

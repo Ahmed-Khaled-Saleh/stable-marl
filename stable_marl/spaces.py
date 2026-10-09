@@ -43,7 +43,7 @@ __all__ = ['logger', 'get_in', 'reset_variation_space', 'Discrete', 'MultiDiscre
 
 # %% ../nbs/03_spaces.ipynb #28e1c447
 def get_in(mapping: Any, path: Iterable[str]) -> Any:
-    "The value at the end of `path` in nested mappings, e.g. ``get_in(space, ['wall', 'color'])``."
+    "The value at the end of `path` in nested mappings, e.g. `get_in(space, ['wall', 'color'])`."
     current = mapping
     for key in list(path):
         current = current[key]
@@ -57,8 +57,8 @@ def reset_variation_space(
     default_variations: Iterable[str] | None = None):
     """
     Reset a variation space for an env reset: every factor goes back to its initial value, then
-    the factors named in ``options['variation']`` (default: `default_variations`) are resampled
-    and those in ``options['variation_values']`` are set.
+    the factors named in `options['variation']` (default: `default_variations`) are resampled
+    and those in `options['variation_values']` are set.
     """
     variation_space.seed(seed)
     variation_space.reset()
@@ -270,7 +270,7 @@ class Dict(spaces.Dict):
         raise RuntimeError(f"constrain_fn not satisfied after {max_tries} draws")
 
     def update(self, keys: Iterable[str]):
-        "Resample the factors named in `keys` (``['all']``: every factor), in sampling order."
+        "Resample the factors named in `keys` (`['all']`: every factor), in sampling order."
         keys = set(keys)
         if keys == {'all'}:
             self.sample()
@@ -289,12 +289,12 @@ class Dict(spaces.Dict):
             raise ValueError(f"Variation {name!r} not found, available: {self.names()}") from None
 
     def set_init_value(self, variations_values: dict):
-        "Set the initial values of factors, ``{'wall.color': 3, ...}``."
+        "Set the initial values of factors, `{'wall.color': 3, ...}`."
         for name, value in variations_values.items():
             self._leaf(name).set_init_value(value)
 
     def set_value(self, variations_values: dict):
-        "Set the current values of factors, ``{'wall.color': 3, ...}``."
+        "Set the current values of factors, `{'wall.color': 3, ...}`."
         for name, value in variations_values.items():
             self._leaf(name).set_value(value)
 

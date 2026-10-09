@@ -43,12 +43,8 @@ ActionType = Any
 # %% ../../nbs/wrappers/01_external.ipynb #b6c1578d
 class PettingZooWrapper(ParallelEnv):
     """
-    Wrapper for a ``MultiGridEnv`` environment that implements the
-    PettingZoo ``ParallelEnv`` interface.
-
-    Agent IDs are the agent indices (subclasses can map them, see `_agent_id`).
-    Agents that terminated in an earlier step are removed from `agents` and from
-    every dict returned by `step`, as required by the ParallelEnv API.
+    Wrapper for a `MultiGridEnv` environment that implements the
+    PettingZoo `ParallelEnv` interface.
     """
 
     def __init__(self, env: MultiGridEnv):
@@ -143,29 +139,11 @@ class PettingZooWrapper(ParallelEnv):
 
 # %% ../../nbs/wrappers/01_external.ipynb #c527053f
 def to_pettingzoo_env(
-    env_cls: type[MultiGridEnv],
-    *wrappers: gym.Wrapper,
-    metadata: dict[str, Any] = {}) -> type[ParallelEnv]:
-    """
-    Convert a ``MultiGridEnv`` environment class to a PettingZoo ``ParallelEnv`` class.
-
-    Note that this is a wrapper around the environment **class**,
-    not environment instances.
-
-    Parameters
-    ----------
-    env_cls : type[MultiGridEnv]
-        ``MultiGridEnv`` environment class
-    wrappers : gym.Wrapper
-        Gym wrappers to apply to the environment
-    metadata : dict[str, Any]
-        Environment metadata
-
-    Returns
-    -------
-    pettingzoo_env_cls : type[ParallelEnv]
-        PettingZoo ``ParallelEnv`` environment class
-    """
+    env_cls: type[MultiGridEnv], # `MultiGridEnv` environment class
+    *wrappers: gym.Wrapper, # Gym wrappers to apply to the environment
+    metadata: dict[str, Any] = {} # Environment metadata
+) -> type[ParallelEnv]: # PettingZoo `ParallelEnv` environment class
+    "Convert a `MultiGridEnv` environment class to a PettingZoo `ParallelEnv` class."
     class PettingZooEnv(PettingZooWrapper):
         def __init__(self, *args, **kwargs):
             env = env_cls(*args, **kwargs)
@@ -181,11 +159,8 @@ def to_pettingzoo_env(
 # %% ../../nbs/wrappers/01_external.ipynb #fda9038e
 class TorchRLPettingZooWrapper(PettingZooWrapper):
     """
-    PettingZooWrapper with string agent IDs (``'agent_0'``, ``'agent_1'``, ...),
-    as required by TorchRL's ``torchrl.envs.libs.pettingzoo.PettingZooWrapper``.
-
-    Use ``use_mask=True`` in TorchRL when agents can terminate at different times
-    (e.g. ``success_termination_mode='all'``).
+    PettingZooWrapper with string agent IDs (`'agent_0'`, `'agent_1'`, ...),
+    as required by TorchRL's `torchrl.envs.libs.pettingzoo.PettingZooWrapper`.
     """
 
     def _agent_id(self, index: int) -> str:
@@ -198,31 +173,16 @@ class TorchRLPettingZooWrapper(PettingZooWrapper):
 # %% ../../nbs/wrappers/01_external.ipynb #553cea40
 class RLlibWrapper(MultiAgentEnv):
     """
-    Wrapper for a ``MultiGridEnv`` environment that implements the
-    RLlib ``MultiAgentEnv`` interface.
-
-    Agents that terminated in an earlier step are removed from `agents` and from
-    every dict returned by `step`, as required by RLlib.
+    Wrapper for a `MultiGridEnv` environment that implements the
+    RLlib `MultiAgentEnv` interface.
     """
 
     def __init__(
         self,
-        env: MultiGridEnv,
-        obs_keys: tuple[str, ...] = ('image', 'direction'),
-        flatten: bool = True):
-        """
-        Parameters
-        ----------
-        env : MultiGridEnv
-            Environment to wrap
-        obs_keys : tuple[str, ...]
-            Observation entries to keep ('image', 'pixels', 'direction', 'position');
-            the text 'mission' is not supported by RLlib
-        flatten : bool
-            Concatenate the kept entries into one float32 vector (Box entries flattened,
-            Discrete entries one-hot), which RLlib's default models accept.
-            Otherwise a single entry is returned as is, and several as a Dict.
-        """
+        env: MultiGridEnv, # Environment to wrap
+        obs_keys: tuple[str, ...] = ('image', 'direction'), # Observation entries to keep ('image', 'pixels', 'direction', 'position'); the text 'mission' is not supported by RLlib
+        flatten: bool = True # Concatenate the kept entries into one float32 vector (Box entries flattened, Discrete entries one-hot), which RLlib's default models accept. Otherwise a single entry is returned as is, and several as a Dict.
+    ):
         super().__init__()
         assert 'mission' not in obs_keys, "RLlib does not support the text 'mission' observation"
         self.env = env
@@ -310,32 +270,12 @@ class RLlibWrapper(MultiAgentEnv):
 
 # %% ../../nbs/wrappers/01_external.ipynb #08f57dbe
 def to_rllib_env(
-    env_cls: type[MultiGridEnv],
-    *wrappers: gym.Wrapper,
-    default_config: dict = {},
-    **rllib_kwargs) -> type[MultiAgentEnv]:
-    """
-    Convert a ``MultiGridEnv`` environment class to an RLLib ``MultiAgentEnv`` class.
-
-    Note that this is a wrapper around the environment **class**,
-    not environment instances.
-
-    Parameters
-    ----------
-    env_cls : type[MultiGridEnv]
-        ``MultiGridEnv`` environment class
-    wrappers : gym.Wrapper
-        Gym wrappers to apply to the environment
-    default_config : dict
-        Default configuration for the environment
-    rllib_kwargs
-        Extra arguments for :class:`.RLlibWrapper` (``obs_keys``, ``flatten``)
-
-    Returns
-    -------
-    rllib_env_cls : type[MultiAgentEnv]
-        RLlib ``MultiAgentEnv`` environment class
-    """
+    env_cls: type[MultiGridEnv], # `MultiGridEnv` environment class
+    *wrappers: gym.Wrapper, # Gym wrappers to apply to the environment
+    default_config: dict = {}, # Default configuration for the environment
+    **rllib_kwargs # Extra arguments for `.RLlibWrapper` (`obs_keys`, `flatten`)
+) -> type[MultiAgentEnv]: # RLlib `MultiAgentEnv` environment class
+    "Convert a `MultiGridEnv` environment class to an RLLib `MultiAgentEnv` class."
     class RLlibEnv(RLlibWrapper):
         def __init__(self, config: dict = {}):
             config = {**default_config, **config}
@@ -348,16 +288,13 @@ def to_rllib_env(
     return RLlibEnv
 
 
-def register_rllib_envs(**rllib_kwargs):
+def register_rllib_envs(
+    **rllib_kwargs # Extra arguments for `.RLlibWrapper` (`obs_keys`, `flatten`)
+):
     """
-    Register every environment configuration in :data:`stable_marl.envs.multigrid.CONFIGURATIONS`
-    with RLlib, under the same name (e.g. ``'MultiGrid-Empty-8x8-v0'``).
-    The RLlib ``env_config`` is passed to the environment as keyword arguments.
-
-    Parameters
-    ----------
-    rllib_kwargs
-        Extra arguments for :class:`.RLlibWrapper` (``obs_keys``, ``flatten``)
+    Register every environment configuration in `stable_marl.envs.multigrid.CONFIGURATIONS`
+    with RLlib, under the same name (e.g. `'MultiGrid-Empty-8x8-v0'`).
+    The RLlib `env_config` is passed to the environment as keyword arguments.
     """
     assert register_env is not None, "ray[rllib] is required to register RLlib environments"
     for name, (env_cls, config) in CONFIGURATIONS.items():

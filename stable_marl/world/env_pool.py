@@ -18,8 +18,8 @@ __all__ = ['joint_action_space', 'EnvPool', 'episode_done']
 # %% ../../nbs/world/00_env_pool.ipynb #14b17eec
 def joint_action_space(env: gym.Env) -> spaces.Space:
     """
-    Action space of all the agents of `env` as one space: MultiDiscrete ``(num_agents,)`` if
-    they are all Discrete, a Box ``(num_agents, *shape)`` if they are all Boxes of one shape.
+    Action space of all the agents of `env` as one space: MultiDiscrete `(num_agents,)` if
+    they are all Discrete, a Box `(num_agents, *shape)` if they are all Boxes of one shape.
     """
     agent_spaces = [env.action_space[a] for a in range(env.unwrapped.num_agents)]
     if all(isinstance(s, spaces.Discrete) for s in agent_spaces):
@@ -31,19 +31,11 @@ def joint_action_space(env: gym.Env) -> spaces.Space:
 
 
 class EnvPool:
-    """
-    Runs ``num_envs`` wrapped multi-agent envs side by side, one after the other in this process.
-
-    :meth:`reset` and :meth:`step` take a `mask` to only reset / step some envs: the others keep
-    their info and report zero reward and no termination.
-
-    Parameters
-    ----------
-    env_fns : list of callables
-        One factory per env, each called once; the envs must return flat info dicts
-        (wrapped with :class:`MegaWrapper`)
-    """
-    def __init__(self, env_fns: Sequence[Callable[[], gym.Env]]):
+    "Runs `num_envs` wrapped multi-agent envs side by side, one after the other in this process."
+    def __init__(
+        self,
+        env_fns: Sequence[Callable[[], gym.Env]] # One factory per env, each called once; the envs must return flat info dicts (wrapped with `MegaWrapper`)
+    ):
         self.envs: list[gym.Env] = [fn() for fn in env_fns]
         assert self.envs, "EnvPool needs at least one env"
         self.num_agents: int = self.envs[0].unwrapped.num_agents
@@ -94,7 +86,7 @@ class EnvPool:
 
     @property
     def single_variation_space(self):
-        "Variation space of one env (alias of :attr:`variation_space`, as in stable-worldmodel)."
+        "Variation space of one env (alias of `variation_space`, as in stable-worldmodel)."
         return self.variation_space
 
     def close(self):
@@ -150,12 +142,7 @@ def reset(
     seed: int | Sequence[int | None] | None = None,
     options: dict | Sequence[dict | None] | None = None,
     mask: np.ndarray | None = None) -> tuple[None, dict]:
-    """
-    Reset the envs (only those where `mask` is True, if given) and return ``(None, infos)``.
-
-    `seed` is an int (env `i` gets ``seed + i``), one seed per env, or None.
-    `options` is one dict for every env, or one per env.
-    """
+    "Reset the envs (only those where `mask` is True, if given) and return `(None, infos)`."
     seeds, options = _broadcast_arg(seed, self.num_envs, increment=True), _broadcast_arg(options, self.num_envs)
     per_env_infos = [None] * self.num_envs
     for i in (range(self.num_envs) if mask is None else np.flatnonzero(mask)):
@@ -179,8 +166,8 @@ def step(
     mask: np.ndarray | None = None) -> tuple[None, np.ndarray, np.ndarray, np.ndarray, dict]:
     """
     Step the envs (only those where `mask` is True, if given) with `actions` of shape
-    ``(num_envs, num_agents)``. Returns ``(None, rewards, terminateds, truncateds, infos)``,
-    the first three of shape ``(num_envs, num_agents)``.
+    `(num_envs, num_agents)`. Returns `(None, rewards, terminateds, truncateds, infos)`,
+    the first three of shape `(num_envs, num_agents)`.
     """
     actions = np.asarray(actions)
     assert actions.shape[:2] == (self.num_envs, self.num_agents), \

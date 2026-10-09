@@ -26,22 +26,11 @@ __all__ = ['T', 'bfs', 'reject_next_to', 'Room', 'RoomGrid']
 T = TypeVar('T')
 
 # %% ../../../nbs/envs/multigrid/04_roomgrid.ipynb #502e9891
-def bfs(start_node: T, neighbor_fn: Callable[[T], Iterable[T]]) -> set[T]:
-    """
-    Run a breadth-first search from a starting node.
-
-    Parameters
-    ----------
-    start_node : T
-        Start node
-    neighbor_fn : Callable(T) -> Iterable[T]
-        Function that returns the neighbors of a node
-
-    Returns
-    -------
-    visited : set[T]
-        Set of nodes reachable from the start node
-    """
+def bfs(
+    start_node: T, # Start node
+    neighbor_fn: Callable[[T], Iterable[T]] # Function that returns the neighbors of a node
+) -> set[T]: # Set of nodes reachable from the start node
+    "Run a breadth-first search from a starting node."
     visited, queue = set(), deque([start_node])
     while queue:
         node = queue.popleft()
@@ -67,15 +56,11 @@ class Room:
     Room as an area inside a grid.
     """
 
-    def __init__(self, top: tuple[int, int], size: tuple[int, int]):
-        """
-        Parameters
-        ----------
-        top : tuple[int, int]
-            Top-left position of the room
-        size : tuple[int, int]
-            Room size as (width, height)
-        """
+    def __init__(
+        self,
+        top: tuple[int, int], # Top-left position of the room
+        size: tuple[int, int] # Room size as (width, height)
+    ):
         self.top, self.size = top, size
         Point = tuple[int, int] # typing alias
 
@@ -107,18 +92,10 @@ def locked(self: Room) -> bool:
 @patch
 def set_door_pos(
     self: Room,
-    dir: Direction,
-    random: np.random.Generator | None = None) -> tuple[int, int]:
-    """
-    Set door position in the given direction.
-
-    Parameters
-    ----------
-    dir : Direction
-        Direction of wall to place door
-    random : np.random.Generator, optional
-        Random number generator (if provided, door position will be random)
-    """
+    dir: Direction, # Direction of wall to place door
+    random: np.random.Generator | None = None # Random number generator (if provided, door position will be random)
+) -> tuple[int, int]:
+    "Set door position in the given direction."
     left, top = self.top
     right, bottom = self.top[0] + self.size[0] - 1, self.top[1] + self.size[1] - 1,
 
@@ -170,22 +147,11 @@ class RoomGrid(MultiGridEnv):
 
     def __init__(
         self,
-        room_size: int = 7,
-        num_rows: int = 3,
-        num_cols: int = 3,
-        **kwargs):
-        """
-        Parameters
-        ----------
-        room_size : int, default=7
-            Width and height for each of the rooms
-        num_rows : int, default=3
-            Number of rows of rooms
-        num_cols : int, default=3
-            Number of columns of rooms
-        **kwargs
-            See :attr:`stable_marl.base.MultiGridEnv.__init__`
-        """
+        room_size: int = 7, # Width and height for each of the rooms
+        num_rows: int = 3, # Number of rows of rooms
+        num_cols: int = 3, # Number of columns of rooms
+        **kwargs # See `stable_marl.base.MultiGridEnv.__init__`
+    ):
         assert room_size >= 3
         assert num_rows > 0
         assert num_cols > 0
@@ -199,34 +165,24 @@ class RoomGrid(MultiGridEnv):
 
 # %% ../../../nbs/envs/multigrid/04_roomgrid.ipynb #f712dfcd
 @patch
-def get_room(self: RoomGrid, col: int, row: int) -> Room:
-    """
-    Get the room at the given column and row.
-
-    Parameters
-    ----------
-    col : int
-        Column of the room
-    row : int
-        Row of the room
-    """
+def get_room(
+    self: RoomGrid,
+    col: int, # Column of the room
+    row: int # Row of the room
+) -> Room:
+    "Get the room at the given column and row."
     assert 0 <= col < self.num_cols
     assert 0 <= row < self.num_rows
     return self.room_grid[row][col]
 
 # %% ../../../nbs/envs/multigrid/04_roomgrid.ipynb #9edcb639
 @patch
-def room_from_pos(self: RoomGrid, x: int, y: int) -> Room:
-    """
-    Get the room a given position maps to.
-
-    Parameters
-    ----------
-    x : int
-        Grid x-coordinate
-    y : int
-        Grid y-coordinate
-    """
+def room_from_pos(
+    self: RoomGrid,
+    x: int, # Grid x-coordinate
+    y: int # Grid y-coordinate
+) -> Room:
+    "Get the room a given position maps to."
     col = x // (self.room_size - 1)
     row = y // (self.room_size - 1)
     return self.get_room(col, row)
@@ -271,19 +227,12 @@ def _gen_grid(self: RoomGrid, width, height):
 # %% ../../../nbs/envs/multigrid/04_roomgrid.ipynb #4984142b
 @patch
 def place_in_room(
-    self: RoomGrid, col: int, row: int, obj: WorldObj) -> tuple[WorldObj, tuple[int, int]]:
-    """
-    Add an existing object to the given room.
-
-    Parameters
-    ----------
-    col : int
-        Room column
-    row : int
-        Room row
-    obj : WorldObj
-        Object to add
-    """
+    self: RoomGrid,
+    col: int, # Room column
+    row: int, # Room row
+    obj: WorldObj # Object to add
+) -> tuple[WorldObj, tuple[int, int]]:
+    "Add an existing object to the given room."
     room = self.get_room(col, row)
     pos = self.place_obj(
         obj, room.top, room.size, reject_fn=reject_next_to, max_tries=1000)
@@ -294,24 +243,12 @@ def place_in_room(
 @patch
 def add_object(
     self: RoomGrid,
-    col: int,
-    row: int,
-    kind: Type | None = None,
-    color: Color | None = None) -> tuple[WorldObj, tuple[int, int]]:
-    """
-    Create a new object in the given room.
-
-    Parameters
-    ----------
-    col : int
-        Room column
-    row : int
-        Room row
-    kind : str, optional
-        Type of object to add (random if not specified)
-    color : str, optional
-        Color of the object to add (random if not specified)
-    """
+    col: int, # Room column
+    row: int, # Room row
+    kind: Type | None = None, # Type of object to add (random if not specified)
+    color: Color | None = None # Color of the object to add (random if not specified)
+) -> tuple[WorldObj, tuple[int, int]]:
+    "Create a new object in the given room."
     kind = kind or self._rand_elem([Type.key, Type.ball, Type.box])
     color = color or self._rand_color()
     obj = WorldObj(type=kind, color=color)
@@ -321,30 +258,14 @@ def add_object(
 @patch
 def add_door(
     self: RoomGrid,
-    col: int,
-    row: int,
-    dir: Direction | None = None,
-    color: Color | None = None,
-    locked: bool | None = None,
-    rand_pos: bool = True) -> tuple[Door, tuple[int, int]]:
-    """
-    Add a door to a room, connecting it to a neighbor.
-
-    Parameters
-    ----------
-    col : int
-        Room column
-    row : int
-        Room row
-    dir : Direction, optional
-        Which wall to put the door on (random if not specified)
-    color : Color, optional
-        Color of the door (random if not specified)
-    locked : bool, optional
-        Whether the door is locked (random if not specified)
-    rand_pos : bool, default=True
-        Whether to place the door at a random position on the room wall
-    """
+    col: int, # Room column
+    row: int, # Room row
+    dir: Direction | None = None, # Which wall to put the door on (random if not specified)
+    color: Color | None = None, # Color of the door (random if not specified)
+    locked: bool | None = None, # Whether the door is locked (random if not specified)
+    rand_pos: bool = True # Whether to place the door at a random position on the room wall
+) -> tuple[Door, tuple[int, int]]:
+    "Add a door to a room, connecting it to a neighbor."
     room = self.get_room(col, row)
 
     # Need to make sure that there is a neighbor along this wall
@@ -373,19 +294,13 @@ def add_door(
 
 # %% ../../../nbs/envs/multigrid/04_roomgrid.ipynb #a1a09a84
 @patch
-def remove_wall(self: RoomGrid, col: int, row: int, dir: Direction):
-    """
-    Remove a wall between two rooms.
-
-    Parameters
-    ----------
-    col : int
-        Room column
-    row : int
-        Room row
-    dir : Direction
-        Direction of the wall to remove
-    """
+def remove_wall(
+    self: RoomGrid,
+    col: int, # Room column
+    row: int, # Room row
+    dir: Direction # Direction of the wall to remove
+):
+    "Remove a wall between two rooms."
     room = self.get_room(col, row)
     assert room.doors[dir] is None, "door exists on this wall"
     assert room.neighbors[dir], "invalid wall"
@@ -417,24 +332,12 @@ def remove_wall(self: RoomGrid, col: int, row: int, dir: Direction):
 @patch
 def place_agent(
     self: RoomGrid,
-    agent: Agent,
-    col: int | None = None,
-    row: int | None = None,
-    rand_dir: bool = True) -> tuple[int, int]:
-    """
-    Place an agent in a room.
-
-    Parameters
-    ----------
-    agent : Agent
-        Agent to place
-    col : int, optional
-        Room column to place the agent in (random if not specified)
-    row : int, optional
-        Room row to place the agent in (random if not specified)
-    rand_dir : bool, default=True
-        Whether to select a random agent direction
-    """
+    agent: Agent, # Agent to place
+    col: int | None = None, # Room column to place the agent in (random if not specified)
+    row: int | None = None, # Room row to place the agent in (random if not specified)
+    rand_dir: bool = True # Whether to select a random agent direction
+) -> tuple[int, int]:
+    "Place an agent in a room."
     col = col if col is not None else self._rand_int(0, self.num_cols)
     row = row if row is not None else self._rand_int(0, self.num_rows)
     room = self.get_room(col, row)
@@ -454,18 +357,12 @@ def place_agent(
 @patch
 def connect_all(
     self: RoomGrid,
-    door_colors: list[Color] = list(Color),
-    max_itrs: int = 5000) -> list[Door]:
+    door_colors: list[Color] = list(Color), # Color options for creating doors
+    max_itrs: int = 5000 # Maximum number of iterations to try to connect all rooms
+) -> list[Door]:
     """
     Make sure that all rooms are reachable by the agent from its
     starting position.
-
-    Parameters
-    ----------
-    door_colors : list[Color], default=list(Color)
-        Color options for creating doors
-    max_itrs : int, default=5000
-        Maximum number of iterations to try to connect all rooms
     """
     added_doors = []
     neighbor_fn = lambda room: [
@@ -504,24 +401,12 @@ def connect_all(
 @patch
 def add_distractors(
     self: RoomGrid,
-    col: int | None = None,
-    row: int | None = None,
-    num_distractors: int = 10,
-    all_unique: bool = True) -> list[WorldObj]:
-    """
-    Add random objects that can potentially distract / confuse the agent.
-
-    Parameters
-    ----------
-    col : int, optional
-        Room column to place the objects in (random if not specified)
-    row : int, optional
-        Room row to place the objects in (random if not specified)
-    num_distractors : int, default=10
-        Number of distractor objects to add
-    all_unique : bool, default=True
-        Whether all distractor objects should be unique with respect to (type, color)
-    """
+    col: int | None = None, # Room column to place the objects in (random if not specified)
+    row: int | None = None, # Room row to place the objects in (random if not specified)
+    num_distractors: int = 10, # Number of distractor objects to add
+    all_unique: bool = True # Whether all distractor objects should be unique with respect to (type, color)
+) -> list[WorldObj]:
+    "Add random objects that can potentially distract / confuse the agent."
     # Collect keys for existing room objects
     room_objs = (obj for row in self.room_grid for room in row for obj in room.objs)
     room_obj_keys = {(obj.type, obj.color) for obj in room_objs}  

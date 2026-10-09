@@ -35,24 +35,15 @@ def _numpy(value):
 
 
 class VmasEnv(MultiAgentEnv):
-    """
-    The VMAS `scenario` (one of ``vmas.scenarios`` / ``vmas.mpe_scenarios``) as a stable-marl env.
-
-    Parameters
-    ----------
-    scenario : str
-        VMAS scenario, e.g. 'navigation', 'transport', 'simple_spread'
-    continuous_actions : bool
-        Continuous (VMAS's default) or discrete actions
-    max_steps : int
-        Step limit (truncation); VMAS's default is none
-    device : str
-        Torch device of the simulation
-    **scenario_kwargs
-        The scenario's arguments, e.g. ``n_agents=4``
-    """
-    def __init__(self, scenario: str, continuous_actions: bool = True, max_steps: int = 100, device: str = 'cpu',
-                 **scenario_kwargs):
+    "The VMAS `scenario` (one of `vmas.scenarios` / `vmas.mpe_scenarios`) as a stable-marl env."
+    def __init__(
+        self,
+        scenario: str, # VMAS scenario, e.g. 'navigation', 'transport', 'simple_spread'
+        continuous_actions: bool = True, # Continuous (VMAS's default) or discrete actions
+        max_steps: int = 100, # Step limit (truncation); VMAS's default is none
+        device: str = 'cpu', # Torch device of the simulation
+        **scenario_kwargs # The scenario's arguments, e.g. `n_agents=4`
+    ):
         import vmas
         self.scenario = scenario
         self._env = vmas.make_env(scenario, num_envs=1, device=device, continuous_actions=continuous_actions,

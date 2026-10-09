@@ -42,21 +42,7 @@ __all__ = ['HistoryBuffer']
 class HistoryBuffer:
     """
     Per-env ring buffer over batched info dicts (values with a leading env axis, e.g. the
-    ``(n_envs, 1, ...)`` infos of an :class:`EnvPool`).
-
-    :meth:`append` stores one entry per env; :meth:`get` returns the last ``n`` entries, every
-    ``action_block`` env steps, oldest first: a key with per-step shape ``(n_envs, T, ...)``
-    comes out as ``(n_envs, n * T, ...)``.
-
-    Keys in ``block_keys`` (typically ``('action',)``) come out as the ``n - 1`` blocks of
-    actions executed *between* consecutive returned frames:
-    ``(n_envs, n - 1, num_agents, action_block * D)``, chronological within a block, NaNs (the
-    reset's action) zeroed, omitted when ``n == 1``.
-
-    .. warning:: While an env holds fewer than ``(n - 1) * action_block + 1`` entries (just after
-        a reset), its history is left-padded with copies of its oldest entry and zero action
-        blocks, as if it had stood still before the episode. :meth:`num_strided` tells how much
-        real history each env has.
+    `(n_envs, 1, ...)` infos of an `EnvPool`).
     """
     def __init__(self, n_envs: int, max_len: int, action_block: int = 1, block_keys: Iterable[str] = ()):
         for name, value in (('n_envs', n_envs), ('max_len', max_len), ('action_block', action_block)):
@@ -124,7 +110,7 @@ def _slice_env(v: Any, i: int) -> Any:
 
 def _agent_block(entries: list) -> Any:
     """
-    One block of per-step entries ``(T, num_agents, *D)``: ``(num_agents, len(entries) * T * prod(D))``,
+    One block of per-step entries `(T, num_agents, *D)`: `(num_agents, len(entries) * T * prod(D))`,
     chronological per agent, NaNs zeroed.
     """
     merged = _merge_time(entries)                       # (ab * T, num_agents, *D)

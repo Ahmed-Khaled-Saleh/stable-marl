@@ -49,7 +49,7 @@ class GradientSolver(SolverBase):
     Gradient descent on continuous actions (the cost must be differentiable in the candidates).
     `num_samples` restarts (the warm start and `var_scale`-perturbed copies) are optimised with
     `optimizer_cls`; the best is kept (per agent in 'per_agent' mode, where each agent's actions only
-    receive the gradient of its own cost). Returns ``actions`` ``(n_envs, H, A, action_dim)``.
+    receive the gradient of its own cost). Returns `actions` `(n_envs, H, A, action_dim)`.
     """
     discrete = False
     supports_callbacks = True
@@ -120,13 +120,9 @@ class GradientSolver(SolverBase):
 class LagrangianSolver(GradientSolver):
     """
     Gradient descent on the augmented Lagrangian of a cost with inequality constraints
-    (:class:`Constrainable`, ``g <= 0`` when satisfied): `n_outer_steps` rounds of `n_steps`
+    (`Constrainable`, `g <= 0` when satisfied): `n_outer_steps` rounds of `n_steps`
     gradient steps, after each of which the multipliers grow with the violations and the penalty
     `rho` is multiplied by `rho_scale` (up to `rho_max`). Without constraints, plain gradient descent.
-
-    Constraints are ``(B, S, C)``; in 'per_agent' mode they may also be per agent,
-    ``(B, S, A, C)``, and each agent's actions follow its own cost and constraint terms (joint
-    constraints apply to every agent). Multipliers persist across solves (`persist_multipliers`).
     """
     supports_callbacks = False      # as in stable-worldmodel
 
@@ -140,8 +136,8 @@ class LagrangianSolver(GradientSolver):
 
     def _constraints(self, infos: dict, x: torch.Tensor, B: int) -> torch.Tensor | None:
         """
-        Constraint values, or None if the cost has none: joint mode ``(B, S, C)`` (per-agent
-        constraints flattened into joint ones), 'per_agent' mode ``(B, S, A, C)`` (joint ones shared).
+        Constraint values, or None if the cost has none: joint mode `(B, S, C)` (per-agent
+        constraints flattened into joint ones), 'per_agent' mode `(B, S, A, C)` (joint ones shared).
         """
         if not isinstance(self.cost, Constrainable):
             return None

@@ -42,49 +42,7 @@ __all__ = ['MultiGridEnv']
 
 # %% ../../../nbs/envs/multigrid/02_base.ipynb #bf291dda
 class MultiGridEnv(MultiAgentEnv, RandomMixin):
-    """
-    Base class for multi-agent 2D gridworld environments.
-
-    :Agents:
-
-        The environment can be configured with any fixed number of agents.
-        Agents are represented by :class:`.Agent` instances, and are
-        identified by their index, from ``0`` to ``len(env.agents) - 1``.
-
-    :Observation Space:
-
-        The multi-agent observation space is a Dict mapping from agent index to
-        corresponding agent observation space.
-
-        The standard agent observation is a dictionary with the following entries:
-
-            * image : ndarray[int] of shape (view_size, view_size, :attr:`.WorldObj.dim`)
-                Encoding of the agent's view of the environment,
-                where each grid object is encoded as a 3 dimensional tuple:
-                (:class:`.Type`, :class:`.Color`, :class:`.State`)
-            * direction : int
-                Agent's direction (0: right, 1: down, 2: left, 3: up)
-            * mission : Mission
-                Task string corresponding to the current environment configuration
-
-    :Action Space:
-
-        The multi-agent action space is a Dict mapping from agent index to
-        corresponding agent action space.
-
-        Agent actions are discrete integers, as enumerated in :class:`.Action`.
-
-    Attributes
-    ----------
-    agents : list[Agent]
-        List of agents in the environment
-    grid : Grid
-        Environment grid
-    observation_space : spaces.Dict[AgentID, spaces.Space]
-        Joint observation space of all agents
-    action_space : spaces.Dict[AgentID, spaces.Space]
-        Joint action space of all agents
-    """
+    "Base class for multi-agent 2D gridworld environments."
     metadata = {
         'render_modes': ['human', 'rgb_array'],
         'render_fps': 20,
@@ -92,71 +50,26 @@ class MultiGridEnv(MultiAgentEnv, RandomMixin):
 
     def __init__(
         self,
-        mission_space: MissionSpace | str = "maximize reward",
-        agents: Iterable[Agent] | int = 1,
-        grid_size: int | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        max_steps: int = 100,
-        see_through_walls: bool = False,
-        agent_view_size: int = 7,
-        allow_agent_overlap: bool = True,
-        joint_reward: bool = False,
-        success_termination_mode: Literal['any', 'all'] = 'any',
-        failure_termination_mode: Literal['any', 'all'] = 'all',
-        render_mode: str | None = None,
-        screen_size: int | None = 640,
-        highlight: bool = True,
-        tile_size: int = TILE_PIXELS,
+        mission_space: MissionSpace | str = "maximize reward", # Space of mission strings (i.e. agent instructions)
+        agents: Iterable[Agent] | int = 1, # Number of agents in the environment (or provide `Agent` instances)
+        grid_size: int | None = None, # Size of the environment grid (width and height)
+        width: int | None = None, # Width of the environment grid (if `grid_size` is not provided)
+        height: int | None = None, # Height of the environment grid (if `grid_size` is not provided)
+        max_steps: int = 100, # Maximum number of steps per episode
+        see_through_walls: bool = False, # Whether agents can see through walls
+        agent_view_size: int = 7, # Size of agent view (must be odd)
+        allow_agent_overlap: bool = True, # Whether agents are allowed to overlap
+        joint_reward: bool = False, # Whether all agents receive the same joint reward
+        success_termination_mode: Literal['any', 'all'] = 'any', # Whether to terminate when any agent completes its mission or when all agents complete their missions
+        failure_termination_mode: Literal['any', 'all'] = 'all', # Whether to terminate when any agent fails its mission or when all agents fail their missions
+        render_mode: str | None = None, # Rendering mode (human or rgb_array)
+        screen_size: int | None = 640, # Width and height of the rendering window (in pixels)
+        highlight: bool = True, # Whether to highlight the view of each agent when rendering
+        tile_size: int = TILE_PIXELS, # Width and height of each grid tile (in pixels), used for rendering and for the 'pixels' observation
         agent_pov: bool = False,
-        obs_mode: Literal['ego', 'allo', 'global'] = 'ego',
-        init_value: dict | None = None):
-        """
-        Parameters
-        ----------
-        mission_space : MissionSpace
-            Space of mission strings (i.e. agent instructions)
-        agents : int or Iterable[Agent]
-            Number of agents in the environment (or provide :class:`Agent` instances)
-        grid_size : int
-            Size of the environment grid (width and height)
-        width : int
-            Width of the environment grid (if `grid_size` is not provided)
-        height : int
-            Height of the environment grid (if `grid_size` is not provided)
-        max_steps : int
-            Maximum number of steps per episode
-        see_through_walls : bool
-            Whether agents can see through walls
-        agent_view_size : int
-            Size of agent view (must be odd)
-        allow_agent_overlap : bool
-            Whether agents are allowed to overlap
-        joint_reward : bool
-            Whether all agents receive the same joint reward
-        success_termination_mode : 'any' or 'all'
-            Whether to terminate when any agent completes its mission
-            or when all agents complete their missions
-        failure_termination_mode : 'any' or 'all'
-            Whether to terminate when any agent fails its mission
-            or when all agents fail their missions
-        render_mode : str
-            Rendering mode (human or rgb_array)
-        screen_size : int
-            Width and height of the rendering window (in pixels)
-        highlight : bool
-            Whether to highlight the view of each agent when rendering
-        tile_size : int
-            Width and height of each grid tile (in pixels), used for rendering
-            and for the 'pixels' observation
-        obs_mode : 'ego', 'allo' or 'global'
-            Frame of the 'image' and 'pixels' observations:
-            * 'ego': partial view in front of the agent, rotated so the agent faces up
-            * 'allo': partial view centred on the agent, world-aligned (no rotation)
-            * 'global': the whole grid, fully observable, identical for every agent
-        init_value : dict, optional
-            Initial values of factors of the :attr:`variation_space`, e.g. ``{'wall.color': 0}``
-        """
+        obs_mode: Literal['ego', 'allo', 'global'] = 'ego', # Frame of the 'image' and 'pixels' observations: * 'ego': partial view in front of the agent, rotated so the agent faces up * 'allo': partial view centred on the agent, world-aligned (no rotation) * 'global': the whole grid, fully observable, identical for every agent
+        init_value: dict | None = None # Initial values of factors of the `variation_space`, e.g. `{'wall.color': 0}`
+    ):
         gym.Env.__init__(self)
         RandomMixin.__init__(self, self.np_random)
 
@@ -248,23 +161,19 @@ class MultiGridEnv(MultiAgentEnv, RandomMixin):
 
 
     @abstractmethod
-    def _gen_grid(self: MultiGridEnv, width: int, height: int):
+    def _gen_grid(
+        self: MultiGridEnv,
+        width: int, # Width of the grid
+        height: int # Height of the grid
+    ):
         """
-        :meta public:
 
         Generate the grid for a new episode.
 
         This method should:
 
-        * Set ``self.grid`` and populate it with :class:`.WorldObj` instances
+        * Set `self.grid` and populate it with `.WorldObj` instances
         * Set the positions and directions of each agent
-
-        Parameters
-        ----------
-        width : int
-            Width of the grid
-        height : int
-            Height of the grid
         """
         pass
 
@@ -303,14 +212,14 @@ def state_space(self: MultiGridEnv) -> spaces.Box:
 
 @patch(as_prop=True)
 def noop_action(self: MultiGridEnv) -> int:
-    "The ``done`` action, which changes nothing (given to and recorded for terminated agents)."
+    "The `done` action, which changes nothing (given to and recorded for terminated agents)."
     return int(self.actions.done)
 
 @patch
 def state(self: MultiGridEnv) -> ndarray[np.int_]:
     """
-    Global state of the environment, of shape (width, height, :attr:`.WorldObj.dim`):
-    each cell is encoded as (:class:`.Type`, :class:`.Color`, :class:`.State`), agents included.
+    Global state of the environment, of shape (width, height, `.WorldObj.dim`):
+    each cell is encoded as (`.Type`, `.Color`, `.State`), agents included.
     """
     return gen_obs_grid_encoding_global(self.grid.state, self.agent_states)[0]
 
@@ -319,7 +228,6 @@ def _rand_color(self: MultiGridEnv) -> Color:
     """
     Generate a random color.
 
-    :meta public:
     """
     return self._rand_elem(Color)
 
@@ -327,13 +235,12 @@ def _rand_color(self: MultiGridEnv) -> Color:
 @patch
 def _variation_factors(self: MultiGridEnv) -> dict[str, Any]:
     """
-    :meta public:
 
-    Factors of variation of the env (see :mod:`stable_marl.spaces`), by group. Every MultiGrid
+    Factors of variation of the env (see `stable_marl.spaces`), by group. Every MultiGrid
     env has:
 
-    * ``agent.color``: color index of each agent (all different), default: the agents' colors
-    * ``wall.color``: color index of the walls, default grey (cells outside the grid stay grey)
+    * `agent.color`: color index of each agent (all different), default: the agents' colors
+    * `wall.color`: color index of the walls, default grey (cells outside the grid stay grey)
 
     Subclasses add their own factors (calling this one); their initial values are the env's
     defaults, so an env only changes when a variation is asked for.
@@ -376,7 +283,7 @@ def _apply_variations(self: MultiGridEnv):
 def _recolor(self: MultiGridEnv, obj_type: Type, color: Color):
     """
     Set the color of every object of type `obj_type` in the grid. Objects are replaced by
-    recolored copies, never modified: some are shared instances (e.g. ``Wall()`` is cached).
+    recolored copies, never modified: some are shared instances (e.g. `Wall()` is cached).
     """
     mask = self.grid.state[..., WorldObj.TYPE] == obj_type.to_index()
     self.grid.state[mask, WorldObj.COLOR] = color.to_index()
@@ -391,8 +298,8 @@ def _recolor(self: MultiGridEnv, obj_type: Type, color: Color):
 def goal_infos(self: MultiGridEnv) -> dict[AgentID, dict[str, Any]]:
     """
     Goal of the current episode for each agent, computed at reset and added to every info: for
-    envs defining ``get_goal_state``, ``'goal'`` (the agent's 'pixels' observation at the goal) and
-    ``'goal_position'`` (the goal cell). Empty for other envs.
+    envs defining `get_goal_state`, `'goal'` (the agent's 'pixels' observation at the goal) and
+    `'goal_position'` (the goal cell). Empty for other envs.
     """
     if not hasattr(self, 'get_goal_state'):
         return {}
@@ -412,24 +319,13 @@ MultiGridEnv.DEFAULT_VARIATIONS = ()   # factors resampled at every reset when t
 # %% ../../../nbs/envs/multigrid/02_base.ipynb #b4118899
 @patch
 def reset(
-    self: MultiGridEnv, seed: int | None = None, **kwargs) -> tuple[
+    self: MultiGridEnv,
+    seed: int | None = None, # Seed for random number generator
+    **kwargs
+) -> tuple[
         dict[AgentID, ObsType]:
-        dict[AgentID, dict[str, Any]]]:
-    """
-    Reset the environment.
-
-    Parameters
-    ----------
-    seed : int or None
-        Seed for random number generator
-
-    Returns
-    -------
-    observations : dict[AgentID, ObsType]
-        Observation for each agent
-    infos : dict[AgentID, dict[str, Any]]
-        Additional information for each agent
-    """
+        dict[AgentID, dict[str, Any]]]: # observations: Observation for each agent; infos: Additional information for each agent
+    "Reset the environment."
     # super().reset(seed=seed, **kwargs)
     gym.Env.reset(self, seed=seed, **kwargs)
     vspaces.reset_variation_space(self.variation_space, seed, kwargs.get('options'), self.DEFAULT_VARIATIONS)
@@ -486,8 +382,8 @@ def reset(
 @patch
 def reset_options_from_dataset(self: MultiGridEnv, init_row: dict, goal_row: dict) -> dict:
     """
-    Reset options restoring the recorded step `init_row` (one dataset row: ``position``,
-    ``direction``, ``seed``, ``variation.<name>``), with the targets of `goal_row` (``goal_position``).
+    Reset options restoring the recorded step `init_row` (one dataset row: `position`,
+    `direction`, `seed`, `variation.<name>`), with the targets of `goal_row` (`goal_position`).
     """
     seed = int(np.asarray(init_row.get('seed', -1)).reshape(-1)[0])
     if seed < 0:
@@ -504,7 +400,7 @@ def reset_options_from_dataset(self: MultiGridEnv, init_row: dict, goal_row: dic
 
 @patch
 def _restore_dataset_state(self: MultiGridEnv, state: dict):
-    "Place the agents as recorded (``position`` (A, 2), ``direction`` (A,)); ``goal_position``: their targets."
+    "Place the agents as recorded (`position` (A, 2), `direction` (A,)); `goal_position`: their targets."
     positions, directions = np.asarray(state['position']), np.asarray(state['direction'])
     for agent in self.agents:
         pos = positions[agent.index].astype(int)
@@ -530,33 +426,16 @@ def _reach_targets(self: MultiGridEnv, rewards: dict[AgentID, SupportsFloat]):
 @patch
 def step(
     self: MultiGridEnv,
-    actions: dict[AgentID, Action]) -> tuple[
+    actions: dict[AgentID, Action] # Action for each agent acting at this timestep
+) -> tuple[
         dict[AgentID, ObsType],
         dict[AgentID, SupportsFloat],
         dict[AgentID, bool],
         dict[AgentID, bool],
-        dict[AgentID, dict[str, Any]]]:
+        dict[AgentID, dict[str, Any]]]: # observations: Observation for each agent; rewards: Reward for each agent; terminations: Whether the episode has been terminated for each agent (success or failure); truncations: Whether the episode has been truncated for each agent (max steps reached); infos: Additional information for each agent
     """
     Run one timestep of the environment’s dynamics
     using the provided agent actions.
-
-    Parameters
-    ----------
-    actions : dict[AgentID, Action]
-        Action for each agent acting at this timestep
-
-    Returns
-    -------
-    observations : dict[AgentID, ObsType]
-        Observation for each agent
-    rewards : dict[AgentID, SupportsFloat]
-        Reward for each agent
-    terminations : dict[AgentID, bool]
-        Whether the episode has been terminated for each agent (success or failure)
-    truncations : dict[AgentID, bool]
-        Whether the episode has been truncated for each agent (max steps reached)
-    infos : dict[AgentID, dict[str, Any]]
-        Additional information for each agent
     """
     self.step_count += 1
     rewards = self.handle_actions(actions)
@@ -639,14 +518,7 @@ def gen_obs(self: MultiGridEnv) -> dict[AgentID, ObsType]:
     """
     Generate observations for each agent, in the frame given by `obs_mode`.
 
-    Returns
-    -------
-    observations : dict[AgentID, ObsType]
-        Mapping from agent ID to observation dict, containing:
-            * 'image': partially observable view of the environment
-            * 'direction': agent's direction / orientation (acting as a compass)
-            * 'position': agent's (x, y) cell in the grid
-            * 'mission': textual mission string (instructions for the agent)
+    Returns: Mapping from agent ID to observation dict, containing: * 'image': partially observable view of the environment * 'direction': agent's direction / orientation (acting as a compass) * 'position': agent's (x, y) cell in the grid * 'mission': textual mission string (instructions for the agent)
     """
     direction = self.agent_states.dir
     position = np.array(self.agent_states.pos)
@@ -671,20 +543,10 @@ def gen_obs(self: MultiGridEnv) -> dict[AgentID, ObsType]:
 # %% ../../../nbs/envs/multigrid/02_base.ipynb #9fd3368b
 @patch
 def handle_actions(
-    self: MultiGridEnv, actions: dict[AgentID, Action]) -> dict[AgentID, SupportsFloat]:
-    """
-    Handle actions taken by agents.
-
-    Parameters
-    ----------
-    actions : dict[AgentID, Action]
-        Action for each agent acting at this timestep
-
-    Returns
-    -------
-    rewards : dict[AgentID, SupportsFloat]
-        Reward for each agent
-    """
+    self: MultiGridEnv,
+    actions: dict[AgentID, Action] # Action for each agent acting at this timestep
+) -> dict[AgentID, SupportsFloat]: # Reward for each agent
+    "Handle actions taken by agents."
     rewards = {agent_index: 0 for agent_index in range(self.num_agents)}
 
     # Randomize agent action order
@@ -782,21 +644,11 @@ def handle_actions(
 @patch
 def on_success(
     self: MultiGridEnv,
-    agent: Agent,
-    rewards: dict[AgentID, SupportsFloat],
-    terminations: dict[AgentID, bool]):
-    """
-    Callback for when an agent completes its mission.
-
-    Parameters
-    ----------
-    agent : Agent
-        Agent that completed its mission
-    rewards : dict[AgentID, SupportsFloat]
-        Reward dictionary to be updated
-    terminations : dict[AgentID, bool]
-        Termination dictionary to be updated
-    """
+    agent: Agent, # Agent that completed its mission
+    rewards: dict[AgentID, SupportsFloat], # Reward dictionary to be updated
+    terminations: dict[AgentID, bool] # Termination dictionary to be updated
+):
+    "Callback for when an agent completes its mission."
     if self.success_termination_mode == 'any':
         self.agent_states.terminated = True # terminate all agents
         for i in range(self.num_agents):
@@ -819,21 +671,11 @@ def on_success(
 @patch
 def on_failure(
     self: MultiGridEnv,
-    agent: Agent,
-    rewards: dict[AgentID, SupportsFloat],
-    terminations: dict[AgentID, bool]):
-    """
-    Callback for when an agent fails its mission prematurely.
-
-    Parameters
-    ----------
-    agent : Agent
-        Agent that failed its mission
-    rewards : dict[AgentID, SupportsFloat]
-        Reward dictionary to be updated
-    terminations : dict[AgentID, bool]
-        Termination dictionary to be updated
-    """
+    agent: Agent, # Agent that failed its mission
+    rewards: dict[AgentID, SupportsFloat], # Reward dictionary to be updated
+    terminations: dict[AgentID, bool] # Termination dictionary to be updated
+):
+    "Callback for when an agent fails its mission prematurely."
     if self.failure_termination_mode == 'any':
         self.agent_states.terminated = True # terminate all agents
         for i in range(self.num_agents):
@@ -848,28 +690,12 @@ def on_failure(
 @patch
 def on_toggle(
     self: MultiGridEnv,
-    agent: Agent,
-    obj: WorldObj,
-    pos: tuple[int, int],
-    rewards: dict[AgentID, SupportsFloat]):
-    """
-    Callback for when an agent toggles an object (no-op by default).
-
-    Called inside `handle_actions` right after `obj.toggle(...)`, in the same
-    (randomized) agent order, so subclasses can react to toggles (e.g. doors,
-    switches) before the next agent acts and before observations are generated.
-
-    Parameters
-    ----------
-    agent : Agent
-        Agent that toggled the object
-    obj : WorldObj
-        Object that was toggled
-    pos : tuple[int, int]
-        Position of the toggled object
-    rewards : dict[AgentID, SupportsFloat]
-        Reward dictionary to be updated
-    """
+    agent: Agent, # Agent that toggled the object
+    obj: WorldObj, # Object that was toggled
+    pos: tuple[int, int], # Position of the toggled object
+    rewards: dict[AgentID, SupportsFloat] # Reward dictionary to be updated
+):
+    "Callback for when an agent toggles an object (no-op by default)."
     pass
 
 
@@ -960,23 +786,9 @@ def place_obj(
     top: tuple[int, int] = None,
     size: tuple[int, int] = None,
     reject_fn: Callable[[MultiGridEnv, tuple[int, int]], bool] | None = None,
-    max_tries=math.inf) -> tuple[int, int]:
-    """
-    Place an object at an empty position in the grid.
-
-    Parameters
-    ----------
-    obj: WorldObj
-        Object to place in the grid
-    top: tuple[int, int]
-        Top-left position of the rectangular area where to place the object
-    size: tuple[int, int]
-        Width and height of the rectangular area where to place the object
-    reject_fn: Callable(env, pos) -> bool
-        Function to filter out potential positions
-    max_tries: int
-        Maximum number of attempts to place the object
-    """
+    max_tries=math.inf
+) -> tuple[int, int]:
+    "Place an object at an empty position in the grid."
     if top is None:
         top = (0, 0)
     else:
@@ -1139,24 +951,9 @@ def get_frame(
     self: MultiGridEnv,
     highlight: bool = True,
     tile_size: int = TILE_PIXELS,
-    agent_pov: bool = False) -> ndarray[np.uint8]:
-    """
-    Returns an RGB image corresponding to the whole environment.
-
-    Parameters
-    ----------
-    highlight: bool
-        Whether to highlight agents' field of view (with a lighter gray color)
-    tile_size: int
-        How many pixels will form a tile from the NxM grid
-    agent_pov: bool
-        Whether to render agent's POV or the full environment
-
-    Returns
-    -------
-    frame: ndarray of shape (H, W, 3)
-        A frame representing RGB values for the HxW pixel image
-    """
+    agent_pov: bool = False
+) -> ndarray[np.uint8]: # A frame representing RGB values for the HxW pixel image
+    "Returns an RGB image corresponding to the whole environment."
     if agent_pov:
         return self.get_pov_render(tile_size)
     else:

@@ -20,20 +20,16 @@ class RandomMixin:
     Mixin class for random number generation.
     """
 
-    def __init__(self, random_generator: np.random.Generator):
-        """
-        Parameters
-        ----------
-        random_generator : np.random.Generator
-            Random number generator
-        """
+    def __init__(
+        self,
+        random_generator: np.random.Generator # Random number generator
+    ):
         self.__np_random = random_generator
 
     def _rand_int(self, low: int, high: int) -> int:
         """
         Generate random integer in range [low, high).
 
-        :meta public:
         """
         return self.__np_random.integers(low, high)
 
@@ -41,7 +37,6 @@ class RandomMixin:
         """
         Generate random float in range [low, high).
 
-        :meta public:
         """
         return self.__np_random.uniform(low, high)
 
@@ -49,7 +44,6 @@ class RandomMixin:
         """
         Generate random boolean value.
 
-        :meta public:
         """
         return self.__np_random.integers(0, 2) == 0
 
@@ -57,7 +51,6 @@ class RandomMixin:
         """
         Pick a random element in a list.
 
-        :meta public:
         """
         lst = list(iterable)
         idx = self._rand_int(0, len(lst))
@@ -67,7 +60,6 @@ class RandomMixin:
         """
         Sample a random subset of distinct elements of a list.
 
-        :meta public:
         """
         lst = list(iterable)
         assert num_elems <= len(lst)
@@ -85,7 +77,6 @@ class RandomMixin:
         """
         Randomly permute a list.
 
-        :meta public:
         """
         lst = list(iterable)
         self.__np_random.shuffle(lst)
@@ -96,7 +87,6 @@ class RandomMixin:
         """
         Generate a random (x, y) position tuple.
 
-        :meta public:
         """
         return (
             self.__np_random.integers(x_low, x_high),

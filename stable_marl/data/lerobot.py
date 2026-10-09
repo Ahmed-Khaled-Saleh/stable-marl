@@ -249,7 +249,7 @@ class LeRobotAdapter(Dataset):
 
 @register_format
 class LeRobot(Format):
-    "LeRobot Hub datasets, as ``lerobot://<repo_id>`` (read-only)."
+    "LeRobot Hub datasets, as `lerobot://<repo_id>` (read-only)."
     name = 'lerobot'
 
     @classmethod

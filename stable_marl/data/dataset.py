@@ -40,7 +40,9 @@ __all__ = ['GOAL_KINDS', 'get_cache_dir', 'to_tensor', 'Dataset', 'MergeDataset'
 
 # %% ../../nbs/data/01_dataset.ipynb #16614d36
 def get_cache_dir(override_root: str | Path | None = None, sub_folder: str | None = None) -> Path:
-    "Where named datasets and checkpoints live: `override_root`, else ``$STABLEMARL_HOME``, else ``~/.stable_marl``."
+    """
+    Where named datasets and checkpoints live: `override_root`, else `$STABLEMARL_HOME`, else `~/.stable_marl`.
+    """
     root = Path(override_root or os.environ.get('STABLEMARL_HOME', '~/.stable_marl')).expanduser()
     path = root / sub_folder if sub_folder else root
     path.mkdir(parents=True, exist_ok=True)
@@ -61,14 +63,7 @@ def to_tensor(data: np.ndarray):
 
 # %% ../../nbs/data/01_dataset.ipynb #15f7793c
 class Dataset:
-    """
-    Base class of episode datasets, stored as flat columns with episode ``lengths`` / ``offsets``.
-
-    Item ``i`` is a clip of ``num_steps`` steps, ``frameskip`` apart: a dict of torch tensors,
-    one per column. The ``action`` column keeps every step of the clip and is reshaped to
-    ``(num_steps, -1)``, so with ``frameskip=1`` it is ``(num_steps, num_agents)``.
-    Subclasses implement ``column_names`` and ``_load_slice``.
-    """
+    "Base class of episode datasets, stored as flat columns with episode `lengths` / `offsets`."
     def __init__(
         self,
         lengths: np.ndarray,
@@ -93,7 +88,7 @@ class Dataset:
         return []
 
     def get_episode_data(self, episodes_idx: np.ndarray | list[int] | None = None) -> dict[str, list]:
-        "The episode-scoped values ``{name: [value per requested episode]}`` (None: every episode)."
+        "The episode-scoped values `{name: [value per requested episode]}` (None: every episode)."
         return {}
 
     def _load_slice(self, ep_idx: int, start: int, end: int) -> dict:
@@ -110,7 +105,7 @@ class Dataset:
         return steps
 
     def load_chunk(self, episodes_idx: np.ndarray, start: np.ndarray, end: np.ndarray) -> list[dict]:
-        "One slice ``[start, end)`` per episode, in order."
+        "One slice `[start, end)` per episode, in order."
         chunk = []
         for ep, s, e in zip(episodes_idx, start, end):
             steps = self._load_slice(ep, s, e)
@@ -150,12 +145,7 @@ def _first_seen(names) -> list[str]:
 
 
 class MergeDataset:
-    """
-    Columns of several datasets with the same clips (horizontal join).
-
-    `keys_from_dataset` gives the columns taken from each dataset; by default each dataset
-    contributes the columns not already given by the earlier ones.
-    """
+    "Columns of several datasets with the same clips (horizontal join)."
     def __init__(self, datasets: list, keys_from_dataset: list[list[str]] | None = None):
         if not datasets:
             raise ValueError("Need at least one dataset")
@@ -286,7 +276,9 @@ class ConcatDataset:
         return self.datasets[ds_idx][local_idx]
 
     def __getitems__(self, indices: list[int]) -> list[dict]:
-        "Batched access (used by DataLoader): each dataset is read once, with its own ``__getitems__`` if it has one."
+        """
+        Batched access (used by DataLoader): each dataset is read once, with its own `__getitems__` if it has one.
+        """
         groups: dict[int, list[tuple[int, int]]] = {}
         for pos, (ds_idx, local_idx) in enumerate(self._loc(i) for i in indices):
             groups.setdefault(ds_idx, []).append((pos, local_idx))
@@ -335,36 +327,16 @@ GOAL_KINDS = ('random', 'geometric_future', 'uniform_future', 'current')
 
 
 class GoalDataset:
-    """
-    Wraps a dataset to add a goal, sampled per item, under ``goal_<key>`` for each `goal_keys` column.
-
-    The goal step is drawn (probabilities `goal_probabilities`, in the order of :data:`GOAL_KINDS`):
-
-    * ``'random'``: any step of the dataset
-    * ``'geometric_future'``: a later step of the same episode, ``Geom(1 - gamma)`` steps
-      (of ``frameskip``) after the clip's current step
-    * ``'uniform_future'``: a later step of the same episode, uniformly
-    * ``'current'``: the clip's current step (``current_goal_offset`` steps into the clip,
-      by default its last)
-
-    Clips without a later step are left out when future goals can be drawn.
-
-    Parameters
-    ----------
-    goal_keys : dict
-        Source column -> goal column. Default: ``pixels`` (each agent's view),
-        ``proprio`` and ``position``, when in the dataset, to ``goal_<key>``
-    seed : int, optional
-        Seed of the goal sampling
-    """
+    "Wraps a dataset to add a goal, sampled per item, under `goal_<key>` for each `goal_keys` column."
     def __init__(
         self,
         dataset: Dataset,
         goal_probabilities: tuple[float, float, float, float] = (0.3, 0.5, 0.0, 0.2),
         gamma: float = 0.99,
         current_goal_offset: int | None = None,
-        goal_keys: dict[str, str] | None = None,
-        seed: int | None = None):
+        goal_keys: dict[str, str] | None = None, # Source column -> goal column. Default: `pixels` (each agent's view), `proprio` and `position`, when in the dataset, to `goal_<key>`
+        seed: int | None = None # Seed of the goal sampling
+    ):
         if len(goal_probabilities) != 4:
             raise ValueError(f"goal_probabilities must be a 4-tuple {GOAL_KINDS}")
         if not np.isclose(sum(goal_probabilities), 1.0):
@@ -441,7 +413,7 @@ class GoalDataset:
         return ep_idx, current_end + int(self.rng.integers(1, max_steps + 1)) * self.dataset.frameskip
 
     def _get_clip_info(self, idx: int) -> tuple[int, int]:
-        "``(episode, start)`` of clip `idx`."
+        "`(episode, start)` of clip `idx`."
         return self._clip_indices[idx]
 
     def _load_single_step(self, ep_idx: int, local_idx: int) -> dict:

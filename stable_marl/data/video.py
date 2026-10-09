@@ -44,7 +44,7 @@ __all__ = ['VideoDataset', 'VideoWriter', 'Video']
 
 # %% ../../nbs/data/07_video.ipynb #ff23000e
 def _decode(path: str) -> np.ndarray:
-    "Every frame of a video file, ``(T, H, W, C)`` uint8 RGB (torchcodec if installed, else imageio)."
+    "Every frame of a video file, `(T, H, W, C)` uint8 RGB (torchcodec if installed, else imageio)."
     try:
         from torchcodec.decoders import VideoDecoder
         return VideoDecoder(path, seek_mode='approximate')[:].permute(0, 2, 3, 1).numpy()
@@ -98,7 +98,7 @@ class VideoDataset(FolderDataset):
 class VideoWriter(_NpzEpisodeWriter):
     """
     Appends episodes; image columns are encoded as one MP4 per episode (and per agent), with
-    `fps` and `codec`. `mode`: ``'append'`` (default), ``'overwrite'`` or ``'error'``.
+    `fps` and `codec`. `mode`: `'append'` (default), `'overwrite'` or `'error'`.
     """
     label = 'VideoWriter'
 
@@ -126,7 +126,7 @@ class VideoWriter(_NpzEpisodeWriter):
 
 @register_format
 class Video(Format):
-    "A folder with ``ep_len.npz`` and ``.mp4`` image columns."
+    "A folder with `ep_len.npz` and `.mp4` image columns."
     name = 'video'
 
     @classmethod

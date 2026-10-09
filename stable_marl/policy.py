@@ -20,16 +20,7 @@ __all__ = ['ACTION_HISTORY_KEY', 'Policy', 'BasePolicy', 'RandomPolicy', 'Expert
 
 # %% ../nbs/02_policy.ipynb #b086ed28
 class BasePolicy:
-    """
-    Base class of the policies a :class:`World` runs.
-
-    Attributes
-    ----------
-    env : EnvPool
-        The pool of envs the policy acts in (set by :meth:`set_env`)
-    type : str
-        Identifier of the policy type
-    """
+    "Base class of the policies a `World` runs."
     env: Any
     type: str
 
@@ -52,11 +43,11 @@ class BasePolicy:
 
     def _prepare_info(self, info_dict: dict) -> dict:
         """
-        A copy of `info_dict` ready for a torch model:
+        A copy of `info_dict` ready for a torch model.
 
-        * ``self.process[key]`` (a scaler with ``transform``, e.g. from sklearn) is applied to
+        * `self.process[key]` (a scaler with `transform`, e.g. from sklearn) is applied to
           the features of `key`, i.e. its last axis
-        * ``self.transform[key]`` (a callable on a batch of channel-first images) is applied to
+        * `self.transform[key]` (a callable on a batch of channel-first images) is applied to
           the images of `key`, of shape (..., H, W, C): it gets them as (N, C, H, W), and the
           result is reshaped back to (..., C', H', W')
         * numeric numpy arrays become torch tensors
@@ -107,8 +98,6 @@ class ExpertPolicy(BasePolicy):
     """
     Base class of privileged (scripted) policies, which read the true state of each env
     instead of the info dict, e.g. a shortest-path planner to collect expert datasets.
-
-    Subclasses implement :meth:`act`, the actions of all the agents of one env.
     """
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
@@ -126,11 +115,6 @@ class FeedForwardPolicy(BasePolicy):
     """
     Computes actions with one forward pass of a torch model, e.g. a behaviour-cloned policy or
     a trained MARL actor.
-
-    ``model.get_action(info_dict)`` receives the prepared info dict (see
-    :meth:`BasePolicy._prepare_info`), with its tensors on the model's device, and returns
-    actions of shape (num_envs, num_agents). ``process['action']``, if given, maps them back
-    with its ``inverse_transform``.
     """
     def __init__(
         self,
@@ -164,23 +148,8 @@ class FeedForwardPolicy(BasePolicy):
 @dataclass(frozen=True)
 class PlanConfig:
     """
-    Configuration of the model-predictive control loop of a :class:`WorldModelPolicy`
+    Configuration of the model-predictive control loop of a `WorldModelPolicy`
     (same fields as stable-worldmodel).
-
-    Attributes
-    ----------
-    horizon : int
-        Planning horizon, in steps
-    receding_horizon : int
-        Steps of each plan executed before replanning
-    history_len : int
-        Context frames given to the world model (one every ``action_block`` env steps)
-    history_max_len : int, optional
-        Capacity of the context buffer
-    action_block : int
-        Env steps per planning step (each planned action covers ``action_block`` env steps)
-    warm_start : bool
-        Whether the rest of the previous plan is passed to the solver
     """
     horizon: int
     receding_horizon: int
@@ -207,18 +176,11 @@ ACTION_HISTORY_KEY = 'action_history'   # info key of the actions executed betwe
 class WorldModelPolicy(BasePolicy):
     """
     Model-predictive control: plans the actions of all agents with a solver (over a world model),
-    executes the first ``receding_horizon`` planning steps (each ``action_block`` env steps), then
+    executes the first `receding_horizon` planning steps (each `action_block` env steps), then
     replans. Each env replans on its own schedule, and from scratch when it starts an episode
-    (``_needs_flush``). Works with discrete and continuous actions; centralised or decentralised
-    planning is chosen by the solver's ``mode`` and the objective (joint or per-agent cost).
+    (`_needs_flush`). Works with discrete and continuous actions; centralised or decentralised
+    planning is chosen by the solver's `mode` and the objective (joint or per-agent cost).
     Continuous actions are clipped to the action space, so the recorded actions are the executed ones.
-
-    With ``history_len > 1``, the solver gets the last ``history_len`` frames of the
-    `history_keys` (one every ``action_block`` env steps, oldest first, e.g. ``pixels``
-    ``(n, history_len, num_agents, ...)``) and the actions executed between them under
-    ``'action_history'`` ``(n, history_len - 1, num_agents, action_block * D)``. Early in an
-    episode the context is shorter; it is padded (copies of the oldest frame, zero actions) only
-    when envs at different fill levels replan together.
     """
     def __init__(
         self,
@@ -264,8 +226,8 @@ class WorldModelPolicy(BasePolicy):
 
     def _env_steps(self, plan):
         """
-        Planned actions ``(n, rh, A, X)`` -> one action per env step ``(n, rh * action_block, A, *shape)``:
-        X is ``action_block`` indices (discrete) or ``action_block * D`` values (continuous).
+        Planned actions `(n, rh, A, X)` -> one action per env step `(n, rh * action_block, A, *shape)`:
+        X is `action_block` indices (discrete) or `action_block * D` values (continuous).
         """
         n, rh, A = plan.shape[:3]
         ab = self.cfg.action_block

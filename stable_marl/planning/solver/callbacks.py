@@ -42,8 +42,8 @@ __all__ = ['Reduction', 'Callback', 'BestCostRecorder', 'MeanCostRecorder', 'Eli
 # %% ../../../nbs/planning/solver/04_callbacks.ipynb #d08964fb
 class Callback:
     """
-    Base of the solver callbacks: :meth:`compute` returns a per-env metric reduced by
-    ``self._reduce``. ``history`` is ``list[list[Any]]`` (batches x steps).
+    Base of the solver callbacks: `compute` returns a per-env metric reduced by
+    `self._reduce`. `history` is `list[list[Any]]` (batches x steps).
     """
     name: str | None = None
 
@@ -131,9 +131,9 @@ class EliteSpreadRecorder(Callback):
 # %% ../../../nbs/planning/solver/04_callbacks.ipynb #3a734765
 class GradNormRecorder(Callback):
     """
-    L2 norm of the action gradient per env (mean over the restarts). With ``per_step=True``,
+    L2 norm of the action gradient per env (mean over the restarts). With `per_step=True`,
     one norm per horizon step (a list of length H), taken over everything after the horizon axis
-    (the agents and action dimensions of ``(B, N, H, A, D)`` actions).
+    (the agents and action dimensions of `(B, N, H, A, D)` actions).
     """
     def __init__(self, reduction: Reduction = 'mean', per_step: bool = False):
         super().__init__(reduction=reduction)

@@ -44,18 +44,18 @@ __all__ = ['Costable', 'Constrainable', 'Dynamics', 'Objective', 'Transformable'
 class Costable(Protocol):
     """
     The cost surface planning solvers optimise: every solver types against it. Satisfied by a
-    world model composed with an :class:`Objective` (a shooting cost evaluator), and by models
-    exposing ``get_cost`` natively.
+    world model composed with an `Objective` (a shooting cost evaluator), and by models
+    exposing `get_cost` natively.
     """
     def criterion(self, info_dict: dict, action_candidates: torch.Tensor) -> torch.Tensor:
         """
-        Cost criterion of the action candidates ``(B, S, horizon, num_agents[, action_dim])``:
-        ``(B, S)`` joint or ``(B, S, num_agents)`` per agent.
+        Cost criterion of the action candidates `(B, S, horizon, num_agents[, action_dim])`:
+        `(B, S)` joint or `(B, S, num_agents)` per agent.
         """
         ...
 
     def get_cost(self, info_dict: dict, action_candidates: torch.Tensor) -> torch.Tensor:
-        "Cost of the action candidates, shaped like :meth:`criterion`."
+        "Cost of the action candidates, shaped like `criterion`."
         ...
 
 
@@ -63,10 +63,10 @@ class Costable(Protocol):
 class Constrainable(Protocol):
     """
     The optional constraint surface of a cost object, feature-detected by constrained solvers
-    with ``isinstance(cost, Constrainable)``. A constraint ``g_i`` is satisfied when ``g_i <= 0``.
+    with `isinstance(cost, Constrainable)`. A constraint `g_i` is satisfied when `g_i <= 0`.
     """
     def get_constraints(self, info_dict: dict, action_candidates: torch.Tensor) -> torch.Tensor:
-        "Constraint values of the candidates: ``(B, S, C)``, or ``(B, S, num_agents, C)`` per agent."
+        "Constraint values of the candidates: `(B, S, C)`, or `(B, S, num_agents, C)` per agent."
         ...
 
 
@@ -75,37 +75,31 @@ class Dynamics(Protocol):
     "The dynamics surface a shooting cost evaluator needs from a world model."
 
     def encode(self, x: dict) -> dict:
-        "Embed raw observations (e.g. ``pixels``, ``pixels``, ``state``); returns `x` with the embeddings (e.g. ``emb``)."
+        """
+        Embed raw observations (e.g. `pixels`, `pixels`, `state`); returns `x` with the embeddings (e.g. `emb`).
+        """
         ...
 
     def rollout(self, info_dict: dict, action_candidates: torch.Tensor) -> dict:
-        """
-        Roll the candidate action sequences ``(B, S, horizon, num_agents[, action_dim])`` forward.
-
-        `info_dict` holds ``H`` context steps of observations (e.g. ``pixels`` of shape
-        ``(B, S, H, num_agents, C, h, w)``); when ``H > 1`` the actions executed between them are
-        given as ``action_history`` ``(B, S, H - 1, num_agents[, action_dim])``. Returns
-        `info_dict` with the rollout outputs, e.g. ``predicted_emb`` of shape
-        ``(B, S, H + horizon, ...)`` whose first ``H`` entries encode the context.
-        """
+        "Roll the candidate action sequences `(B, S, horizon, num_agents[, action_dim])` forward."
         ...
 
 
 @runtime_checkable
 class Objective(Protocol):
     """
-    Scores an *already rolled-out* `info_dict` (holding e.g. ``predicted_emb`` and the goal):
-    unlike :class:`Costable`, it gets no action candidates and does no rollout. A shooting cost
-    evaluator stores the candidates under ``action_candidates`` for action-space penalties.
+    Scores an *already rolled-out* `info_dict` (holding e.g. `predicted_emb` and the goal):
+    unlike `Costable`, it gets no action candidates and does no rollout. A shooting cost
+    evaluator stores the candidates under `action_candidates` for action-space penalties.
     """
     def __call__(self, info_dict: dict) -> torch.Tensor:
-        "Per-candidate cost: ``(B, S)`` joint or ``(B, S, num_agents)`` per agent."
+        "Per-candidate cost: `(B, S)` joint or `(B, S, num_agents)` per agent."
         ...
 
 
 @runtime_checkable
 class Transformable(Protocol):
-    "Reversible data transformation (normalizers, scalers), e.g. a ``process`` entry of a policy."
+    "Reversible data transformation (normalizers, scalers), e.g. a `process` entry of a policy."
 
     def transform(self, x: np.ndarray) -> np.ndarray:
         ...
@@ -116,12 +110,12 @@ class Transformable(Protocol):
 
 @runtime_checkable
 class Actionable(Protocol):
-    "A model computing actions from an info dict, e.g. the model of a :class:`FeedForwardPolicy`."
+    "A model computing actions from an info dict, e.g. the model of a `FeedForwardPolicy`."
 
     def get_action(self, info: dict, horizon: int = 1, prefix_actions: torch.Tensor | None = None) -> torch.Tensor:
         """
-        Actions for the info dict: ``(..., num_agents[, action_dim])`` when ``horizon == 1``,
-        else a sequence ``(..., horizon, num_agents[, action_dim])``. `prefix_actions`
-        ``(..., t, num_agents[, action_dim])``, ``t < horizon``, are applied first (warm start).
+        Actions for the info dict: `(..., num_agents[, action_dim])` when `horizon == 1`,
+        else a sequence `(..., horizon, num_agents[, action_dim])`. `prefix_actions`
+        `(..., t, num_agents[, action_dim])`, `t < horizon`, are applied first (warm start).
         """
         ...

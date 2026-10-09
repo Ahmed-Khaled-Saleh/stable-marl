@@ -21,9 +21,9 @@ __all__ = ['lewm_losses', 'train_world_model']
 def lewm_losses(model: DecentralizedWorldModel, batch: dict, sigreg: SIGReg, history_size: int, num_preds: int = 1,
                 sigreg_weight: float = 0.09) -> dict[str, torch.Tensor]:
     """
-    LeWM losses of a batch of clips (as returned by :class:`HDF5Dataset`, with
-    ``num_steps = history_size + num_preds`` and ``frameskip = action_block``): ``loss`` (summed over
-    agents, whose models share no parameters) and per-agent ``pred_loss/<a>``, ``sigreg_loss/<a>``.
+    LeWM losses of a batch of clips (as returned by `HDF5Dataset`, with
+    `num_steps = history_size + num_preds` and `frameskip = action_block`): `loss` (summed over
+    agents, whose models share no parameters) and per-agent `pred_loss/<a>`, `sigreg_loss/<a>`.
     """
     frames, A, ab = batch[model.obs_key], model.num_agents, model.action_block
     B, T = frames.shape[:2]
@@ -70,9 +70,9 @@ def train_world_model(
     log: Callable[[dict], None] | None = print,
 ) -> dict[str, list[float]]:
     """
-    Train the agents' LeWMs on `dataset` (an :class:`HDF5Dataset` with
-    ``num_steps = history_size + num_preds``, ``frameskip = model.action_block`` and at least the
-    observation, ``action`` and ``terminated`` columns, plus the models' extra inputs). Defaults: stable-worldmodel's LeWM recipe.
+    Train the agents' LeWMs on `dataset` (an `HDF5Dataset` with
+    `num_steps = history_size + num_preds`, `frameskip = model.action_block` and at least the
+    observation, `action` and `terminated` columns, plus the models' extra inputs). Defaults: stable-worldmodel's LeWM recipe.
     Returns the mean train / validation loss of each epoch.
     """
     history_size = history_size or model.models[0].predictor.num_frames

@@ -90,7 +90,7 @@ class ConditionalBlock(nn.Module):
 
 
 class Block(nn.Module):
-    "Transformer block (causal unless ``causal=False``)."
+    "Transformer block (causal unless `causal=False`)."
     def __init__(self, dim: int, heads: int, dim_head: int, mlp_dim: int, dropout: float = 0.0, causal: bool = True):
         super().__init__()
         self.attn = Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)
@@ -125,7 +125,7 @@ class Transformer(nn.Module):
 
 # %% ../../../nbs/wm/01_lewm_module.ipynb #160f630b
 class Embedder(nn.Module):
-    "Action embedder: ``(B, T, input_dim)`` -> ``(B, T, emb_dim)``."
+    "Action embedder: `(B, T, input_dim)` -> `(B, T, emb_dim)`."
     def __init__(self, input_dim: int = 10, smoothed_dim: int = 10, emb_dim: int = 10, mlp_scale: int = 4):
         super().__init__()
         self.input_dim, self.smoothed_dim, self.emb_dim = input_dim, smoothed_dim, emb_dim
@@ -139,7 +139,7 @@ class Embedder(nn.Module):
 
 
 class MLP(nn.Module):
-    "Linear -> norm -> activation -> linear, on ``(N, input_dim)``."
+    "Linear -> norm -> activation -> linear, on `(N, input_dim)`."
     def __init__(self, input_dim: int, hidden_dim: int, output_dim: int | None = None, norm_fn=nn.LayerNorm,
                  act_fn=nn.GELU):
         super().__init__()
@@ -152,7 +152,7 @@ class MLP(nn.Module):
 
 
 class Predictor(nn.Module):
-    "Autoregressive predictor of the next embeddings, ``(B, T, d)`` conditioned on ``(B, T, act_dim)``."
+    "Autoregressive predictor of the next embeddings, `(B, T, d)` conditioned on `(B, T, act_dim)`."
     def __init__(self, *, num_frames, depth, heads, mlp_dim, input_dim, hidden_dim, output_dim=None, dim_head=64,
                  dropout=0.0, emb_dropout=0.0):
         super().__init__()
@@ -178,7 +178,7 @@ IMAGENET_MEAN, IMAGENET_STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
 
 
 class ViTEncoder(nn.Module):
-    "Vision transformer: images ``(N, C, H, W)`` -> CLS embedding ``(N, dim)``."
+    "Vision transformer: images `(N, C, H, W)` -> CLS embedding `(N, dim)`."
     def __init__(self, image_size: int = 224, patch_size: int = 14, dim: int = 192, depth: int = 12, heads: int = 3,
                  mlp_dim: int = 768, channels: int = 3, dropout: float = 0.0):
         super().__init__()
@@ -206,7 +206,9 @@ class ViTEncoder(nn.Module):
 
 
 class ExtraEncoder(nn.Module):
-    "Small MLP encoding a vector input (e.g. the agent's ``position``) multiplied by `scale`: ``(N, input_dim)`` -> ``(N, dim)``."
+    """
+    Small MLP encoding a vector input (e.g. the agent's `position`) multiplied by `scale`: `(N, input_dim)` -> `(N, dim)`.
+    """
     def __init__(self, input_dim: int, dim: int = 32, hidden_dim: int = 64, scale: float = 1.0):
         super().__init__()
         self.scale = scale
@@ -219,8 +221,8 @@ class ExtraEncoder(nn.Module):
 
 class ImagePreprocessor(nn.Module):
     """
-    Raw images ``(..., H, W, C)`` (``uint8``, or floats in [0, 255]) -> normalised floats
-    ``(..., C, image_size, image_size)``: resized (bilinear, antialiased), ImageNet statistics, as
+    Raw images `(..., H, W, C)` (`uint8`, or floats in [0, 255]) -> normalised floats
+    `(..., C, image_size, image_size)`: resized (bilinear, antialiased), ImageNet statistics, as
     in stable-worldmodel's LeWM training.
     """
     def __init__(self, image_size: int = 224, mean=IMAGENET_MEAN, std=IMAGENET_STD):

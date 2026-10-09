@@ -24,22 +24,11 @@ White = np.array([255, 255, 255])
 
 
 # %% ../../../nbs/envs/multigrid/00_rendering.ipynb #be7d5178
-def downsample(img: ndarray[np.uint8], factor: int) -> ndarray[np.uint8]:
-    """
-    Downsample an image along both dimensions by some factor.
-
-    Parameters
-    ----------
-    img : ndarray[uint8] of shape (height, width, 3)
-        The image to downsample
-    factor : int
-        The factor by which to downsample the image
-
-    Returns
-    -------
-    img : ndarray[uint8] of shape (height/factor, width/factor, 3)
-        The downsampled image
-    """
+def downsample(
+    img: ndarray[np.uint8], # The image to downsample
+    factor: int # The factor by which to downsample the image
+) -> ndarray[np.uint8]: # The downsampled image
+    "Downsample an image along both dimensions by some factor."
     assert img.shape[0] % factor == 0
     assert img.shape[1] % factor == 0
 
@@ -56,26 +45,11 @@ def downsample(img: ndarray[np.uint8], factor: int) -> ndarray[np.uint8]:
 
 # %% ../../../nbs/envs/multigrid/00_rendering.ipynb #6deaa3e6
 def fill_coords(
-    img: ndarray[np.uint8],
-    fn: FilterFunction,
-    color: ndarray[np.uint8]) -> ndarray[np.uint8]:
-    """
-    Fill pixels of an image with coordinates matching a filter function.
-
-    Parameters
-    ----------
-    img : ndarray[uint8] of shape (height, width, 3)
-        The image to fill
-    fn : Callable(float, float) -> bool
-        The filter function to use for coordinates
-    color : ndarray[uint8] of shape (3,)
-        RGB color to fill matching coordinates
-
-    Returns
-    -------
-    img : ndarray[np.uint8] of shape (height, width, 3)
-        The updated image
-    """
+    img: ndarray[np.uint8], # The image to fill
+    fn: FilterFunction, # The filter function to use for coordinates
+    color: ndarray[np.uint8] # RGB color to fill matching coordinates
+) -> ndarray[np.uint8]: # The updated image
+    "Fill pixels of an image with coordinates matching a filter function."
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
             yf = (y + 0.5) / img.shape[0]
@@ -88,29 +62,12 @@ def fill_coords(
 
 # %% ../../../nbs/envs/multigrid/00_rendering.ipynb #2c491333
 def rotate_fn(
-        fin: FilterFunction,
-        cx: float,
-        cy: float,
-        theta: float) -> FilterFunction:
-    """
-    Rotate a coordinate filter function around a center point by some angle.
-
-    Parameters
-    ----------
-    fin : Callable(float, float) -> bool
-        The filter function to rotate
-    cx : float
-        The x-coordinate of the center of rotation
-    cy : float
-        The y-coordinate of the center of rotation
-    theta : float
-        The angle by which to rotate the filter function (in radians)
-
-    Returns
-    -------
-    fout : Callable(float, float) -> bool
-        The rotated filter function
-    """
+    fin: FilterFunction, # The filter function to rotate
+    cx: float, # The x-coordinate of the center of rotation
+    cy: float, # The y-coordinate of the center of rotation
+    theta: float # The angle by which to rotate the filter function (in radians)
+) -> FilterFunction: # The rotated filter function
+    "Rotate a coordinate filter function around a center point by some angle."
     def fout(x, y):
         x = x - cx
         y = y - cy
@@ -125,28 +82,15 @@ def rotate_fn(
 
 # %% ../../../nbs/envs/multigrid/00_rendering.ipynb #bac72b84
 def point_in_line(
-    x0: float, y0: float, x1: float, y1: float, r: float) -> FilterFunction:
+    x0: float, # The x-coordinate of the line start point
+    y0: float, # The y-coordinate of the line start point
+    x1: float, # The x-coordinate of the line end point
+    y1: float, # The y-coordinate of the line end point
+    r: float # Maximum distance from the line
+) -> FilterFunction: # Filter function
     """
     Return a filter function that returns True for points within distance r
     from the line between (x0, y0) and (x1, y1).
-
-    Parameters
-    ----------
-    x0 : float
-        The x-coordinate of the line start point
-    y0 : float
-        The y-coordinate of the line start point
-    x1 : float
-        The x-coordinate of the line end point
-    y1 : float
-        The y-coordinate of the line end point
-    r : float
-        Maximum distance from the line
-
-    Returns
-    -------
-    fn : Callable(float, float) -> bool
-        Filter function
     """
     p0 = np.array([x0, y0], dtype=np.float32)
     p1 = np.array([x1, y1], dtype=np.float32)
@@ -179,24 +123,14 @@ def point_in_line(
 
 
 # %% ../../../nbs/envs/multigrid/00_rendering.ipynb #6f056af1
-def point_in_circle(cx: float, cy: float, r: float) -> FilterFunction:
+def point_in_circle(
+    cx: float, # The x-coordinate of the circle center
+    cy: float, # The y-coordinate of the circle center
+    r: float # The radius of the circle
+) -> FilterFunction: # Filter function
     """
     Return a filter function that returns True for points within radius r
     from a given point.
-
-    Parameters
-    ----------
-    cx : float
-        The x-coordinate of the circle center
-    cy : float
-        The y-coordinate of the circle center
-    r : float
-        The radius of the circle
-
-    Returns
-    -------
-    fn : Callable(float, float) -> bool
-        Filter function
     """
     def fn(x, y):
         return (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r
@@ -205,26 +139,13 @@ def point_in_circle(cx: float, cy: float, r: float) -> FilterFunction:
 
 
 # %% ../../../nbs/envs/multigrid/00_rendering.ipynb #8d49def1
-def point_in_rect(xmin: float, xmax: float, ymin: float, ymax: float) -> FilterFunction:
-    """
-    Return a filter function that returns True for points within a rectangle.
-
-    Parameters
-    ----------
-    xmin : float
-        The minimum x-coordinate of the rectangle
-    xmax : float
-        The maximum x-coordinate of the rectangle
-    ymin : float
-        The minimum y-coordinate of the rectangle
-    ymax : float
-        The maximum y-coordinate of the rectangle
-
-    Returns
-    -------
-    fn : Callable(float, float) -> bool
-        Filter function
-    """
+def point_in_rect(
+    xmin: float, # The minimum x-coordinate of the rectangle
+    xmax: float, # The maximum x-coordinate of the rectangle
+    ymin: float, # The minimum y-coordinate of the rectangle
+    ymax: float # The maximum y-coordinate of the rectangle
+) -> FilterFunction: # Filter function
+    "Return a filter function that returns True for points within a rectangle."
     def fn(x, y):
         return x >= xmin and x <= xmax and y >= ymin and y <= ymax
 
@@ -233,26 +154,11 @@ def point_in_rect(xmin: float, xmax: float, ymin: float, ymax: float) -> FilterF
 
 # %% ../../../nbs/envs/multigrid/00_rendering.ipynb #f82d166f
 def point_in_triangle(
-    a: tuple[float, float],
-    b: tuple[float, float],
-    c: tuple[float, float]) -> FilterFunction:
-    """
-    Return a filter function that returns True for points within a triangle.
-
-    Parameters
-    ----------
-    a : tuple[float, float]
-        The first vertex of the triangle
-    b : tuple[float, float]
-        The second vertex of the triangle
-    c : tuple[float, float]
-        The third vertex of the triangle
-
-    Returns
-    -------
-    fn : Callable(float, float) -> bool
-        Filter function
-    """
+    a: tuple[float, float], # The first vertex of the triangle
+    b: tuple[float, float], # The second vertex of the triangle
+    c: tuple[float, float] # The third vertex of the triangle
+) -> FilterFunction: # Filter function
+    "Return a filter function that returns True for points within a triangle."
     a = np.array(a, dtype=np.float32)
     b = np.array(b, dtype=np.float32)
     c = np.array(c, dtype=np.float32)
@@ -282,26 +188,11 @@ def point_in_triangle(
 
 # %% ../../../nbs/envs/multigrid/00_rendering.ipynb #8c673212
 def highlight_img(
-    img: ndarray[np.uint8],
-    color: ndarray[np.uint8] | None = None,
-    alpha=0.30) -> ndarray[np.uint8]:
-    """
-    Add highlighting to an image.
-
-    Parameters
-    ----------
-    img : ndarray[uint8] of shape (height, width, 3)
-        The image to highlight
-    color : ndarray[uint8] of shape (3,)
-        RGB color to use for highlighting (default: white)
-    alpha : float
-        The alpha value to use for blending
-
-    Returns
-    -------
-    img : ndarray[uint8] of shape (height, width, 3)
-        The highlighted image
-    """
+    img: ndarray[np.uint8], # The image to highlight
+    color: ndarray[np.uint8] | None = None, # RGB color to use for highlighting (default: white)
+    alpha=0.30 # The alpha value to use for blending (float)
+) -> ndarray[np.uint8]: # The highlighted image
+    "Add highlighting to an image."
     color = White if color is None else color
     blend_img = img + alpha * (np.array(color, dtype=np.uint8) - img)
     blend_img = blend_img.clip(0, 255).astype(np.uint8)

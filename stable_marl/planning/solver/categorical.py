@@ -46,11 +46,8 @@ class CategoricalCEMSolver(SolverBase):
     """
     Cross-entropy method over discrete actions: one categorical distribution per (step, agent,
     action-block step), sampled with Gumbel-max, refit from the `topk` best candidates (per
-    agent in ``'per_agent'`` mode). Candidates are one-hot ``(B, S, H, A, action_block * K)``;
-    returns ``actions`` ``(n_envs, H, A, action_block)``.
-
-    `smoothing` is added to the refit probabilities, `alpha` is their momentum.
-    `init_action` is accepted for API parity and ignored, as in stable-worldmodel.
+    agent in `'per_agent'` mode). Candidates are one-hot `(B, S, H, A, action_block * K)`;
+    returns `actions` `(n_envs, H, A, action_block)`.
     """
     discrete = True
     supports_callbacks = True
@@ -111,7 +108,7 @@ class CategoricalCEMSolver(SolverBase):
 
 
 class CategoricalMPPISolver(CategoricalCEMSolver):
-    "Like :class:`CategoricalCEMSolver`, every candidate weighted by ``softmax(-cost / temperature)``."
+    "Like `CategoricalCEMSolver`, every candidate weighted by `softmax(-cost / temperature)`."
     def __init__(self, cost: Costable, temperature: float = 1.0, **kwargs):
         super().__init__(cost, **kwargs)
         self.temperature = temperature
@@ -125,10 +122,10 @@ class PGDSolver(SolverBase):
     Projected gradient descent over relaxed discrete actions: each (step, agent, action-block step)
     is a point of the probability simplex over the K actions, optimised by gradient descent on the
     cost (which must be differentiable in the candidates) and projected back on the simplex.
-    `num_samples` restarts are optimised; the best one is kept (per agent in ``'per_agent'``
+    `num_samples` restarts are optimised; the best one is kept (per agent in `'per_agent'`
     mode, where each agent's actions only receive the gradient of its own cost). Returns
-    ``actions`` ``(n_envs, H, A, action_block)``. `init_action` may be action indices
-    ``(n_envs, t, A, action_block)`` or relaxed actions ``(n_envs, t, A, action_block * K)``:
+    `actions` `(n_envs, H, A, action_block)`. `init_action` may be action indices
+    `(n_envs, t, A, action_block)` or relaxed actions `(n_envs, t, A, action_block * K)`:
     `from_scalar` says which (as in stable-worldmodel); by default, integer tensors are indices.
     """
     discrete = True

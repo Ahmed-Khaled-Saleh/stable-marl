@@ -11,35 +11,14 @@ import numpy as np
 
 # %% ../../nbs/utils/01_misc.ipynb #3f6237ef
 class PropertyAlias(property):
-    """
-    A class property that is an alias for an attribute property.
+    "A class property that is an alias for an attribute property."
 
-    Instead of::
-
-        @property
-        def x(self):
-            self.attr.x
-
-        @x.setter
-        def x(self, value):
-            self.attr.x = value
-
-    we can simply just declare::
-
-        x = PropertyAlias('attr', 'x')
-    """
-
-    def __init__(self, attr_name: str, attr_property_name: str, doc: str = None) -> None:
-        """
-        Parameters
-        ----------
-        attr_name : str
-            Name of the base attribute
-        attr_property : property
-            Property from the base attribute class
-        doc : str
-            Docstring to append to the property's original docstring
-        """
+    def __init__(
+        self,
+        attr_name: str, # Name of the base attribute
+        attr_property_name: str,
+        doc: str = None # Docstring to append to the property's original docstring
+    ) -> None:
         prop = lambda obj: getattr(type(getattr(obj, attr_name)), attr_property_name)
         fget = lambda obj: prop(obj).fget(getattr(obj, attr_name))
         fset = lambda obj, value: prop(obj).fset(getattr(obj, attr_name), value)
@@ -53,14 +32,7 @@ CELL_SIZE = 2.0   # metres per grid cell
 WALL_H    = 3.0   # only needed if you want the vertical center
 
 def grid_to_world(gx: int, gy: int, cell_size: float = CELL_SIZE):
-    """
-    Map a 2D grid cell (gx, gy) to the 3D world position (wx, wy, wz).
-    
-    - wx = gx * cell_size           (grid x -> world y, same direction)
-    - wy = -gy * cell_size          (grid y -> world x, FLIPPED because
-                                     Blender Y is forward but grid Y is down)
-    - wz = 1.0                      (up-ground level, agents walk on z=1)
-    """
+    "Map a 2D grid cell (gx, gy) to the 3D world position (wx, wy, wz)."
     wx = gx * cell_size
     wy = -gy * cell_size   # flip Y
     wz = 1.0

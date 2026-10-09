@@ -41,11 +41,11 @@ __all__ = ['flat_goal_encode', 'split_goal_encode', 'default_goal_encode', 'Shoo
 # %% ../../nbs/planning/00_evaluator.ipynb #573f4223
 def flat_goal_encode(model: Dynamics, info_dict: dict, goal_obs_key: str = 'pixels') -> torch.Tensor:
     """
-    Encode the goal for models whose latent is one tensor: the goal observation (``goal``)
-    takes the place of `goal_obs_key` (each agent's ``pixels`` by default), and every
-    ``goal_<key>`` the place of ``<key>`` (e.g. ``goal_position`` -> ``position``); inputs with
-    no goal value (e.g. ``direction``) keep their latest entries.
-    Pair with :class:`GoalMSE`.
+    Encode the goal for models whose latent is one tensor: the goal observation (`goal`)
+    takes the place of `goal_obs_key` (each agent's `pixels` by default), and every
+    `goal_<key>` the place of `<key>` (e.g. `goal_position` -> `position`); inputs with
+    no goal value (e.g. `direction`) keep their latest entries.
+    Pair with `GoalMSE`.
     """
     assert 'goal' in info_dict, "goal not in info_dict"
     goal = {k: v[:, 0] for k, v in info_dict.items() if torch.is_tensor(v)}   # drop the candidate axis
@@ -65,15 +65,11 @@ def flat_goal_encode(model: Dynamics, info_dict: dict, goal_obs_key: str = 'pixe
 def split_goal_encode(model: Dynamics, info_dict: dict) -> torch.Tensor:
     """
     Encode the goal for models whose latent concatenates several sources (stable-worldmodel's
-    ``PreJEPA``): the pixel embedding and one embedding per extra encoder. The action encoder is
+    `PreJEPA`): the pixel embedding and one embedding per extra encoder. The action encoder is
     left out (a goal prescribes a state, not an action), and the cost has to compare the parts,
-    so the per-source goal embeddings are stored in `info_dict` (``pixels_goal_emb``,
-    ``<key>_goal_emb``) next to the fused one, which is returned (for ``goal_emb``). Score them
-    with one :class:`GoalMSE` per source, combined with :class:`WeightedSum`.
-
-    The model's ``encode(info, pixels_key=, emb_keys=, prefix=, target=)`` reads the goal-side
-    inputs (``goal``, ``goal_<key>``) and writes ``<target>``, ``pixels_<target>``,
-    ``<key>_<target>``.
+    so the per-source goal embeddings are stored in `info_dict` (`pixels_goal_emb`,
+    `<key>_goal_emb`) next to the fused one, which is returned (for `goal_emb`). Score them
+    with one `GoalMSE` per source, combined with `WeightedSum`.
     """
     assert 'goal' in info_dict, "goal not in info_dict"
     emb_keys = [k for k in model.extra_encoders if k != 'action']
@@ -85,7 +81,7 @@ def split_goal_encode(model: Dynamics, info_dict: dict) -> torch.Tensor:
 
 
 def _splits_latent(model) -> bool:
-    "Whether `model` fuses extra sources into a split latent (its ``encode`` takes ``emb_keys``)."
+    "Whether `model` fuses extra sources into a split latent (its `encode` takes `emb_keys`)."
     if not getattr(model, 'extra_encoders', None):
         return False
     import inspect
@@ -97,10 +93,10 @@ def _splits_latent(model) -> bool:
 
 def default_goal_encode(model: Dynamics, info_dict: dict) -> torch.Tensor:
     """
-    The goal encoding matching the model's latent: :func:`split_goal_encode` for models with a
-    split latent (extra encoders, and an ``encode`` taking ``emb_keys``), else
-    :func:`flat_goal_encode` with each agent's ``pixels``. stable-worldmodel dispatches on
-    ``extra_encoders`` alone; here LeWM's extra encoders are projected into one flat latent, so
+    The goal encoding matching the model's latent: `split_goal_encode` for models with a
+    split latent (extra encoders, and an `encode` taking `emb_keys`), else
+    `flat_goal_encode` with each agent's `pixels`. stable-worldmodel dispatches on
+    `extra_encoders` alone; here LeWM's extra encoders are projected into one flat latent, so
     it keeps the flat path.
     """
     if _splits_latent(model):
@@ -110,27 +106,17 @@ def default_goal_encode(model: Dynamics, info_dict: dict) -> torch.Tensor:
 # %% ../../nbs/planning/00_evaluator.ipynb #e91d2c80
 class ShootingCostEvaluator(torch.nn.Module):
     """
-    Single-shooting adapter making ``(model, objective)`` a :class:`Costable`: it encodes the
+    Single-shooting adapter making `(model, objective)` a `Costable`: it encodes the
     goal (once), rolls the candidate action sequences out with the model in one shot, then scores
     the predicted trajectories with the objective. Solvers consume it like a world model.
-
-    Parameters
-    ----------
-    model : Dynamics
-        World model with ``encode`` / ``rollout`` (registered as a submodule)
-    objective : Objective
-        Cost of a rolled-out info dict: ``(B, S)`` joint or ``(B, S, num_agents)`` per agent
-    constraints : list of Objective, optional
-        Terms used as constraints (satisfied when ``<= 0``), exposed by ``get_constraints``
-    encode_goal : callable or None
-        ``fn(model, info_dict) -> goal_emb`` (None: the caller provides ``goal_emb``)
     """
     def __init__(
         self,
-        model: Dynamics,
-        objective: Objective,
-        constraints: list[Objective] | None = None,
-        encode_goal: Callable[[Dynamics, dict], torch.Tensor] | None = default_goal_encode):
+        model: Dynamics, # World model with `encode` / `rollout` (registered as a submodule)
+        objective: Objective, # Cost of a rolled-out info dict: `(B, S)` joint or `(B, S, num_agents)` per agent
+        constraints: list[Objective] | None = None, # Terms used as constraints (satisfied when `<= 0`), exposed by `get_constraints`
+        encode_goal: Callable[[Dynamics, dict], torch.Tensor] | None = default_goal_encode # `fn(model, info_dict) -> goal_emb` (None: the caller provides `goal_emb`)
+    ):
         super().__init__()
         self.model, self.objective, self.constraints, self.encode_goal = model, objective, constraints, encode_goal
         if constraints:

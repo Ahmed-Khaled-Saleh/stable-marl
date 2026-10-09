@@ -17,21 +17,21 @@ FORMATS: dict[str, type[Format]] = {}
 
 WRITE_MODES = ('append', 'overwrite', 'error')
 """
-Writer modes shared by all formats: ``append`` extends an existing dataset (default),
-``overwrite`` replaces it, ``error`` raises :class:`FileExistsError` if it exists.
+Writer modes shared by all formats: `append` extends an existing dataset (default),
+`overwrite` replaces it, `error` raises `FileExistsError` if it exists.
 """
 
 
 EPISODE_DATA_KEY = '_episode_data'
 """
 Reserved key of an episode dict holding its episode-scoped values (one per episode, not per
-step). Writers of formats with ``supports_episode_data`` split it out with
-:func:`split_episode_data`; the others never receive it (``convert`` / ``merge`` drop it first).
+step). Writers of formats with `supports_episode_data` split it out with
+`split_episode_data`; the others never receive it (`convert` / `merge` drop it first).
 """
 
 
 def split_episode_data(ep_data: dict) -> tuple[dict, dict]:
-    "``(per-step columns, episode data)`` of an episode dict, without changing it."
+    "`(per-step columns, episode data)` of an episode dict, without changing it."
     if EPISODE_DATA_KEY not in ep_data:
         return ep_data, {}
     return {k: v for k, v in ep_data.items() if k != EPISODE_DATA_KEY}, dict(ep_data[EPISODE_DATA_KEY] or {})
@@ -44,7 +44,7 @@ def validate_write_mode(mode: str) -> str:
 
 
 def register_format(cls: type[Format]) -> type[Format]:
-    "Class decorator registering a :class:`Format` under its `name`."
+    "Class decorator registering a `Format` under its `name`."
     name = getattr(cls, 'name', None)
     if not name:
         raise ValueError(f"{cls.__name__} must set a non-empty `name` class attribute")
@@ -66,7 +66,7 @@ def get_format(name: str) -> type[Format]:
 
 
 def detect_format(path: str | Path) -> type[Format] | None:
-    "The first registered format whose ``detect`` matches `path`, else None."
+    "The first registered format whose `detect` matches `path`, else None."
     for fmt in FORMATS.values():
         if fmt.detect(path):
             return fmt
@@ -76,7 +76,7 @@ def detect_format(path: str | Path) -> type[Format] | None:
 class Format:
     "An on-disk dataset format: subclasses set `name`, implement `detect` and their reader / writer."
     name: str = ''
-    #: whether the writer stores episode-scoped data (:data:`EPISODE_DATA_KEY`)
+    #: whether the writer stores episode-scoped data (`EPISODE_DATA_KEY`)
     supports_episode_data: bool = False
 
     @classmethod
@@ -89,13 +89,13 @@ class Format:
 
     @classmethod
     def open_writer(cls, path, **kwargs) -> Writer:
-        "A streaming :class:`Writer`; built-in writers take a ``mode`` from :data:`WRITE_MODES`."
+        "A streaming `Writer`; built-in writers take a `mode` from `WRITE_MODES`."
         raise NotImplementedError(f"format {cls.name or cls.__name__!r} does not support writing")
 
 
 @runtime_checkable
 class Writer(Protocol):
-    "Streaming writer: append episodes inside a ``with`` block."
+    "Streaming writer: append episodes inside a `with` block."
     def __enter__(self) -> Writer: ...
     def __exit__(self, *exc) -> None: ...
     def write_episode(self, ep_data: dict) -> None: ...

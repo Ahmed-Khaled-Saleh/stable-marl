@@ -22,124 +22,18 @@ __all__ = ['LockedHallwayEnv']
 
 # %% ../../../nbs/envs/multigrid/07_locked_hallway.ipynb #866a0f29
 class LockedHallwayEnv(RoomGrid):
-    """
-    .. image:: https://i.imgur.com/VylPtnn.gif
-        :width: 325
-
-    ***********
-    Description
-    ***********
-
-    This environment consists of a hallway with multiple locked rooms on either side.
-    To unlock each door, agents must first find the corresponding key,
-    which may be in another locked room. Agents are rewarded for each door they unlock.
-
-    The standard setting is cooperative, where all agents receive a reward
-    for each door that is opened.
-
-    *************
-    Mission Space
-    *************
-
-    "unlock all the doors"
-
-    *****************
-    Observation Space
-    *****************
-
-    The multi-agent observation space is a Dict mapping from agent index to
-    corresponding agent observation space.
-
-    Each agent observation is a dictionary with the following entries:
-
-    * image : ndarray[int] of shape (view_size, view_size, :attr:`.WorldObj.dim`)
-        Encoding of the agent's partially observable view of the environment,
-        where each grid cell is encoded as a 3 dimensional tuple:
-        (:class:`.Type`, :class:`.Color`, :class:`.State`)
-    * direction : int
-        Agent's direction (0: right, 1: down, 2: left, 3: up)
-    * mission : Mission
-        Task string corresponding to the current environment configuration
-
-    ************
-    Action Space
-    ************
-
-    The multi-agent action space is a Dict mapping from agent index to
-    corresponding agent action space.
-
-    Agent actions are discrete integer values, given by:
-
-    +-----+--------------+-----------------------------+
-    | Num | Name         | Action                      |
-    +=====+==============+=============================+
-    | 0   | left         | Turn left                   |
-    +-----+--------------+-----------------------------+
-    | 1   | right        | Turn right                  |
-    +-----+--------------+-----------------------------+
-    | 2   | forward      | Move forward                |
-    +-----+--------------+-----------------------------+
-    | 3   | pickup       | Pick up an object           |
-    +-----+--------------+-----------------------------+
-    | 4   | drop         | Drop an object              |
-    +-----+--------------+-----------------------------+
-    | 5   | toggle       | Toggle / activate an object |
-    +-----+--------------+-----------------------------+
-    | 6   | done         | Done completing task        |
-    +-----+--------------+-----------------------------+
-
-    *******
-    Rewards
-    *******
-
-    A reward of ``1 - 0.9 * (step_count / max_steps)`` is given
-    when a door is unlocked.
-
-    ***********
-    Termination
-    ***********
-
-    The episode ends if any one of the following conditions is met:
-
-    * All doors are unlocked
-    * Timeout (see ``max_steps``)
-
-    *************************
-    Registered Configurations
-    *************************
-
-    * ``MultiGrid-LockedHallway-2Rooms-v0``
-    * ``MultiGrid-LockedHallway-4Rooms-v0``
-    * ``MultiGrid-LockedHallway-6Rooms-v0``
-    """
+    "This environment consists of a hallway with multiple locked rooms on either side."
 
     def __init__(
         self,
-        num_rooms: int = 6,
-        room_size: int = 5,
-        max_hallway_keys: int = 1,
-        max_keys_per_room: int = 2,
-        max_steps: int | None = None,
-        joint_reward: bool = True,
-        **kwargs):
-        """
-        Parameters
-        ----------
-        num_rooms : int, default=6
-            Number of rooms in the environment
-        room_size : int, default=5
-            Width and height for each of the rooms
-        max_hallway_keys : int, default=1
-            Maximum number of keys in the hallway
-        max_keys_per_room : int, default=2
-            Maximum number of keys in each room
-        max_steps : int, optional
-            Maximum number of steps per episode
-        joint_reward : bool, default=True
-            Whether all agents receive the same reward
-        **kwargs
-            See :attr:`stable_marl.base.MultiGridEnv.__init__`
-        """
+        num_rooms: int = 6, # Number of rooms in the environment
+        room_size: int = 5, # Width and height for each of the rooms
+        max_hallway_keys: int = 1, # Maximum number of keys in the hallway
+        max_keys_per_room: int = 2, # Maximum number of keys in each room
+        max_steps: int | None = None, # Maximum number of steps per episode
+        joint_reward: bool = True, # Whether all agents receive the same reward
+        **kwargs # See `stable_marl.base.MultiGridEnv.__init__`
+    ):
         assert room_size >= 4
         assert num_rooms % 2 == 0
 
@@ -169,9 +63,6 @@ class LockedHallwayEnv(RoomGrid):
 # %% ../../../nbs/envs/multigrid/07_locked_hallway.ipynb #e8188d3d
 @patch
 def _gen_grid(self: LockedHallwayEnv, width, height):
-    """
-    :meta private:
-    """
     #super()
     RoomGrid._gen_grid(self, width, height)
 
@@ -220,9 +111,6 @@ def _gen_grid(self: LockedHallwayEnv, width, height):
 # %% ../../../nbs/envs/multigrid/07_locked_hallway.ipynb #795556ff
 @patch
 def reset(self: LockedHallwayEnv, **kwargs):
-    """
-    :meta private:
-    """
     self.unlocked_doors = []
     # return super().reset(**kwargs)
     return RoomGrid.reset(self, **kwargs)
@@ -230,12 +118,6 @@ def reset(self: LockedHallwayEnv, **kwargs):
 # %% ../../../nbs/envs/multigrid/07_locked_hallway.ipynb #5b8cc1e1
 @patch
 def on_toggle(self: LockedHallwayEnv, agent, obj, pos, rewards):
-    """
-    :meta private:
-
-    Reward agents for unlocking each locked door (once per door), and end the
-    episode once every door has been unlocked.
-    """
     if obj in self.locked_doors and not obj.is_locked and obj not in self.unlocked_doors:
         self.unlocked_doors.append(obj)
         if self.joint_reward:

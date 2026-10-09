@@ -40,7 +40,7 @@ class SIGReg(torch.nn.Module):
     """
     Sketched isotropic Gaussian regulariser (LeJEPA, https://arxiv.org/abs/2511.08544): pushes the
     embeddings towards an isotropic Gaussian along `num_proj` random directions (Epps-Pulley
-    statistic), which prevents representation collapse. Input ``(T, B, D)``.
+    statistic), which prevents representation collapse. Input `(T, B, D)`.
     """
     def __init__(self, knots: int = 17, num_proj: int = 1024):
         super().__init__()
@@ -63,7 +63,7 @@ class SIGReg(torch.nn.Module):
 
 
 class VCReg(torch.nn.Module):
-    "Variance-covariance regulariser (VICReg-style) of embeddings ``(B, T, D)``."
+    "Variance-covariance regulariser (VICReg-style) of embeddings `(B, T, D)`."
     def __init__(self, eps: float = 1e-4):
         super().__init__()
         self.eps = eps

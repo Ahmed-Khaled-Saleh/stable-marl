@@ -19,29 +19,19 @@ __all__ = ['IndexedEnum']
 
 # %% ../../nbs/utils/00_enums.ipynb #4b2d5102
 @functools.cache
-def _enum_array(enum_cls: enum.EnumMeta):
-    """
-    Return an array of all values of the given enum.
-
-    Parameters
-    ----------
-    enum_cls : enum.EnumMeta
-        Enum class
-    """
+def _enum_array(
+    enum_cls: enum.EnumMeta # Enum class
+):
+    "Return an array of all values of the given enum."
     return np.array([item.value for item in enum_cls])
 
 
 # %% ../../nbs/utils/00_enums.ipynb #2ea0d640
 @functools.cache
-def _enum_index(enum_item: enum.Enum):
-    """
-    Return the index of the given enum item.
-
-    Parameters
-    ----------
-    enum_item : enum.Enum
-        Enum item
-    """
+def _enum_index(
+    enum_item: enum.Enum # Enum item
+):
+    "Return the index of the given enum item."
     return list(enum_item.__class__).index(enum_item)
 
 
@@ -56,36 +46,24 @@ class IndexedEnum(enum.Enum):
         return self.to_index()
 
     @classmethod
-    def add_item(cls, name: str, value: Any):
-        """
-        Add a new item to the enumeration.
-
-        Parameters
-        ----------
-        name : str
-            Name of the new enum item
-        value : Any
-            Value of the new enum item
-        """
+    def add_item(
+        cls,
+        name: str, # Name of the new enum item
+        value: Any # Value of the new enum item
+    ):
+        "Add a new item to the enumeration."
         enum.extend_enum(cls, name, value)
         _enum_array.cache_clear()
         _enum_index.cache_clear()
 
     @classmethod
-    def from_index(cls, index: int | ArrayLike[int]) -> enum.Enum | ndarray:
+    def from_index(
+        cls,
+        index: int | ArrayLike[int] # Enum index (or array of indices)
+    ) -> enum.Enum | ndarray: # Enum item (or array of enum item values)
         """
         Return the enum item corresponding to the given index.
         Also supports vector inputs.
-
-        Parameters
-        ----------
-        index : int or ArrayLike[int]
-            Enum index (or array of indices)
-
-        Returns
-        -------
-        enum.Enum or ndarray
-            Enum item (or array of enum item values)
         """
         out = _enum_array(cls)[index]
         return cls(out) if out.ndim == 0 else out

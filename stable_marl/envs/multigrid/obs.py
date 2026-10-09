@@ -60,15 +60,10 @@ DOWN = int(Direction.down)
 
 # %% ../../../nbs/envs/multigrid/01_obs.ipynb #c7f9a6f4
 @nb.njit(cache=True)
-def see_behind(world_obj: ndarray[np.int_]) -> bool:
-    """
-    Can an agent see behind this object?
-
-    Parameters
-    ----------
-    world_obj : ndarray[int] of shape (encode_dim,)
-        World object encoding
-    """
+def see_behind(
+    world_obj: ndarray[np.int_] # World object encoding
+) -> bool:
+    "Can an agent see behind this object?"
     if world_obj is None:
         return True
     if world_obj[TYPE] == WALL:
@@ -81,26 +76,11 @@ def see_behind(world_obj: ndarray[np.int_]) -> bool:
 # %% ../../../nbs/envs/multigrid/01_obs.ipynb #0311d123
 @nb.njit(cache=True)
 def get_view_exts(
-    agent_dir: ndarray[np.int_],
-    agent_pos: ndarray[np.int_],
-    agent_view_size: int) -> ndarray[np.int_]:
-    """
-    Get the extents of the square set of grid cells visible to each agent.
-
-    Parameters
-    ----------
-    agent_dir : ndarray[int] of shape (num_agents,)
-        Direction of each agent
-    agent_pos : ndarray[int] of shape (num_agents, 2)
-        The (x, y) position of each agent
-    agent_view_size : int
-        Width and height of agent view
-
-    Returns
-    -------
-    top_left : ndarray[int] of shape (num_agents, 2)
-        The (x, y) coordinates of the top-left corner of each agent's observable view
-    """
+    agent_dir: ndarray[np.int_], # Direction of each agent
+    agent_pos: ndarray[np.int_], # The (x, y) position of each agent
+    agent_view_size: int # Width and height of agent view
+) -> ndarray[np.int_]: # The (x, y) coordinates of the top-left corner of each agent's observable view
+    "Get the extents of the square set of grid cells visible to each agent."
     agent_x, agent_y = agent_pos[:, 0], agent_pos[:, 1]
     top_left = np.zeros((agent_dir.shape[0], 2), dtype=np.int_)
 
@@ -125,20 +105,10 @@ def get_view_exts(
 
 # %% ../../../nbs/envs/multigrid/01_obs.ipynb #45834de2
 @nb.njit(cache=True)
-def get_see_behind_mask(grid_array: ndarray[np.int_]) -> ndarray[np.int_]:
-    """
-    Return boolean mask indicating which grid locations can be seen through.
-
-    Parameters
-    ----------
-    grid_array : ndarray[int] of shape (num_agents, width, height, dim)
-        Grid object array for each agent
-
-    Returns
-    -------
-    see_behind_mask : ndarray[bool] of shape (width, height)
-        Boolean visibility mask
-    """
+def get_see_behind_mask(
+    grid_array: ndarray[np.int_] # Grid object array for each agent
+) -> ndarray[np.int_]: # Boolean visibility mask
+    "Return boolean mask indicating which grid locations can be seen through."
     num_agents, width, height = grid_array.shape[:3]
     see_behind_mask = np.zeros((num_agents, width, height), dtype=np.bool_)
     for agent in range(num_agents):
@@ -151,20 +121,10 @@ def get_see_behind_mask(grid_array: ndarray[np.int_]) -> ndarray[np.int_]:
 
 # %% ../../../nbs/envs/multigrid/01_obs.ipynb #6697eff8
 @nb.njit(cache=True)
-def get_vis_mask(obs_grid: ndarray[np.int_]) -> ndarray[np.bool_]:
-    """
-    Generate a boolean mask indicating which grid locations are visible to each agent.
-
-    Parameters
-    ----------
-    obs_grid : ndarray[int] of shape (num_agents, width, height, dim)
-        Grid object array for each agent observation
-
-    Returns
-    -------
-    vis_mask : ndarray[bool] of shape (num_agents, width, height)
-        Boolean visibility mask for each agent
-    """
+def get_vis_mask(
+    obs_grid: ndarray[np.int_] # Grid object array for each agent observation
+) -> ndarray[np.bool_]: # Boolean visibility mask for each agent
+    "Generate a boolean mask indicating which grid locations are visible to each agent."
     num_agents, width, height = obs_grid.shape[:3]
     see_behind_mask = get_see_behind_mask(obs_grid)
     vis_mask = np.zeros((num_agents, width, height), dtype=np.bool_)
@@ -194,26 +154,11 @@ def get_vis_mask(obs_grid: ndarray[np.int_]) -> ndarray[np.bool_]:
 # %% ../../../nbs/envs/multigrid/01_obs.ipynb #acc7e74a
 @nb.njit(cache=True)
 def gen_obs_grid(
-    grid_state: ndarray[np.int_],
-    agent_state: ndarray[np.int_],
-    agent_view_size: int) -> ndarray[np.int_]:
-    """
-    Generate the sub-grid observed by each agent (WITHOUT visibility mask).
-
-    Parameters
-    ----------
-    grid_state : ndarray[int] of shape (width, height, grid_state_dim)
-        Array representation for each grid object
-    agent_state : ndarray[int] of shape (num_agents, agent_state_dim)
-        Array representation for each agent
-    agent_view_size : int
-        Width and height of observation sub-grids
-
-    Returns
-    -------
-    obs_grid : ndarray[int] of shape (num_agents, width, height, encode_dim)
-        Observed sub-grid for each agent
-    """
+    grid_state: ndarray[np.int_], # Array representation for each grid object
+    agent_state: ndarray[np.int_], # Array representation for each agent
+    agent_view_size: int # Width and height of observation sub-grids
+) -> ndarray[np.int_]: # Observed sub-grid for each agent
+    "Generate the sub-grid observed by each agent (WITHOUT visibility mask)."
     num_agents = len(agent_state)
     obs_width, obs_height = agent_view_size, agent_view_size
 
@@ -277,29 +222,12 @@ def gen_obs_grid(
 # %% ../../../nbs/envs/multigrid/01_obs.ipynb #a22b310d
 @nb.njit(cache=True)
 def gen_obs_grid_encoding(
-    grid_state: ndarray[np.int_],
-    agent_state: ndarray[np.int_],
-    agent_view_size: int,
-    see_through_walls: bool) -> ndarray[np.int_]:
-    """
-    Generate encoding for the sub-grid observed by an agent (including visibility mask).
-
-    Parameters
-    ----------
-    grid_state : ndarray[int] of shape (width, height, grid_state_dim)
-        Array representation for each grid object
-    agent_state : ndarray[int] of shape (num_agents, agent_state_dim)
-        Array representation for each agent
-    agent_view_size : int
-        Width and height of observation sub-grids
-    see_through_walls : bool
-        Whether the agent can see through walls
-
-    Returns
-    -------
-    img : ndarray[int] of shape (num_agents, view_size, view_size, encode_dim)
-        Encoding of observed sub-grid for each agent
-    """
+    grid_state: ndarray[np.int_], # Array representation for each grid object
+    agent_state: ndarray[np.int_], # Array representation for each agent
+    agent_view_size: int, # Width and height of observation sub-grids
+    see_through_walls: bool # Whether the agent can see through walls
+) -> ndarray[np.int_]: # Encoding of observed sub-grid for each agent
+    "Generate encoding for the sub-grid observed by an agent (including visibility mask)."
     obs_grid = gen_obs_grid(grid_state, agent_state, agent_view_size)
 
     # Generate and apply visibility masks
@@ -318,20 +246,10 @@ def gen_obs_grid_encoding(
 
 # %% ../../../nbs/envs/multigrid/01_obs.ipynb #0fa7b125
 @nb.njit(cache=True)
-def get_see_behind_mask(grid_array: ndarray[np.int_]) -> ndarray[np.int_]:
-    """
-    Return boolean mask indicating which grid locations can be seen through.
-
-    Parameters
-    ----------
-    grid_array : ndarray[int] of shape (num_agents, width, height, dim)
-        Grid object array for each agent
-
-    Returns
-    -------
-    see_behind_mask : ndarray[bool] of shape (width, height)
-        Boolean visibility mask
-    """
+def get_see_behind_mask(
+    grid_array: ndarray[np.int_] # Grid object array for each agent
+) -> ndarray[np.int_]: # Boolean visibility mask
+    "Return boolean mask indicating which grid locations can be seen through."
     num_agents, width, height = grid_array.shape[:3]
     see_behind_mask = np.zeros((num_agents, width, height), dtype=np.bool_)
     for agent in range(num_agents):
@@ -388,13 +306,7 @@ def gen_obs_grid_image(
     tile_size: int = 32,
     see_through_walls: bool | None = None,
 ) -> ndarray:
-    """
-    Render the RGB point-of-view image of each agent.
-
-    Cells hidden from an agent (same visibility rule as `gen_obs_grid_encoding`)
-    are blacked out, unless the agent can see through walls.
-    `see_through_walls=None` uses each agent's own `see_through_walls` setting.
-    """
+    "Render the RGB point-of-view image of each agent."
     num_agents = len(agents)
 
     # Visibility masks, computed from each agent's own state
@@ -485,10 +397,7 @@ def gen_obs_grid_allo(
     Generate the allocentric sub-grid observed by each agent (WITHOUT visibility mask):
     a world-aligned (north up, no rotation) window centred on the agent.
 
-    Returns
-    -------
-    obs_grid : ndarray[int] of shape (num_agents, view_size, view_size, encode_dim)
-        Indexed [i, j] like the world grid; the agent is at (view_size // 2, view_size // 2)
+    Returns: Indexed [i, j] like the world grid; the agent is at (view_size // 2, view_size // 2)
     """
     agent_state = np.asarray(agent_state)
     encoding = _world_encoding(grid_state, agent_state)
@@ -510,12 +419,7 @@ def get_vis_mask_allo(obs_grid: ndarray[np.int_]) -> ndarray[np.bool_]:
     """
     Visibility mask for allocentric (agent-centred) observation grids.
 
-    Applies the egocentric `get_vis_mask` rule to the four half-windows
-    (one per direction) around the centre, and combines them.
-
-    Returns
-    -------
-    vis_mask : ndarray[bool] of shape (num_agents, view_size, view_size)
+    Returns: ndarray[bool] of shape (num_agents, view_size, view_size)
     """
     num_agents, view_size = obs_grid.shape[:2]
     half = view_size // 2 + 1 # rows from the window edge up to the agent's row
@@ -537,9 +441,7 @@ def gen_obs_grid_encoding_allo(
     """
     Allocentric encoding of the sub-grid observed by each agent (including visibility mask).
 
-    Returns
-    -------
-    img : ndarray[int] of shape (num_agents, view_size, view_size, encode_dim)
+    Returns: ndarray[int] of shape (num_agents, view_size, view_size, encode_dim)
     """
     obs_grid = gen_obs_grid_allo(grid_state, agent_state, agent_view_size)
     if not see_through_walls:
@@ -554,9 +456,7 @@ def gen_obs_grid_encoding_global(
     """
     Global (fully observable) encoding of the whole grid, identical for every agent.
 
-    Returns
-    -------
-    img : ndarray[int] of shape (num_agents, width, height, encode_dim)
+    Returns: ndarray[int] of shape (num_agents, width, height, encode_dim)
     """
     encoding = _world_encoding(grid_state, agent_state)
     return np.repeat(encoding[None], len(agent_state), axis=0)
@@ -583,9 +483,6 @@ def gen_obs_grid_image_allo(
     """
     Render the allocentric RGB view of each agent: a world-aligned window
     centred on the agent, with every agent drawn at its true heading.
-
-    Hidden cells are blacked out unless the agent can see through walls.
-    `see_through_walls=None` uses each agent's own `see_through_walls` setting.
     """
     r = agent_view_size // 2
     own_states = np.stack([agent.state._view for agent in agents])
@@ -640,9 +537,7 @@ def gen_obs_grid_image_global(
     Render the whole grid (fully observable) with all non-terminated agents,
     identical for every agent.
 
-    Returns
-    -------
-    img : ndarray[uint8] of shape (num_agents, height * tile_size, width * tile_size, 3)
+    Returns: ndarray[uint8] of shape (num_agents, height * tile_size, width * tile_size, 3)
     """
     image = grid.render(tile_size, agents=[a for a in agents if not a.state.terminated])
     return np.repeat(image[None], len(agents), axis=0)
