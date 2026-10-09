@@ -6,7 +6,7 @@
 __all__ = ['AgentNetwork', 'make_topology', 'message_bits', 'node_id', 'agent_index', 'CommunicationWrapper', 'communication',
            'within_range', 'multigrid_positions']
 
-# %% ../../nbs/comm/02_init.ipynb #f7196086
+# %% ../../nbs/comm/02_init.ipynb #4bc54800
 from .core import AgentNetwork, make_topology, message_bits, node_id, agent_index
 from .wrapper import CommunicationWrapper, communication, within_range, multigrid_positions
 
