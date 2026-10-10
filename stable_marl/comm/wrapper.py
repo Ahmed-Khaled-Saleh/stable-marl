@@ -49,7 +49,8 @@ class CommunicationWrapper(gym.Wrapper):
         backend=None, # comm-core `CommunicationBackend` (instead of `channel`)
         protocol=None, # comm-core `Protocol` class / factory
         center: int = 0, # Center of the 'star' topology
-        bits_per_element: int | None = None # Message size accounting (default: float32, 32 bits per number)
+        bits_per_element: int | None = None, # Message size accounting (default: float32, 32 bits per number)
+        positions: Callable | None = None # positions(env) -> (num_agents, d), given at every step to channels that depend on where the agents are (comm-core's `SionnaRTChannel`); default `multigrid_positions`
     ):
         super().__init__(env)
         if (message_keys is None) == (message_fn is None):
@@ -62,6 +63,7 @@ class CommunicationWrapper(gym.Wrapper):
         elif message_dim is None:
             raise ValueError("message_fn needs a message_dim")
         self.message_keys, self.message_fn, self.message_dim = message_keys, message_fn, int(message_dim)
+        self._positions = positions or multigrid_positions
         dynamic = callable(topology) and not isinstance(topology, (str, _comm_core().Topology))
         self._topology_fn = topology if dynamic else None
         self.comm = AgentNetwork(self.num_agents, 'none' if dynamic else topology, channel=channel, backend=backend,
@@ -86,6 +88,10 @@ class CommunicationWrapper(gym.Wrapper):
     def _communicate(self, obs: dict, infos: dict):
         if self._topology_fn is not None:
             self.comm.set_topology(self._topology_fn(self.env.unwrapped))
+        channel = getattr(self.comm.backend, 'channel', self.comm.backend)
+        if hasattr(channel, 'set_positions'):           # the channel depends on where the agents are
+            pos = np.asarray(self._positions(self.env.unwrapped))
+            channel.set_positions({node_id(a): tuple(p) for a, p in enumerate(pos)})
         payloads = {a: self._message(a, obs) for a in range(self.num_agents)}
         received = self.comm.exchange(payloads)
         sent = {a: 0 for a in range(self.num_agents)}
