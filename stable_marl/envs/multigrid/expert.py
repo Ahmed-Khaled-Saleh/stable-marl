@@ -18,7 +18,7 @@ from .core.constants import Direction
 from .core.world_object import Goal
 
 # %% auto #0
-__all__ = ['GoToGoalPolicy', 'goal_distances']
+__all__ = ['GoToGoalPolicy', 'goal_distances', 'distances_to', 'MixedPolicy']
 
 # %% ../../../nbs/envs/multigrid/12_expert.ipynb #bf07f456
 class GoToGoalPolicy(ExpertPolicy):
@@ -72,3 +72,84 @@ def goal_distances(env: MultiGridEnv) -> np.ndarray:
                 distance[nx, ny] = distance[x, y] + 1
                 queue.append((nx, ny))
     return distance
+
+# %% ../../../nbs/envs/multigrid/12_expert.ipynb #ceafdb51
+def distances_to(env: MultiGridEnv, targets) -> np.ndarray:
+    "Number of steps from every cell to the nearest of the `targets` cells, walking on overlappable cells (inf: unreachable)."
+    distance = np.full((env.width, env.height), np.inf)
+    queue = deque()
+    for x, y in targets:
+        distance[int(x), int(y)] = 0
+        queue.append((int(x), int(y)))
+    while queue:
+        x, y = queue.popleft()
+        for d in Direction:
+            nx, ny = (int(v) for v in (x, y) + d.to_vec())
+            if not (0 <= nx < env.width and 0 <= ny < env.height) or np.isfinite(distance[nx, ny]):
+                continue
+            cell = env.grid.get(nx, ny)
+            if cell is None or cell.can_overlap():
+                distance[nx, ny] = distance[x, y] + 1
+                queue.append((nx, ny))
+    return distance
+
+# %% ../../../nbs/envs/multigrid/12_expert.ipynb #90724984
+class MixedPolicy(ExpertPolicy):
+    """
+    Navigation behaviours mixed over episodes (e.g. for the Empty and FindGoal envs): each episode, `random`,
+    `epsilon_expert` or `waypoint` with the probabilities in `weights` (see above).
+    """
+    BEHAVIOURS = ('random', 'epsilon_expert', 'waypoint')
+
+    def __init__(
+        self,
+        weights: dict | None = None, # Behaviour -> probability of an episode using it; None: 0.2 random, 0.5 epsilon_expert, 0.3 waypoint
+        epsilon: float = 0.3, # Probability of a uniform action in `epsilon_expert`, per agent and step
+        seed: int | None = None, # Seed of the behaviours, waypoints and random actions
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.type = 'mixed'
+        self.weights = dict(weights or {'random': 0.2, 'epsilon_expert': 0.5, 'waypoint': 0.3})
+        unknown = set(self.weights) - set(self.BEHAVIOURS)
+        if unknown:
+            raise ValueError(f"unknown behaviours {sorted(unknown)}: {self.BEHAVIOURS}")
+        self.epsilon = epsilon
+        self.rng = np.random.default_rng(seed)
+        self._episodes = {}                                    # id(env) -> the episode's state
+
+    def behaviour(self, env: MultiGridEnv) -> str | None:
+        "The behaviour of `env`'s current episode (None before its first action)."
+        state = self._episodes.get(id(env))
+        return state['behaviour'] if state is not None and state['grid'] is env.grid else None
+
+    def _episode(self, env: MultiGridEnv) -> dict:
+        state = self._episodes.get(id(env))
+        if state is None or state['grid'] is not env.grid:   # reset: a new grid, a new episode
+            names = list(self.weights)
+            p = np.array([self.weights[n] for n in names], float)
+            free = [(x, y) for x in range(env.width) for y in range(env.height)
+                    if (o := env.grid.get(x, y)) is None or o.can_overlap()]
+            state = dict(grid=env.grid, behaviour=names[self.rng.choice(len(names), p=p / p.sum())],
+                         waypoints=[free[k] for k in self.rng.choice(len(free), len(env.agents))])
+            self._episodes[id(env)] = state
+        return state
+
+    def act(self, env: MultiGridEnv) -> np.ndarray:
+        state = self._episode(env)
+        uniform = lambda i: int(self.rng.integers(env.action_space[i].n))
+        if state['behaviour'] == 'random':
+            return np.array([uniform(i) for i in range(len(env.agents))])
+        to_goal = goal_distances(env)
+        actions = []
+        for i, agent in enumerate(env.agents):
+            if state['behaviour'] == 'epsilon_expert':
+                explore = self.rng.random() < self.epsilon
+                actions.append(uniform(i) if explore else GoToGoalPolicy._agent_action(env, agent, to_goal))
+                continue
+            waypoint = state['waypoints'][i]                   # waypoint: there first, then the goal
+            if waypoint is not None and tuple(int(v) for v in agent.state.pos) == waypoint:
+                state['waypoints'][i] = waypoint = None
+            distance = to_goal if waypoint is None else distances_to(env, [waypoint])
+            actions.append(GoToGoalPolicy._agent_action(env, agent, distance))
+        return np.array(actions)

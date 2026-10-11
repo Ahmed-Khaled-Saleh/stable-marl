@@ -6,7 +6,7 @@ Docs: https://Ahmed-Khaled-Saleh.github.io/stable-marl/envs/multigrid/init.html.
 
 # %% auto #0
 __all__ = ['CONFIGURATIONS', 'MultiGridEnv', 'BlockedUnlockPickupEnv', 'EmptyEnv', 'LockedHallwayEnv', 'PlaygroundEnv',
-           'RedBlueDoorsEnv', 'FindGoalEnv', 'GoToGoalPolicy']
+           'RedBlueDoorsEnv', 'FindGoalEnv', 'GoToGoalPolicy', 'MixedPolicy']
 
 # %% ../../../nbs/envs/multigrid/10_init.ipynb #8e9f1e04
 """
@@ -49,10 +49,10 @@ from .locked_hallway import LockedHallwayEnv
 from .playground import PlaygroundEnv
 from .redbluedoors import RedBlueDoorsEnv
 from .findgoal import FindGoalEnv
-from .expert import GoToGoalPolicy
+from .expert import GoToGoalPolicy, MixedPolicy
 
 _all_ = ['MultiGridEnv', 'BlockedUnlockPickupEnv', 'EmptyEnv', 'LockedHallwayEnv',
-         'PlaygroundEnv', 'RedBlueDoorsEnv', 'FindGoalEnv', 'GoToGoalPolicy']
+         'PlaygroundEnv', 'RedBlueDoorsEnv', 'FindGoalEnv', 'GoToGoalPolicy', 'MixedPolicy']
 
 # %% ../../../nbs/envs/multigrid/10_init.ipynb #8c035681
 CONFIGURATIONS = {
