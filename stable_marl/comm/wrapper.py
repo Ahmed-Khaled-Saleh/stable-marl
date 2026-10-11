@@ -42,7 +42,7 @@ class CommunicationWrapper(gym.Wrapper):
         self,
         env: gym.Env, # A stable-marl `MultiAgentEnv` (possibly wrapped)
         message_keys: tuple | None = None, # Observation keys each agent sends (flattened, concatenated)
-        message_fn: Callable | None = None, # message_fn(env, agent, obs) -> array of `message_dim` numbers, or None
+        message_fn: Callable | None = None, # message_fn(env, agent, obs) -> array of `message_dim` numbers (integers stay integers, e.g. codebook indices), or None
         message_dim: int | None = None, # Size of `message_fn`'s messages
         topology='full_mesh', # 'full_mesh', 'star', 'none', a comm-core `Topology`, or topology(env) at every step
         channel=None, # comm-core `Channel` (default: perfect)
@@ -80,7 +80,9 @@ class CommunicationWrapper(gym.Wrapper):
         m = self.message_fn(self.env.unwrapped, agent, obs)
         if m is None:
             return None
-        m = np.asarray(m, np.float32).reshape(-1)
+        m = np.asarray(m).reshape(-1)
+        if not np.issubdtype(m.dtype, np.integer):         # integers (e.g. codebook indices) stay as they are
+            m = m.astype(np.float32)
         if m.size != self.message_dim:
             raise ValueError(f"message_fn returned {m.size} numbers for agent {agent}, message_dim is {self.message_dim}")
         return m

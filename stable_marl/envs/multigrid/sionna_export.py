@@ -20,7 +20,7 @@ import numpy as np
 __all__ = ['ITU_MATERIALS', 'ITU_COLORS', 'SOLID_CATEGORIES', 'OBJECT_CATEGORIES', 'TILE_CATEGORIES', 'SceneConfig',
            'check_materials', 'Mesh', 'classify_cell', 'grid_to_world', 'world_heading', 'cell_layout', 'build_meshes',
            'material_ids', 'write_sionna_xml', 'default_out_dir', 'clear_scene_dir', 'export_scene', 'build_blend',
-           'build_blend_subprocess', 'parse_kwargs', 'main']
+           'build_blend_subprocess', 'free_cells', 'trace_channel_table', 'trace_layouts', 'parse_kwargs', 'main']
 
 # %% ../../../nbs/envs/multigrid/11_sionna_export.ipynb #313867e8
 # ITU materials supported by Sionna RT (sionna.rt.radio_materials.itu), with their valid
@@ -524,6 +524,76 @@ def build_blend_subprocess(out_dir: str, blender: str | None = None):
         print("note: built with the `bpy` module; the .blend opens only in that Blender version or newer "
               "(use --blender /path/to/blender or set BLENDER to build it for your Blender)")
 
+# %% ../../../nbs/envs/multigrid/11_sionna_export.ipynb #6c8d6dd9
+def free_cells(env) -> list[tuple[int, int]]:
+    "The cells an agent can stand on (empty, or that can be overlapped, e.g. the goal), column by column."
+    g = env.unwrapped.grid
+    return [(x, y) for x in range(g.width) for y in range(g.height) if (o := g.get(x, y)) is None or o.can_overlap()]
+
+# %% ../../../nbs/envs/multigrid/11_sionna_export.ipynb #2f001467
+def trace_channel_table(
+    env, # A reset MultiGrid env: its current layout is traced
+    config: SceneConfig | None = None, # The scene (materials, heights, ...); None: `SceneConfig()`
+    frequency: float = 2.4e9, # Carrier frequency (Hz)
+    max_depth: int = 5, # Reflections per path
+    **solver_kwargs, # Other options of Sionna RT's PathSolver (see comm-core's `trace_paths`)
+) -> dict:
+    """`H[rx, tx]`, the complex channel between every pair of `free_cells` (summed over the paths; 0 without any path),
+    with the `cells` in H's order and the `walls` grid (`walls[x, y]` = 1 where an agent cannot stand)."""
+    import tempfile
+    import sionna.rt as rt
+    from comm_core import trace_paths
+    config = config or SceneConfig()
+    g = env.unwrapped.grid
+    cells = free_cells(env)
+    walls = np.ones((g.width, g.height), np.uint8)
+    for x, y in cells:
+        walls[x, y] = 0
+    points = np.array([grid_to_world(x, y, g.width, g.height, config, config.antenna_height) for x, y in cells], float)
+    with tempfile.TemporaryDirectory() as d:
+        with contextlib.redirect_stdout(io.StringIO()):
+            export_scene(env, d, config, frequency=frequency)
+        scene = rt.load_scene(os.path.join(d, 'scene.xml'))
+        scene.frequency = frequency
+        H = trace_paths(scene, points, points, max_depth=max_depth, **solver_kwargs)['a'].sum(-1).T
+    return dict(H=np.asarray(H), cells=np.array(cells), walls=walls)
+
+# %% ../../../nbs/envs/multigrid/11_sionna_export.ipynb #c24f4843
+def trace_layouts(
+    env_id: str, # A registered env id, e.g. 'MultiGrid-FindGoal-15x15-v0'
+    seeds, # Reset seeds: one layout each
+    out_dir: str, # Where `layout_<seed>.npz` go
+    env_kwargs: dict | None = None, # Arguments of `gym.make`, e.g. dict(size=9, num_obstacles=0)
+    config: SceneConfig | None = None, # The scene; None: `SceneConfig()`
+    frequency: float = 2.4e9, # Carrier frequency (Hz)
+    max_depth: int = 5, # Reflections per path
+    overwrite: bool = False, # Trace again the layouts already in `out_dir`
+    progress: bool = True, # Print each layout's tracing time
+) -> list[str]:
+    """Ray-trace the layout of each reset seed (`trace_channel_table`) into `<out_dir>/layout_<seed>.npz`: `H`, `cells`,
+    `walls`, and what produced them (`source`, JSON). Layouts already traced are kept, unless `overwrite`."""
+    import time
+    import gymnasium as gym
+    import stable_marl.envs  # noqa: F401  (registers the envs)
+    os.makedirs(out_dir, exist_ok=True)
+    paths = []
+    for seed in seeds:
+        path = os.path.join(out_dir, f'layout_{seed}.npz')
+        paths.append(path)
+        if os.path.exists(path) and not overwrite:
+            continue
+        with contextlib.redirect_stdout(io.StringIO()):   # some envs print debug info
+            env = gym.make(env_id, **(env_kwargs or {}))
+            env.reset(seed=seed)
+        start = time.time()
+        table = trace_channel_table(env, config, frequency, max_depth)
+        source = dict(env_id=env_id, env_kwargs=env_kwargs or {}, seed=seed, frequency=frequency, max_depth=max_depth,
+                      config=asdict(config or SceneConfig()))
+        np.savez_compressed(path, **table, source=json.dumps(source, default=str))
+        if progress:
+            print(f'layout {seed}: {len(table["cells"])} cells, traced in {time.time() - start:.0f} s', flush=True)
+    return paths
+
 # %% ../../../nbs/envs/multigrid/11_sionna_export.ipynb #a56301c4
 def parse_kwargs(pairs):
     out = {}
@@ -571,6 +641,10 @@ def main(argv=None):
                         help="Blender binary used to build scene.blend (default: $BLENDER, else the bpy module). "
                              "Use the Blender you will open the file with: older Blenders cannot open newer .blend files")
     parser.add_argument('--list-materials', action='store_true')
+    parser.add_argument('--trace', nargs='+', type=int, metavar='SEED',
+                        help="ray-trace the channel table of each seed's layout into --out (default: channel_tables/<env>"
+                             "[_<kwargs hash>]) instead of exporting a scene; needs Sionna RT and comm-core")
+    parser.add_argument('--max-depth', type=int, default=5, help="--trace: reflections per path")
     args = parser.parse_args(argv)
 
     if args.build_blend:
@@ -597,6 +671,21 @@ def main(argv=None):
             parser.error(f"unknown category '{category}' (categories: {', '.join(config.materials)})")
         config.materials[category] = value
     config.thickness.update({k: float(v) for k, v in parse_kwargs(args.thickness).items()})
+
+    if args.trace:
+        if args.config:
+            parser.error("--trace takes --env (and --env-kwargs), not --config")
+        kwargs = parse_kwargs(args.env_kwargs)
+        if args.agents is not None:
+            kwargs['agents'] = args.agents
+        if args.out is None:
+            name = args.env.removeprefix('MultiGrid-').removesuffix('-v0')
+            digest = hashlib.sha1(json.dumps(kwargs, sort_keys=True, default=str).encode()).hexdigest()[:6]
+            args.out = os.path.join('channel_tables', f"{name}_{digest}" if kwargs else name)
+        trace_layouts(args.env, args.trace, args.out, kwargs, config, args.frequency or 2.4e9, args.max_depth,
+                      overwrite=args.overwrite)
+        print(f"channel tables in {os.path.abspath(args.out)}")
+        return
 
     # Create and reset the env
     import gymnasium as gym
