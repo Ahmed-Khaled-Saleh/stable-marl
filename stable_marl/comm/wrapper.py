@@ -14,7 +14,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from .core import AgentNetwork, _comm_core, message_bits, node_id
+from .core import AgentNetwork, _comm_core, agent_index, message_bits, node_id
 
 # %% auto #0
 __all__ = ['multigrid_positions', 'within_range', 'CommunicationWrapper', 'communication']
@@ -48,11 +48,14 @@ class CommunicationWrapper(gym.Wrapper):
         message_dim: int | None = None, # Size of `message_fn`'s messages
         topology='full_mesh', # 'full_mesh', 'star', 'none', a comm-core `Topology`, or topology(env) at every step
         channel=None, # comm-core `Channel` (default: perfect)
-        backend=None, # comm-core `CommunicationBackend` (instead of `channel`)
+        blocks=None, # comm-core blocks, run as a `Pipeline` on each round's transmissions (instead of `channel`)
+        noise_power: float | None = None, # The noise power the `blocks` read
+        backend=None, # comm-core `CommunicationBackend` (instead of `channel` or `blocks`)
         protocol=None, # comm-core `Protocol` class / factory
         center: int = 0, # Center of the 'star' topology
         bits_per_element: int | None = None, # Message size accounting (default: float32, 32 bits per number)
-        positions: Callable | None = None # positions(env) -> (num_agents, d), given at every step to channels that depend on where the agents are (comm-core's `SionnaRTChannel`); default `multigrid_positions`
+        positions: Callable | None = None, # positions(env) -> (num_agents, d), given at every step to the blocks or channel that depend on where the agents are (e.g. comm-core's `RayTracedFading`); default `multigrid_positions`
+        broadcast: bool = False # Each agent broadcasts its message once (one emission), instead of a unicast to each neighbour
     ):
         super().__init__(env)
         if (message_keys is None) == (message_fn is None):
@@ -65,11 +68,12 @@ class CommunicationWrapper(gym.Wrapper):
         elif message_dim is None:
             raise ValueError("message_fn needs a message_dim")
         self.message_keys, self.message_fn, self.message_dim = message_keys, message_fn, int(message_dim)
-        self._positions = positions or multigrid_positions
+        self._positions, self.broadcast = positions or multigrid_positions, broadcast
         dynamic = callable(topology) and not isinstance(topology, (str, _comm_core().Topology))
         self._topology_fn = topology if dynamic else None
-        self.comm = AgentNetwork(self.num_agents, 'none' if dynamic else topology, channel=channel, backend=backend,
-                                 protocol=protocol, center=center, bits_per_element=bits_per_element)
+        self.comm = AgentNetwork(self.num_agents, 'none' if dynamic else topology, channel=channel, blocks=blocks,
+                                 noise_power=noise_power, backend=backend, protocol=protocol, center=center,
+                                 bits_per_element=bits_per_element)
         A, D = self.num_agents, self.message_dim
         self.observation_space = spaces.Dict({a: spaces.Dict({
             **env.observation_space[a].spaces,
@@ -92,15 +96,16 @@ class CommunicationWrapper(gym.Wrapper):
     def _communicate(self, obs: dict, infos: dict):
         if self._topology_fn is not None:
             self.comm.set_topology(self._topology_fn(self.env.unwrapped))
-        channel = getattr(self.comm.backend, 'channel', self.comm.backend)
-        if hasattr(channel, 'set_positions'):           # the channel depends on where the agents are
-            pos = np.asarray(self._positions(self.env.unwrapped))
-            channel.set_positions({node_id(a): tuple(p) for a, p in enumerate(pos)})
+        self.comm.set_positions(self._positions(self.env.unwrapped))
         payloads = {a: self._message(a, obs) for a in range(self.num_agents)}
-        received = self.comm.exchange(payloads)
-        sent = {a: 0 for a in range(self.num_agents)}
+        received = self.comm.exchange(payloads, broadcast=self.broadcast)
+        sent, emitted = {a: 0 for a in range(self.num_agents)}, set()
         for r in self.comm.last_results:
-            sent[int(r.transmission.sender.rsplit('_', 1)[1])] += r.size_bits
+            group = r.transmission.message.metadata.get('broadcast')
+            if group is not None and group in emitted:  # a broadcast's copies: one emission
+                continue
+            emitted.add(group)
+            sent[agent_index(r.transmission.sender)] += r.size_bits
         A, D = self.num_agents, self.message_dim
         obs, infos = dict(obs), dict(infos)
         for a in range(A):

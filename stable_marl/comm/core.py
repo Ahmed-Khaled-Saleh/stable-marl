@@ -19,11 +19,11 @@ def _comm_core():
     "comm-core's building blocks, imported on first use."
     try:
         import comm_core as cc
-        cc.Network, cc.DistanceTopology                      # networks and distance topologies: comm-core >= 44b7272
+        cc.Network.broadcast, cc.PipelineBackend             # broadcasts and blocks: comm-core >= 75fb79a
     except (ImportError, AttributeError) as e:
         if getattr(e, 'name', None) == 'comm_core':
             raise ModuleNotFoundError("stable_marl.comm needs comm-core: pip install 'stable-marl[comm]'") from e
-        raise ImportError(f"stable_marl.comm needs a comm-core with networks and backends ({e})") from e
+        raise ImportError(f"stable_marl.comm needs a comm-core with blocks and broadcasts (>= 75fb79a): {e}") from e
     return cc
 
 
@@ -72,17 +72,26 @@ class AgentNetwork:
         num_agents: int, # Number of agents (nodes `agent_0 ..`)
         topology='full_mesh', # 'full_mesh', 'star', 'none' or a comm-core `Topology`
         channel=None, # A comm-core `Channel` (default: a perfect channel), used through an `AnalyticalBackend`
-        backend=None, # A comm-core `CommunicationBackend` (instead of `channel`)
+        blocks=None, # comm-core blocks (a `Pipeline` or a list of `Block`s), used through a `PipelineBackend`
+        noise_power: float | None = None, # The noise power the `blocks` read (e.g. `SINR`'s)
+        backend=None, # A comm-core `CommunicationBackend` (instead of `channel` or `blocks`)
         protocol=None, # A comm-core `Protocol` (default `IdealProtocol`)
         center: int = 0, # Center of the 'star' topology
         bits_per_element: int | None = None, # Message size accounting (see `message_bits`)
         seed: int | None = None # Seed of the channel (see `reset`)
     ):
         cc = _comm_core()
-        if channel is not None and backend is not None:
-            raise ValueError("pass a channel or a backend, not both")
+        if sum(x is not None for x in (channel, blocks, backend)) > 1:
+            raise ValueError("pass a channel, blocks or a backend, not several")
+        if noise_power is not None and blocks is None:
+            raise ValueError("noise_power is for blocks (a channel or a backend has its own)")
         self.num_agents, self.center, self.bits_per_element = int(num_agents), center, bits_per_element
-        self.backend = backend if backend is not None else cc.AnalyticalBackend(channel if channel is not None else cc.IdentityChannel())
+        if backend is not None:
+            self.backend = backend
+        elif blocks is not None:
+            self.backend = cc.PipelineBackend(blocks, **({} if noise_power is None else {'noise_power': noise_power}))
+        else:
+            self.backend = cc.AnalyticalBackend(channel if channel is not None else cc.IdentityChannel())
         self.topology = make_topology(topology, self.num_agents, center)
         self.network = cc.Network(nodes=[cc.Node(node_id(a)) for a in range(self.num_agents)], topology=self.topology,
                                   protocol=protocol if protocol is not None else cc.IdealProtocol(), backend=self.backend)
@@ -104,9 +113,21 @@ class AgentNetwork:
         self.topology = make_topology(topology, self.num_agents, self.center)
         self.network.topology = self.topology
 
+    def set_positions(self, positions):
+        "Where the agents are ({agent: position} or (num_agents, d)), for the blocks or channel that depend on it."
+        positions = positions if isinstance(positions, dict) else dict(enumerate(np.asarray(positions)))
+        positions = {node_id(a): tuple(np.asarray(p).tolist()) for a, p in positions.items()}
+        target = self.backend if hasattr(self.backend, 'set_positions') else getattr(self.backend, 'channel', None)
+        if hasattr(target, 'set_positions'):
+            target.set_positions(positions)
+
     def neighbors(self, agent: int) -> list[int]:
         "The agents `agent` can send to."
         return sorted(agent_index(n) for n in self.topology.neighbors(node_id(agent)))
+
+    def _message_fields(self, payload, type, size_bits, metadata):
+        size = message_bits(payload, self.bits_per_element) if size_bits is None else int(size_bits)
+        return dict(payload=payload, type=type, timestamp=self.network.time, size_bits=size, metadata=metadata)
 
     def send(
         self,
@@ -117,14 +138,24 @@ class AgentNetwork:
         size_bits: int | None = None, # Default: `message_bits(payload)`
         **metadata
     ):
-        "Queue a message; it is transmitted at the next `step`."
+        "Queue a message to one neighbour; it is transmitted at the next `step`."
         cc = _comm_core()
-        size = message_bits(payload, self.bits_per_element) if size_bits is None else int(size_bits)
-        self.network.send(cc.Message(sender=node_id(sender), receiver=node_id(receiver), payload=payload, type=type,
-                                     timestamp=self.network.time, size_bits=size, metadata=metadata))
+        self.network.send(cc.Message(sender=node_id(sender), receiver=node_id(receiver),
+                                     **self._message_fields(payload, type, size_bits, metadata)))
+
+    def broadcast(
+        self,
+        sender: int, # Agent sending
+        payload: Any, # What every neighbour gets
+        type: str = 'message', # comm-core's message type
+        size_bits: int | None = None, # Default: `message_bits(payload)`
+        **metadata
+    ):
+        "Queue one broadcast to all of `sender`'s neighbours (one emission); it is transmitted at the next `step`."
+        self.network.broadcast(node_id(sender), **self._message_fields(payload, type, size_bits, metadata))
 
     def step(self, dt: float = 1.0) -> list:
-        "Transmit what the protocol schedules; the comm-core `TransmissionResult`s."
+        "Transmit what the protocol schedules; the comm-core `TransmissionResult`s (one per receiver of a broadcast)."
         self.last_results = self.network.step(dt)
         return self.last_results
 
@@ -136,11 +167,16 @@ class AgentNetwork:
         self,
         payloads: dict[int, Any], # Each agent's payload (None: the agent sends nothing)
         type: str = 'message', # comm-core's message type
-        dt: float = 1.0 # Time step of the network
+        dt: float = 1.0, # Time step of the network
+        broadcast: bool = False # Each agent broadcasts its payload once, instead of a unicast to each neighbour
     ) -> dict[int, dict[int, Any]]: # received[i][j]: what agent i received from agent j
-        "One round: every agent sends its payload to each of its neighbours, then one network step."
+        "One round: every agent sends its payload to its neighbours, then one network step."
         for a, payload in payloads.items():
             if payload is None:
+                continue
+            if broadcast:
+                if self.neighbors(a):
+                    self.broadcast(a, payload, type=type)
                 continue
             for b in self.neighbors(a):
                 self.send(a, b, payload, type=type)
