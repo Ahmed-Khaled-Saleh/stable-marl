@@ -12,7 +12,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 if __name__ == '__main__':
-    if importlib.util.find_spec('comm_core') is None or importlib.util.find_spec('comm_core.network') is None:
+    if importlib.util.find_spec('comm_core') is None or importlib.util.find_spec('comm_core.net.network') is None:
         print('comm-core (with networks) not installed: skipped')
         sys.exit(0)
     env = {**os.environ, 'PYTHONPATH': ROOT + os.pathsep + os.environ.get('PYTHONPATH', '')}

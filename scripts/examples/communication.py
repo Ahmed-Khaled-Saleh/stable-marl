@@ -10,14 +10,14 @@ Agents that communicate, with comm-core modelling the communication (pip install
 import tempfile
 
 import numpy as np
-from comm_core.channel import AWGNChannel, IdentityChannel
+from comm_core import ErasureChannel, IdentityChannel
 
 import stable_marl as sm
 from stable_marl.comm import AgentNetwork, communication, within_range
 
 # 1. a method's own communication: 3 agents share 16-dim latents, perfect channel vs 30% packet loss
 latents = {a: np.random.default_rng(a).normal(size=16).astype(np.float32) for a in range(3)}
-for name, channel in (('perfect', IdentityChannel()), ('lossy', AWGNChannel(snr_db=5, packet_error_rate=0.3))):
+for name, channel in (('perfect', IdentityChannel()), ('lossy', ErasureChannel(loss_rate=0.3))):
     net = AgentNetwork(3, channel=channel, seed=0)
     for step in range(100):
         received = net.exchange(latents, type='latent')        # received[i][j]: agent j's latent, as agent i got it
@@ -30,7 +30,7 @@ print(f'quantized to 4 bits per number: {net.metrics.bits_sent} bits per round i
 
 # 2. communication as part of the environment: FindGoal agents tell each other where they are
 with tempfile.TemporaryDirectory() as tmp:
-    for name, channel in (('perfect', IdentityChannel()), ('lossy', AWGNChannel(snr_db=5, packet_error_rate=0.3))):
+    for name, channel in (('perfect', IdentityChannel()), ('lossy', ErasureChannel(loss_rate=0.3))):
         world = sm.World('MultiGrid-FindGoal-15x15-v0', num_envs=4, agents=3, size=9, num_obstacles=0, max_episode_steps=30,
                          pre_wrappers=[communication(message_keys=('position', 'direction'), channel=channel)])
         world.set_policy(sm.RandomPolicy(seed=0))
