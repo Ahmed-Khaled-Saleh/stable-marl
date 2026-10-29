@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from fastcore.utils import patch
 
-from ...comm import AgentNetwork, within_range
+from ...comm import AgentNetwork, agent_index, within_range
 from ...world.env_pool import episode_done
 from ..omnivla.core import IGNORE_INDEX, shortest_path_actions, walkable_cells
 
@@ -82,7 +82,10 @@ def mean_of_others(h: torch.Tensor, mask: torch.Tensor | None = None) -> torch.T
     weights = hears.to(h.dtype)
     return weights @ h / weights.sum(-1, keepdim=True).clamp(min=1)
 
-# %% ../../../nbs/wm/commnet/00_core.ipynb #7f02d67a
+# %% ../../../nbs/wm/commnet/00_core.ipynb #f783ae2f
+_PLACEHOLDER = np.zeros(1, np.float32)   # what the messages carry: only their size and delivery matter here
+
+
 class NetworkLinks:
     "Which CommNet messages arrive, through comm-core networks (`AgentNetwork`, one per env, with its own copy of `network_kwargs`)."
     def __init__(
@@ -112,7 +115,8 @@ class NetworkLinks:
         position: np.ndarray, # (B, N, 2) the agents' cells
         alive: np.ndarray, # (B, N) agents that send (and receive)
         rounds: int, # Rounds of messages
-        message_dim: int, # Numbers per message
+        message_dim: int, # Numbers per message (float32, as `AgentNetwork` counts them), if no `message_bits`
+        message_bits: Sequence[int] | None = None, # Size of each round's message, in bits (0: nothing sent)
     ) -> torch.Tensor:
         "(B, rounds, N, N) bool: `mask[b, r, i, k]` when agent `k`'s message of round `r` reached agent `i`."
         B, N = alive.shape
@@ -126,11 +130,29 @@ class NetworkLinks:
                 network.set_topology(self._topology(np.asarray(position[b], np.float64)))
             network.set_positions(np.asarray(position[b], np.float64))
             for r in range(rounds):
-                received = network.exchange({a: message if alive[b, a] else None for a in range(N)},
-                                            broadcast=self.broadcast)
+                if message_bits is None:
+                    received = network.exchange({a: message if alive[b, a] else None for a in range(N)},
+                                                broadcast=self.broadcast)
+                elif message_bits[r] > 0:
+                    received = self._send(network, alive[b], int(message_bits[r]))
+                else:
+                    continue
                 for i, senders in received.items():
                     mask[b, r, i, list(senders)] = True
         return mask
+
+    def _send(self, network: AgentNetwork, alive: np.ndarray, size_bits: int) -> dict[int, set[int]]:
+        "One round of `size_bits` messages from the alive agents (as `AgentNetwork.exchange`): who received from whom."
+        for a in np.flatnonzero(alive):
+            a = int(a)
+            if self.broadcast:
+                if network.neighbors(a):
+                    network.broadcast(a, _PLACEHOLDER, type='commnet', size_bits=size_bits)
+                continue
+            for b in network.neighbors(a):
+                network.send(a, b, _PLACEHOLDER, type='commnet', size_bits=size_bits)
+        network.step()
+        return {i: {agent_index(m.sender) for m in network.receive(i)} for i in range(len(alive))}
 
     @property
     def metrics(self) -> list:

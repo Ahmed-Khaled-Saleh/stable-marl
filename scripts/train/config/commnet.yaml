@@ -5,8 +5,9 @@ hydra:
     dir: .
 
 cache_dir: null                 # datasets from <cache_dir>/datasets/, checkpoints to <cache_dir>/checkpoints/
-mode: online                    # online: REINFORCE in the env (the paper); supervised: the expert's actions on a dataset
-dataset_name: findgoal_mixed    # supervised: its env is used (see scripts/data/collect_findgoal.py --config-name mixed)
+mode: online                    # online: REINFORCE in the env (the paper); supervised: the expert's actions on a dataset;
+                                # gc_supervised: the goal-conditioned version (see `gc`, config/commnet_gc.yaml)
+dataset_name: findgoal_mixed    # (gc_)supervised: its env is used (see scripts/data/collect_findgoal.py --config-name mixed)
 output_model_name: commnet_${mode}
 seed: 0
 num_envs: 8                     # online: episodes per update (one per env)
@@ -23,7 +24,7 @@ env:                            # online: the env (the setting of scripts/data/c
   max_steps: 25
 
 obs_keys: [image, direction]    # each agent's symbolic local view and heading (the paper: a lookup table of the view)
-goal: true                      # and its offset to its goal cell
+goal: true                      # and its offset to its goal cell (CommNet; GCCommNet: see gc.goal_modalities)
 
 model:
   hidden_dim: 128
@@ -46,7 +47,17 @@ online:
   max_grad_norm: null
   log_every: 50                 # updates
 
-supervised:
+gc:                             # mode=gc_supervised: GCCommNet
+  share: [latent]               # what the agents send, one bundle per agent and round: latent (every round), observation
+                                # and pose (first round); any subset, [] for nothing
+  latent_bits: 8                # latents quantized when sent (comm-core's UniformQuantizer over [-1, 1]); null: float32
+  bits_per_element: 32          # raw observations and poses (as CommunicationWrapper: float32)
+  goal_modalities: [pose, image]  # goals of the agents (each sample: a random non-empty subset)
+  hindsight_prob: 0.5           # probability of hindsight goals instead of the episode's goal
+  hindsight: joint              # joint: the agents' goals at one future step; agent: each at its own
+  max_goal_steps: 20
+
+supervised:                     # (gc_)supervised training
   steps: 5000
   batch_size: 64
   lr: 1.0e-3

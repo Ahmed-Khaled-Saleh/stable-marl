@@ -1,0 +1,10 @@
+# Goal-conditioned CommNet from a dataset (python scripts/train/commnet.py --config-name commnet_gc [key=value ...]):
+# a goal per agent (the episode's or hindsight), sharing quantized latents, raw observations and poses
+defaults:
+  - commnet
+  - _self_
+
+mode: gc_supervised
+
+gc:
+  share: [latent, observation, pose]

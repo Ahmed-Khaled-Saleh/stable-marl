@@ -41,6 +41,10 @@ Hydra scripts, as in stable-worldmodel; any config key can be overridden on the 
     python scripts/plan/eval_ff.py policy=omnivla_findgoal_mixed dataset_name=findgoal_mixed
     python scripts/train/commnet.py                         # CommNet, online (REINFORCE) or mode=supervised -> checkpoints/commnet_online/
     python scripts/plan/eval_ff.py policy=commnet_online
+    python scripts/train/mappo.py                           # MAPPO, online (critic=concat|state|local) -> checkpoints/mappo_concat/
+    python scripts/plan/eval_ff.py policy=mappo_concat
+    python scripts/train/commnet.py --config-name commnet_gc  # goal-conditioned CommNet (hindsight goals; shares latents, observations, poses)
+    python scripts/plan/eval_ff.py policy=commnet_gc_supervised goal_modalities=[image]
 
 | Script | Config | Notes |
 |---|---|---|
@@ -49,9 +53,10 @@ Hydra scripts, as in stable-worldmodel; any config key can be overridden on the 
 | `train/lewm.py` | `train/config/lewm.yaml` | `inputs` (e.g. `[pixels,position,direction]`), model size, `wm.history_size`, `train.*`, `device` |
 | `train/gcrl.py` | `train/config/gcrl.yaml` | `agent` (`gcbc`, `crl`, `hiql`, `gcivl`, `gciql`: MangoBench's decentralized baselines, one agent per agent), `obs_keys`, `train.steps`, `agent_config.*` (needs `pip install 'stable-marl[gcrl]'`) |
 | `train/omnivla.py` | `train/config/omnivla.yaml` | OmniVLA-edge with a discrete action head, one model shared by the agents: `data.labels` (`shortest_path`: the expert's actions recomputed from the recorded grids, whatever policy collected the data; `collected`), `data.hindsight_prob`, `data.modalities` (`pose`, `image`), `model.*`, `pretrained` (the released weights), `train.*` |
-| `train/commnet.py` | `train/config/commnet.yaml` | CommNet (communication by averaging hidden states, one network for all agents): `mode` (`online`: REINFORCE with a baseline in `env.*`, the paper; `supervised`: the expert's actions on `dataset_name`), `model.comm_steps` (1: no communication), `model.comm_range`, `model.drop_prob` (lost messages), `comm` (messages over comm-core networks, `NetworkLinks`: `--config-name commnet_erasure`), `obs_keys`, `goal`, `online.*`, `supervised.*` |
+| `train/commnet.py` | `train/config/commnet.yaml` | CommNet (communication by averaging hidden states, one network for all agents): `mode` (`online`: REINFORCE with a baseline in `env.*`, the paper; `supervised`: the expert's actions on `dataset_name`), `gc.*` (`mode=gc_supervised`, `--config-name commnet_gc`: goals per agent, hindsight, `gc.share` of `latent` (quantized: `gc.latent_bits`), `observation`, `pose`), `model.comm_steps` (1: no communication), `model.comm_range`, `model.drop_prob` (lost messages), `comm` (messages over comm-core networks, `NetworkLinks`: `--config-name commnet_erasure`), `obs_keys`, `goal`, `online.*`, `supervised.*` |
+| `train/mappo.py` | `train/config/mappo.yaml` | MAPPO (torch only): decentralized shared actor, centralized critic (`critic`: `concat` all observations, `state` the env's state, `local` = IPPO; `agent_specific`), value normalization, death masking, `train.*` (PPO), `model.comm_range` / `model.drop_prob` / `comm` (the critics' observations over comm-core) |
 | `train/mamba.py` | `train/config/mamba.yaml` | `goal_conditioned` (false: MAMBA with its Flatland-style shaped reward; true: GC-MAMBA with goal offsets and hindsight relabelling), `env.*` (trained online, no dataset), `train.episodes`, `rewards.*`, `mamba_config.*` (MAMBA's settings) |
-| `plan/eval_ff.py` | `plan/config/eval_ff.yaml` | `policy` (a checkpoint of `train/gcrl.py`, `train/mamba.py`, `train/omnivla.py` or `train/commnet.py`), `temperature`, `goal_modalities` (OmniVLA), `comm` (CommNet: another comm-core channel when acting), `eval.*` (incl. shifts from the training settings: `eval.env_kwargs`, `eval.options`, `eval.wrappers`) |
+| `plan/eval_ff.py` | `plan/config/eval_ff.yaml` | `policy` (a checkpoint of `train/gcrl.py`, `train/mamba.py`, `train/omnivla.py`, `train/commnet.py` or `train/mappo.py`), `temperature`, `goal_modalities` (OmniVLA, GCCommNet), `comm` (CommNet: another comm-core channel when acting), `eval.*` (incl. shifts from the training settings: `eval.env_kwargs`, `eval.options`, `eval.wrappers`) |
 | `plan/eval_wm.py` | `plan/config/findgoal.yaml`, `solver/`, `objective/` | `policy` (a checkpoint, `random` or `expert`), `mode` (`per_agent` or `joint`), `solver=categorical_cem` / `categorical_mppi`, `plan_config.*`, `eval.*` |
 
 Generated videos (`examples/videos/`) and results (`plan/outputs/`) are not tracked by git.

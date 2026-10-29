@@ -1,0 +1,52 @@
+# MAPPO on FindGoal, online (python scripts/train/mappo.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null                 # checkpoints to <cache_dir>/checkpoints/
+output_model_name: mappo_${critic}
+seed: 0
+num_envs: 8                     # episodes per update (one per env)
+device: null                    # null: cuda if available
+
+env:                            # the setting of scripts/data/config/default.yaml
+  name: MultiGrid-FindGoal-15x15-v0
+  agents: 2
+  size: 7
+  num_obstacles: 0
+  n_clutter: 0
+  min_goal_spawn_distance: 1
+  tile_size: 8
+  obs_mode: allo
+  max_steps: 25
+
+obs_keys: [image, direction]    # each agent's symbolic local view and heading
+goal: true                      # and its offset to its goal cell
+critic: concat                  # concat: all the agents' observations; state: the env's global state; local: IPPO
+agent_specific: true            # a centralized critic also gets the agent's own observation and index (MAPPO's "AS")
+
+model:
+  hidden_dim: 64                # MAPPO: 64
+  num_layers: 2
+  comm_range: null              # critic=concat: observations of the agents within this many cells reach a critic
+  drop_prob: 0.0                # critic=concat: probability that an observation does not reach a critic
+  bits_per_element: 32          # size of the shared observations for comm-core
+
+# the critics' observations over comm-core networks (critic=concat), e.g.
+# {_target_: stable_marl.wm.commnet.NetworkLinks, radius: 3, channel: {_target_: comm_core.ErasureChannel, loss_rate: 0.2}}
+comm: null
+
+train:
+  episodes: 20000
+  epochs: 10                    # PPO epochs per batch (MAPPO: 5-15)
+  minibatches: 1
+  lr: 5.0e-4
+  clip: 0.2
+  entropy_coef: 0.01
+  value_coef: 1.0
+  gamma: 0.99
+  lam: 0.95
+  max_grad_norm: 10.0
+  team_reward: true             # every agent's reward is the team's (cooperative MAPPO)
+  log_every: 50                 # updates

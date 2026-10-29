@@ -1,4 +1,4 @@
-"""CommNet (Sukhbaatar et al., 2016): agents that communicate by averaging hidden states, trained online (REINFORCE) or from datasets.
+"""CommNet (Sukhbaatar et al., 2016): agents that communicate by averaging hidden states, trained online (REINFORCE) or from datasets; and its goal-conditioned version.
 
 Docs: https://Ahmed-Khaled-Saleh.github.io/stable-marl/wm/commnet/init.html.md"""
 
@@ -6,9 +6,14 @@ Docs: https://Ahmed-Khaled-Saleh.github.io/stable-marl/wm/commnet/init.html.md""
 
 # %% auto #0
 __all__ = ['CommNet', 'CommNetDataset', 'NetworkLinks', 'comm_mask', 'commnet_features', 'mean_of_others', 'reinforce_losses',
-           'rollout', 'train_commnet', 'train_commnet_supervised']
+           'rollout', 'train_commnet', 'train_commnet_supervised', 'GCCommNet', 'GCCommNetDataset', 'load_commnet',
+           'relative_poses', 'train_gc_commnet']
 
-# %% ../../../nbs/wm/commnet/01_init.ipynb #9c1fe707
-from .core import (CommNet, CommNetDataset, NetworkLinks, comm_mask, commnet_features, mean_of_others, reinforce_losses, rollout, train_commnet, train_commnet_supervised)
+# %% ../../../nbs/wm/commnet/01_init.ipynb #5e156089
+from .core import (CommNet, CommNetDataset, NetworkLinks, comm_mask, commnet_features, mean_of_others,
+                                         reinforce_losses, rollout, train_commnet, train_commnet_supervised)
+from .gc import (GCCommNet, GCCommNetDataset, load_commnet, relative_poses, train_gc_commnet)
 
-_all_ = ['CommNet', 'CommNetDataset', 'NetworkLinks', 'comm_mask', 'commnet_features', 'mean_of_others', 'reinforce_losses', 'rollout', 'train_commnet', 'train_commnet_supervised']
+_all_ = ['CommNet', 'CommNetDataset', 'NetworkLinks', 'comm_mask', 'commnet_features', 'mean_of_others', 'reinforce_losses',
+         'rollout', 'train_commnet', 'train_commnet_supervised',
+         'GCCommNet', 'GCCommNetDataset', 'load_commnet', 'relative_poses', 'train_gc_commnet']
