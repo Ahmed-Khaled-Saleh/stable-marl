@@ -1,11 +1,13 @@
 """
 Evaluate a feed-forward policy, i.e. one forward pass per step without planning (stable-worldmodel's
-plan/eval_ff.py): the goal-conditioned baselines of scripts/train/gcrl.py (`gcrl.pkl` checkpoints) and
-MAMBA of scripts/train/mamba.py (`mamba.pt`, evaluated on the env it was trained on).
+plan/eval_ff.py): the goal-conditioned baselines of scripts/train/gcrl.py (`gcrl.pkl` checkpoints),
+MAMBA of scripts/train/mamba.py (`mamba.pt`, evaluated on the env it was trained on) and OmniVLA-edge of
+scripts/train/omnivla.py (`omnivla.pt`).
 
     python scripts/plan/eval_ff.py                                # GCBC
     python scripts/plan/eval_ff.py policy=hiql_findgoal temperature=0.3
     python scripts/plan/eval_ff.py policy=gc_mamba_findgoal
+    python scripts/plan/eval_ff.py policy=omnivla_findgoal_mixed goal_modalities=[image]
 
 Each agent acts on its own view (or features) and its own goal. The results (and the config) are
 appended to a text file next to the checkpoint, and a few episodes are saved as videos.
@@ -31,6 +33,15 @@ def run(cfg):
         model = Mamba.load(checkpoint / 'mamba.pt')
         env_name, env_kwargs = model.checkpoint['env_name'], model.checkpoint['env_kwargs']
         policy = model.policy(deterministic=cfg.temperature == 0)
+    elif (checkpoint / 'omnivla.pt').exists():                   # OmniVLA-edge: the dataset's env
+        import torch
+        from stable_marl.wm.omnivla import OmniVLAEdge
+        meta = load_dataset(cfg.dataset_name, cache_dir=cfg.cache_dir).metadata
+        env_name, env_kwargs = meta['env_name'], meta['env_kwargs']
+        model = OmniVLAEdge.load(checkpoint / 'omnivla.pt').to('cuda' if torch.cuda.is_available() else 'cpu')
+        model.temperature, model.goal_modalities = cfg.temperature, tuple(cfg.goal_modalities)
+        torch.manual_seed(cfg.seed)
+        policy = sm.FeedForwardPolicy(model)
     else:                                                        # goal-conditioned baselines: the dataset's env
         from stable_marl.wm.gcrl import IndependentGCRL
         meta = load_dataset(cfg.dataset_name, cache_dir=cfg.cache_dir).metadata

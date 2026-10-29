@@ -6,10 +6,11 @@ hydra:
 
 cache_dir: null
 dataset_name: findgoal         # the env (and its settings) of this dataset is evaluated
-policy: gcbc_findgoal          # a checkpoint in <cache_dir>/checkpoints: scripts/train/gcrl.py or scripts/train/mamba.py
+policy: gcbc_findgoal          # a checkpoint in <cache_dir>/checkpoints: scripts/train/gcrl.py, mamba.py or omnivla.py
 temperature: 0.0               # action sampling temperature (0: the most likely action; OGBench uses 0.3 on Powderworld);
                                # MAMBA: 0 = most likely action, otherwise sampled
 seed: 0
+goal_modalities: [pose, image] # OmniVLA: the goals given to the model (any non-empty subset of pose, image)
 
 eval:
   episodes: 20

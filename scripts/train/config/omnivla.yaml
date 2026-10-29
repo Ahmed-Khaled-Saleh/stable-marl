@@ -1,0 +1,37 @@
+# OmniVLA-edge on FindGoal (python scripts/train/omnivla.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null                 # datasets from <cache_dir>/datasets/, checkpoints to <cache_dir>/checkpoints/
+dataset_name: findgoal_mixed    # see scripts/data/collect_findgoal.py (--config-name mixed), any collecting policy
+output_model_name: omnivla_${dataset_name}
+seed: 0
+pretrained: false               # start from the released OmniVLA-edge weights (downloaded once, 434 MB): the
+                                # EfficientNets always, the transformer too with model.encoding_size=1024
+
+model:                          # OmniVLA-edge: context_size 5, horizon 8, encoding_size 1024, 4 heads, 4 layers
+  context_size: 5               # past views besides the current one
+  horizon: 8                    # actions predicted per step (the first is executed)
+  encoding_size: 256            # 1024 as OmniVLA-edge (~80M parameters); 256 trains faster on MultiGrid
+  num_heads: 4
+  num_layers: 4
+  image_size: 96                # views and goal images resized to this side
+
+data:
+  labels: shortest_path         # shortest_path: the expert's actions from the recorded grids (any collecting policy);
+                                # collected: the dataset's own actions (hindsight goals only)
+  hindsight_prob: 0.5           # probability of a future state as the goal instead of the episode's goal
+  max_goal_steps: 20            # farthest future state used as a goal
+  modalities: [pose, image]     # goal modalities: each sample gets a random non-empty subset (modality dropout)
+
+train:
+  steps: 20000
+  batch_size: 64
+  lr: 1.0e-4
+  weight_decay: 0.01
+  dist_weight: 0.01             # weight of the distance-to-goal loss
+  num_workers: 4
+  log_every: 200
+  device: null                  # null: cuda if available

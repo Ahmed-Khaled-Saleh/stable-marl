@@ -28,6 +28,7 @@ Hydra scripts, as in stable-worldmodel; any config key can be overridden on the 
 (`cache_dir`: `$STABLEMARL_HOME`, else `~/.stable_marl`).
 
     python scripts/data/collect_findgoal.py                 # expert + random FindGoal episodes -> findgoal.h5
+    python scripts/data/collect_findgoal.py --config-name mixed   # MixedPolicy episodes -> findgoal_mixed.h5
     python scripts/data/collect_robofactory.py env.task=LiftBarrier   # RoboFactory motion-planning expert (numpy<2) -> robofactory_liftbarrier.h5
     python scripts/train/lewm.py                            # one LeWM per agent -> checkpoints/lewm_findgoal/
     python scripts/plan/eval_wm.py                          # plan with it: success rate, results file, videos
@@ -36,15 +37,18 @@ Hydra scripts, as in stable-worldmodel; any config key can be overridden on the 
     python scripts/plan/eval_ff.py policy=hiql_findgoal     # evaluate them (feed-forward policies, no planning)
     python scripts/train/mamba.py goal_conditioned=true     # MAMBA, online (shaped reward) or goal-conditioned -> checkpoints/gc_mamba_findgoal/
     python scripts/plan/eval_ff.py policy=gc_mamba_findgoal
+    python scripts/train/omnivla.py                         # OmniVLA-edge (torch only) on findgoal_mixed -> checkpoints/omnivla_findgoal_mixed/
+    python scripts/plan/eval_ff.py policy=omnivla_findgoal_mixed dataset_name=findgoal_mixed
 
 | Script | Config | Notes |
 |---|---|---|
-| `data/collect_findgoal.py` | `data/config/default.yaml` | `env.*` (agents, size, `obs_mode`, ...), `format` (`hdf5`, `folder`, `video`), episodes per policy, reset `options` (e.g. variations) |
+| `data/collect_findgoal.py` | `data/config/default.yaml`, `data/config/mixed.yaml` | `env.*` (agents, size, `obs_mode`, ...), `format` (`hdf5`, `folder`, `video`), `policies` (any policy classes with their `episodes`; default: expert and random, `--config-name mixed`: `MixedPolicy`), reset `options` (e.g. variations) |
 | `data/collect_robofactory.py` | `data/config/robofactory.yaml` | `env.*` (task, scene, observations, `camera_size`), `expert_episodes`, `only_success`, `random_episodes`, `shard` (one job of an array: own seeds and file, merged with `stable_marl.data.merge`); the expert needs numpy < 2, assets: `download_assets()` beforehand on machines without internet |
 | `train/lewm.py` | `train/config/lewm.yaml` | `inputs` (e.g. `[pixels,position,direction]`), model size, `wm.history_size`, `train.*`, `device` |
 | `train/gcrl.py` | `train/config/gcrl.yaml` | `agent` (`gcbc`, `crl`, `hiql`, `gcivl`, `gciql`: MangoBench's decentralized baselines, one agent per agent), `obs_keys`, `train.steps`, `agent_config.*` (needs `pip install 'stable-marl[gcrl]'`) |
+| `train/omnivla.py` | `train/config/omnivla.yaml` | OmniVLA-edge with a discrete action head, one model shared by the agents: `data.labels` (`shortest_path`: the expert's actions recomputed from the recorded grids, whatever policy collected the data; `collected`), `data.hindsight_prob`, `data.modalities` (`pose`, `image`), `model.*`, `pretrained` (the released weights), `train.*` |
 | `train/mamba.py` | `train/config/mamba.yaml` | `goal_conditioned` (false: MAMBA with its Flatland-style shaped reward; true: GC-MAMBA with goal offsets and hindsight relabelling), `env.*` (trained online, no dataset), `train.episodes`, `rewards.*`, `mamba_config.*` (MAMBA's settings) |
-| `plan/eval_ff.py` | `plan/config/eval_ff.yaml` | `policy` (a checkpoint of `train/gcrl.py`), `temperature`, `eval.*` (incl. shifts from the training settings: `eval.env_kwargs`, `eval.options`, `eval.wrappers`) |
+| `plan/eval_ff.py` | `plan/config/eval_ff.yaml` | `policy` (a checkpoint of `train/gcrl.py`, `train/mamba.py` or `train/omnivla.py`), `temperature`, `goal_modalities` (OmniVLA), `eval.*` (incl. shifts from the training settings: `eval.env_kwargs`, `eval.options`, `eval.wrappers`) |
 | `plan/eval_wm.py` | `plan/config/findgoal.yaml`, `solver/`, `objective/` | `policy` (a checkpoint, `random` or `expert`), `mode` (`per_agent` or `joint`), `solver=categorical_cem` / `categorical_mppi`, `plan_config.*`, `eval.*` |
 
 Generated videos (`examples/videos/`) and results (`plan/outputs/`) are not tracked by git.

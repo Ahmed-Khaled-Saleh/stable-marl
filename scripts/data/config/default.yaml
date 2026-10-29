@@ -23,6 +23,8 @@ world:
   num_envs: 4
   max_episode_steps: 25
 
-expert_episodes: 300       # shortest-path expert
-random_episodes: 150       # uniformly random actions (coverage)
+# the collecting policies, in order: a policy class (`_target_`, with its arguments) and its `episodes`
+policies:
+  - {_target_: stable_marl.envs.multigrid.GoToGoalPolicy, episodes: 300}          # shortest-path expert
+  - {_target_: stable_marl.RandomPolicy, seed: '${seed}', episodes: 150}          # uniformly random actions (coverage)
 options: null              # reset options, e.g. {variation: [all]}

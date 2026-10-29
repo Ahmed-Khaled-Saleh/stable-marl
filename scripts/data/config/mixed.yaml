@@ -1,0 +1,14 @@
+# FindGoal episodes of MixedPolicy (python scripts/data/collect_findgoal.py --config-name mixed [key=value ...]):
+# each episode random, epsilon-expert or via a random waypoint to the goal, e.g. for scripts/train/omnivla.py
+defaults:
+  - default
+  - _self_
+
+dataset_name: findgoal_mixed
+
+policies:
+  - _target_: stable_marl.envs.multigrid.MixedPolicy
+    episodes: 450
+    weights: {random: 0.2, epsilon_expert: 0.5, waypoint: 0.3}   # probability of each behaviour per episode
+    epsilon: 0.3                                                 # epsilon_expert: probability of a random action
+    seed: ${seed}

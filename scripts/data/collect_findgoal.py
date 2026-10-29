@@ -1,8 +1,11 @@
 """
-Collect a FindGoal dataset of expert and random episodes (stable-worldmodel's data scripts).
+Collect a FindGoal dataset with one or more policies (stable-worldmodel's data scripts): by default
+expert and random episodes, or any policies listed in `policies`.
 
     python scripts/data/collect_findgoal.py
     python scripts/data/collect_findgoal.py dataset_name=findgoal_global env.obs_mode=global format=folder
+    python scripts/data/collect_findgoal.py --config-name mixed      # MixedPolicy episodes -> findgoal_mixed
+    python scripts/data/collect_findgoal.py 'policies=[{_target_: stable_marl.envs.multigrid.MixedPolicy, episodes: 450, epsilon: 0.5}]'
 
 Writes <cache_dir>/datasets/<dataset_name>(.h5), readable with
 `stable_marl.data.load_dataset('<dataset_name>')`.
@@ -15,7 +18,6 @@ from omegaconf import OmegaConf
 
 import stable_marl as sm
 from stable_marl.data import get_cache_dir, get_format
-from stable_marl.envs.multigrid import GoToGoalPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +30,17 @@ def run(cfg):
     path = Path(get_cache_dir(cfg.cache_dir, sub_folder='datasets')) / f'{cfg.dataset_name}{suffix}'
     options = OmegaConf.to_container(cfg.options) if cfg.options else None
 
-    for i, (name, policy, episodes) in enumerate((('expert', GoToGoalPolicy(), cfg.expert_episodes),
-                                                   ('random', sm.RandomPolicy(seed=cfg.seed), cfg.random_episodes))):
+    written = 0
+    for i, spec in enumerate(OmegaConf.to_container(cfg.policies, resolve=True)):
+        episodes = spec.pop('episodes')
         if not episodes:
             continue
+        policy = hydra.utils.instantiate(spec)
         world.set_policy(policy)
-        writer = get_format(cfg.format).open_writer(path, mode='overwrite' if i == 0 else 'append')
+        writer = get_format(cfg.format).open_writer(path, mode='overwrite' if written == 0 else 'append')
         world.collect(writer=writer, episodes=episodes, seed=cfg.seed + 1_000_000 * i, options=options)
-        logger.info(f'{episodes} {name} episodes -> {path}')
+        written += 1
+        logger.info(f'{episodes} {type(policy).__name__} episodes -> {path}')
 
     ds = sm.data.load_dataset(path)
     logger.info(f'{path}: {len(ds.lengths)} episodes, {int(ds.lengths.sum())} steps, columns {ds.column_names}')
