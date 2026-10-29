@@ -1,13 +1,14 @@
 """
 Evaluate a feed-forward policy, i.e. one forward pass per step without planning (stable-worldmodel's
 plan/eval_ff.py): the goal-conditioned baselines of scripts/train/gcrl.py (`gcrl.pkl` checkpoints),
-MAMBA of scripts/train/mamba.py (`mamba.pt`, evaluated on the env it was trained on) and OmniVLA-edge of
-scripts/train/omnivla.py (`omnivla.pt`).
+MAMBA of scripts/train/mamba.py (`mamba.pt`) and CommNet of scripts/train/commnet.py (`commnet.pt`), each
+evaluated on the env it was trained on, and OmniVLA-edge of scripts/train/omnivla.py (`omnivla.pt`).
 
     python scripts/plan/eval_ff.py                                # GCBC
     python scripts/plan/eval_ff.py policy=hiql_findgoal temperature=0.3
     python scripts/plan/eval_ff.py policy=gc_mamba_findgoal
     python scripts/plan/eval_ff.py policy=omnivla_findgoal_mixed goal_modalities=[image]
+    python scripts/plan/eval_ff.py policy=commnet_online
 
 Each agent acts on its own view (or features) and its own goal. The results (and the config) are
 appended to a text file next to the checkpoint, and a few episodes are saved as videos.
@@ -33,6 +34,17 @@ def run(cfg):
         model = Mamba.load(checkpoint / 'mamba.pt')
         env_name, env_kwargs = model.checkpoint['env_name'], model.checkpoint['env_kwargs']
         policy = model.policy(deterministic=cfg.temperature == 0)
+    elif (checkpoint / 'commnet.pt').exists():                   # CommNet: its checkpoint holds its env
+        import torch
+        from stable_marl.wm.commnet import CommNet
+        model = CommNet.load(checkpoint / 'commnet.pt').to('cuda' if torch.cuda.is_available() else 'cpu')
+        env_name, env_kwargs = model.checkpoint['env_name'], model.checkpoint['env_kwargs']
+        model.temperature = cfg.temperature
+        comm = cfg.comm if cfg.comm is not None else model.checkpoint.get('comm')   # comm-core links when acting
+        if comm:
+            model.links = hydra.utils.instantiate(comm, num_agents=int(env_kwargs['agents']))
+        torch.manual_seed(cfg.seed)
+        policy = sm.FeedForwardPolicy(model)
     elif (checkpoint / 'omnivla.pt').exists():                   # OmniVLA-edge: the dataset's env
         import torch
         from stable_marl.wm.omnivla import OmniVLAEdge

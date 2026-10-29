@@ -1,0 +1,15 @@
+# CommNet whose messages go over comm-core networks (python scripts/train/commnet.py --config-name commnet_erasure):
+# agents linked within `radius` cells, each message lost with probability `loss_rate`
+defaults:
+  - commnet
+  - _self_
+
+output_model_name: commnet_${mode}_erasure
+
+comm:
+  _target_: stable_marl.wm.commnet.NetworkLinks
+  radius: 3                      # agents at most this many cells apart (Chebyshev) are linked; null: `topology`
+  broadcast: true                # one emission per agent and round
+  channel:                       # any comm-core channel (or `blocks`, `backend`, `protocol`: AgentNetwork's arguments)
+    _target_: comm_core.ErasureChannel
+    loss_rate: 0.2

@@ -1,0 +1,54 @@
+# CommNet on FindGoal (python scripts/train/commnet.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null                 # datasets from <cache_dir>/datasets/, checkpoints to <cache_dir>/checkpoints/
+mode: online                    # online: REINFORCE in the env (the paper); supervised: the expert's actions on a dataset
+dataset_name: findgoal_mixed    # supervised: its env is used (see scripts/data/collect_findgoal.py --config-name mixed)
+output_model_name: commnet_${mode}
+seed: 0
+num_envs: 8                     # online: episodes per update (one per env)
+
+env:                            # online: the env (the setting of scripts/data/config/default.yaml)
+  name: MultiGrid-FindGoal-15x15-v0
+  agents: 2
+  size: 7
+  num_obstacles: 0
+  n_clutter: 0
+  min_goal_spawn_distance: 1
+  tile_size: 8
+  obs_mode: allo
+  max_steps: 25
+
+obs_keys: [image, direction]    # each agent's symbolic local view and heading (the paper: a lookup table of the view)
+goal: true                      # and its offset to its goal cell
+
+model:
+  hidden_dim: 128
+  comm_steps: 2                 # the paper's K: messages are exchanged K - 1 times (1: no communication)
+  skip: true                    # skip connection from the encoder into every step
+  share_weights: false          # one module for all the steps (the paper's tied variant)
+  comm_range: null              # agents hear the agents within this many cells (null: all)
+  drop_prob: 0.0                # probability that a message is lost (each pair and step)
+
+# messages over comm-core networks (stable_marl.comm's AgentNetwork, one per env): which messages arrive.
+# null: the model's own mask (model.comm_range, model.drop_prob) only. See config/commnet_erasure.yaml.
+comm: null
+
+online:
+  episodes: 20000
+  lr: 1.0e-3
+  baseline_coef: 0.03           # the paper's alpha
+  entropy_coef: 0.0
+  team_return: false            # every agent's return is the team's (sum over the agents)
+  max_grad_norm: null
+  log_every: 50                 # updates
+
+supervised:
+  steps: 5000
+  batch_size: 64
+  lr: 1.0e-3
+  log_every: 500
+  device: null                  # null: cuda if available
