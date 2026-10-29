@@ -1,0 +1,49 @@
+# TarMAC on FindGoal, online (python scripts/train/tarmac.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null                 # checkpoints to <cache_dir>/checkpoints/
+output_model_name: tarmac
+seed: 0
+num_envs: 16                    # episodes per update, one per env (TarMAC: batches of 16)
+device: null                    # null: cuda if available
+
+env:                            # the setting of scripts/data/config/default.yaml
+  name: MultiGrid-FindGoal-15x15-v0
+  agents: 2
+  size: 7
+  num_obstacles: 0
+  n_clutter: 0
+  min_goal_spawn_distance: 1
+  tile_size: 8
+  obs_mode: allo
+  max_steps: 25
+
+obs_keys: [image, direction]    # each agent's symbolic local view and heading
+goal: true                      # and its offset to its goal cell
+
+model:                          # TarMAC: GRU 128, signature/query 16, value 32
+  hidden_dim: 128
+  key_dim: 16
+  value_dim: 32
+  rounds: 1                     # rounds of communication per step (TarMAC: 1 or 2)
+  critic_hidden: 128
+  comm_range: null              # agents hear the agents within this many cells (null: all)
+  drop_prob: 0.0                # probability that a message is lost (each pair and round)
+  latent_bits: null             # bits per number of the messages (comm-core's UniformQuantizer); null: float32
+
+# messages over comm-core networks (stable_marl.wm.commnet.NetworkLinks), e.g.
+# {_target_: stable_marl.wm.commnet.NetworkLinks, radius: 3, channel: {_target_: comm_core.ErasureChannel, loss_rate: 0.2}}
+comm: null
+
+train:                          # the paper's multi-agent actor-critic
+  episodes: 20000
+  lr: 7.0e-4                    # RMSProp, alpha 0.99
+  gamma: 0.99
+  entropy_coef: 0.01
+  critic_coef: 1.0
+  q_baseline: false             # subtract the batch's mean Q from the policy gradient's weights (not in the paper)
+  max_grad_norm: null           # gradient clipping (not in the paper)
+  log_every: 20                 # updates

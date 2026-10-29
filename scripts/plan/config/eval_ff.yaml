@@ -6,12 +6,12 @@ hydra:
 
 cache_dir: null
 dataset_name: findgoal         # the env (and its settings) of this dataset is evaluated
-policy: gcbc_findgoal          # a checkpoint in <cache_dir>/checkpoints: scripts/train/gcrl.py, mamba.py, omnivla.py, commnet.py or mappo.py
+policy: gcbc_findgoal          # a checkpoint in <cache_dir>/checkpoints: scripts/train/gcrl.py, mamba.py, omnivla.py, commnet.py, mappo.py or tarmac.py
 temperature: 0.0               # action sampling temperature (0: the most likely action; OGBench uses 0.3 on Powderworld);
-                               # MAMBA, CommNet, MAPPO: 0 = most likely action, otherwise sampled
+                               # MAMBA, CommNet, MAPPO, TarMAC: 0 = most likely action, otherwise sampled
 seed: 0
 goal_modalities: [pose, image] # OmniVLA, GCCommNet: the goals given to the model (any non-empty subset of pose, image)
-comm: null                     # CommNet: comm-core links when acting (null: the ones it was trained with), e.g. another
+comm: null                     # CommNet, TarMAC: comm-core links when acting (null: the ones it was trained with), e.g. another
                                # channel: {_target_: stable_marl.wm.commnet.NetworkLinks, channel: {_target_: comm_core.ErasureChannel, loss_rate: 0.5}}
 
 eval:

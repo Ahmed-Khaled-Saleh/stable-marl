@@ -1,8 +1,9 @@
 """
 Evaluate a feed-forward policy, i.e. one forward pass per step without planning (stable-worldmodel's
 plan/eval_ff.py): the goal-conditioned baselines of scripts/train/gcrl.py (`gcrl.pkl` checkpoints),
-MAMBA of scripts/train/mamba.py (`mamba.pt`), CommNet of scripts/train/commnet.py (`commnet.pt`) and MAPPO of
-scripts/train/mappo.py (`mappo.pt`), each evaluated on the env it was trained on, and OmniVLA-edge of scripts/train/omnivla.py (`omnivla.pt`).
+MAMBA of scripts/train/mamba.py (`mamba.pt`), CommNet of scripts/train/commnet.py (`commnet.pt`), MAPPO of
+scripts/train/mappo.py (`mappo.pt`) and TarMAC of scripts/train/tarmac.py (`tarmac.pt`), each evaluated on the
+env it was trained on, and OmniVLA-edge of scripts/train/omnivla.py (`omnivla.pt`).
 
     python scripts/plan/eval_ff.py                                # GCBC
     python scripts/plan/eval_ff.py policy=hiql_findgoal temperature=0.3
@@ -10,6 +11,7 @@ scripts/train/mappo.py (`mappo.pt`), each evaluated on the env it was trained on
     python scripts/plan/eval_ff.py policy=omnivla_findgoal_mixed goal_modalities=[image]
     python scripts/plan/eval_ff.py policy=commnet_online
     python scripts/plan/eval_ff.py policy=mappo_concat
+    python scripts/plan/eval_ff.py policy=tarmac
 
 Each agent acts on its own view (or features) and its own goal. The results (and the config) are
 appended to a text file next to the checkpoint, and a few episodes are saved as videos.
@@ -54,6 +56,17 @@ def run(cfg):
         model = MAPPO.load(checkpoint / 'mappo.pt').to('cuda' if torch.cuda.is_available() else 'cpu')
         env_name, env_kwargs = model.checkpoint['env_name'], model.checkpoint['env_kwargs']
         model.temperature = cfg.temperature
+        torch.manual_seed(cfg.seed)
+        policy = sm.FeedForwardPolicy(model)
+    elif (checkpoint / 'tarmac.pt').exists():                    # TarMAC: its checkpoint holds its env and channel
+        import torch
+        from stable_marl.wm.tarmac import TarMAC
+        model = TarMAC.load(checkpoint / 'tarmac.pt').to('cuda' if torch.cuda.is_available() else 'cpu')
+        env_name, env_kwargs = model.checkpoint['env_name'], model.checkpoint['env_kwargs']
+        model.temperature = cfg.temperature
+        comm = cfg.comm if cfg.comm is not None else model.checkpoint.get('comm')   # comm-core links when acting
+        if comm:
+            model.links = hydra.utils.instantiate(comm, num_agents=int(env_kwargs['agents']))
         torch.manual_seed(cfg.seed)
         policy = sm.FeedForwardPolicy(model)
     elif (checkpoint / 'omnivla.pt').exists():                   # OmniVLA-edge: the dataset's env
