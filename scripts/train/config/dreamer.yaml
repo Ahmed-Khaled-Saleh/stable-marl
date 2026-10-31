@@ -21,8 +21,11 @@ env:                            # the setting of scripts/data/config/default.yam
   obs_mode: allo
   max_steps: 25
 
-obs_keys: [image, direction]    # each agent's symbolic local view and heading
+obs_keys: [image, direction]    # each agent's vector observations: its symbolic local view and heading
 goal: true                      # and its offset to its goal cell
+image_key: null                 # an image observation for r2dreamer's CNNs, e.g. pixels (each agent's RGB view; then
+                                # obs_keys=[direction])
+image_size: 64                  # the image's side after resizing (the CNN decoder, rep_loss=dreamer, needs a multiple of 16)
 team_reward: false              # every agent's reward is the sum of the agents' rewards
 
 model:                          # r2dreamer's model configuration (configs/model/*.yaml in the vendored code)

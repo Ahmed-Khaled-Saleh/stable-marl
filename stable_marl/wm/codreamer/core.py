@@ -258,12 +258,15 @@ class CoDreamerAgents(DreamerAgents):
         goal: bool = True,
         grid_size: int = 15,
         team_reward: bool = False,
+        image_key: str | None = None, # An image observation (e.g. 'pixels'), for r2dreamer's CNNs (see `DreamerAgents`)
+        image_size: int = 64,
         comm_range: int | None = None, # The paper's C: agents hear the agents within this many cells (None: all)
         drop_prob: float = 0.0, # Probability that a message is lost (each pair and round)
         gnn_dim: int | None = None, # Width of the GATv2 layers (None: the MLPs' units)
     ):
         object.__setattr__(self, '_comm', dict(comm_range=comm_range, drop_prob=drop_prob, gnn_dim=gnn_dim))
-        super().__init__(config, obs_dim, num_agents, num_actions, obs_keys, goal, grid_size, team_reward)
+        super().__init__(config, obs_dim, num_agents, num_actions, obs_keys, goal, grid_size, team_reward, image_key,
+                         image_size)
         self.comm_range, self.drop_prob, self.gnn_dim = comm_range, drop_prob, gnn_dim
         self.config.update(self._comm)
         self.links: NetworkLinks | None = None

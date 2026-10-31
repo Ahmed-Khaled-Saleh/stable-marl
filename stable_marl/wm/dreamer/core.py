@@ -98,23 +98,32 @@ class DreamerAgents(torch.nn.Module):
     def __init__(
         self,
         config: DictConfig, # See `dreamer_config`
-        obs_dim: int, # Features per agent (see `commnet_features`)
+        obs_dim: int, # Vector features per agent (see `commnet_features` of `obs_keys`, and `goal`; 0: none)
         num_agents: int,
         num_actions: int = 4,
-        obs_keys: Sequence[str] = ('image', 'direction'), # Each agent's observations
+        obs_keys: Sequence[str] = ('image', 'direction'), # Each agent's vector observations
         goal: bool = True, # Observe the offset to the goal cell
         grid_size: int = 15,
         team_reward: bool = False, # Every agent's reward is the sum of the agents' rewards
+        image_key: str | None = None, # An image observation (e.g. 'pixels', each agent's RGB view), for the CNNs
+        image_size: int = 64, # Side the image is resized to (the CNN decoder needs a multiple of 16)
     ):
         super().__init__()
         self.config = dict(config=OmegaConf.to_container(config), obs_dim=obs_dim, num_agents=num_agents,
                            num_actions=num_actions, obs_keys=list(obs_keys), goal=goal, grid_size=grid_size,
-                           team_reward=team_reward)
-        self.num_agents, self.num_actions = num_agents, num_actions
+                           team_reward=team_reward, image_key=image_key, image_size=image_size)
+        self.num_agents, self.num_actions, self.obs_dim = num_agents, num_actions, obs_dim
         self.obs_keys, self.goal, self.grid_size, self.team_reward = tuple(obs_keys), goal, grid_size, team_reward
-        obs_space = SimpleNamespace(spaces={'obs': SimpleNamespace(shape=(obs_dim,))})
+        self.image_key, self.image_size = image_key, image_size
+        spaces = {'obs': SimpleNamespace(shape=(obs_dim,))} if obs_dim else {}
+        config = copy.deepcopy(config)
+        if image_key is not None:                                   # r2dreamer's CNN encoder and decoder take it
+            spaces['image'] = SimpleNamespace(shape=(image_size, image_size, 3))
+            config.encoder.cnn_keys = config.decoder.cnn_keys = '^image$'
+        if not spaces:
+            raise ValueError("no observations: give obs_keys (or goal) and/or an image_key")
         act_space = SimpleNamespace(n=num_actions, discrete=True, shape=(num_actions,))
-        self.agent = self._build(copy.deepcopy(config), obs_space, act_space)
+        self.agent = self._build(config, SimpleNamespace(spaces=spaces), act_space)
         self.temperature = 0.0
         self.checkpoint: dict = {}
         self._state: dict | None = None
@@ -131,8 +140,18 @@ class DreamerAgents(torch.nn.Module):
         "Called when `envs` start a new episode (with their `seeds`); a subclass can reset what it keeps per env."
 
     def info_keys(self) -> list[str]:
-        keys = [*self.obs_keys, 'terminated', 'position']
+        keys = [*self.obs_keys, 'terminated', 'position'] + ([self.image_key] if self.image_key else [])
         return list(dict.fromkeys(keys + (['goal_position'] if self.goal else [])))
+
+    def image(self, columns: dict[str, np.ndarray]) -> torch.Tensor:
+        "Each agent's image (E, N, image_size, image_size, 3), uint8."
+        x = torch.as_tensor(np.asarray(columns[self.image_key]))
+        lead = x.shape[:-3]
+        if x.shape[-3:-1] != (self.image_size, self.image_size):
+            x = F.interpolate(x.reshape(-1, *x.shape[-3:]).permute(0, 3, 1, 2).float(), size=(self.image_size,) * 2,
+                              mode='bilinear', antialias=True, align_corners=False)
+            x = x.round().clamp(0, 255).to(torch.uint8).permute(0, 2, 3, 1)
+        return x.reshape(*lead, self.image_size, self.image_size, 3)
 
     def transitions(
         self,
@@ -142,24 +161,28 @@ class DreamerAgents(torch.nn.Module):
         env_last: np.ndarray, # (E,) envs whose episode ends here (time limit, or every agent done)
         acting: np.ndarray, # (E, N) agents whose episode had not ended before this step
     ) -> dict[str, torch.Tensor]:
-        "Every agent's transition (E, N, ...): obs, reward, is_first, is_last, is_terminal, mask, position."
+        "Every agent's transition (E, N, ...): obs and/or image, reward, is_first, is_last, is_terminal, mask, position."
         terminated = np.asarray(columns['terminated'], bool)
         reward = np.asarray(reward, np.float32)
         if self.team_reward:
             reward = np.repeat(reward.sum(-1, keepdims=True), reward.shape[1], -1)
         mask = np.asarray(acting, bool) | np.asarray(is_first, bool)[:, None]
-        obs = commnet_features(columns, self.obs_keys, self.grid_size, self.goal) * mask[..., None]
         terminal = terminated & mask & ~np.asarray(is_first, bool)[:, None]
         as_t = lambda x, dtype=torch.bool: torch.as_tensor(np.ascontiguousarray(x), dtype=dtype).unsqueeze(-1)
-        return {'obs': torch.from_numpy(obs * mask[..., None]), 'reward': as_t(reward * mask, torch.float32),
-                'is_first': as_t(np.broadcast_to(is_first[:, None], mask.shape)),
-                'is_last': as_t((terminal | env_last[:, None]) & mask), 'is_terminal': as_t(terminal),
-                'mask': as_t(mask, torch.float32), 'position': torch.as_tensor(np.asarray(columns['position'], np.int64))}
+        trans = {'reward': as_t(reward * mask, torch.float32), 'is_first': as_t(np.broadcast_to(is_first[:, None], mask.shape)),
+                 'is_last': as_t((terminal | env_last[:, None]) & mask), 'is_terminal': as_t(terminal),
+                 'mask': as_t(mask, torch.float32), 'position': torch.as_tensor(np.asarray(columns['position'], np.int64))}
+        if self.obs_dim:
+            obs = commnet_features(columns, self.obs_keys, self.grid_size, self.goal)
+            trans['obs'] = torch.from_numpy(obs * mask[..., None])
+        if self.image_key is not None:
+            trans['image'] = self.image(columns) * torch.from_numpy(mask).to(torch.uint8)[..., None, None, None]
+        return trans
 
     @torch.no_grad()
     def act(self, transitions: dict[str, torch.Tensor], state: dict | None, eval: bool = False):
         "Actions (E, N) for transitions (E, N, ...), and the new latent state (rows: env, then agent)."
-        E, N = transitions['obs'].shape[:2]
+        E, N = transitions['mask'].shape[:2]
         flat = {k: v.flatten(0, 1).to(self.device) for k, v in transitions.items()}
         state = self.agent.get_initial_state(E * N) if state is None else state
         action, state = self.agent.act(flat, state, eval=eval)

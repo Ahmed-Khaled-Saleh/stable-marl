@@ -5,6 +5,7 @@ reward and continuation heads) and in the actor-critic, over the agents within r
 
     python scripts/train/codreamer.py
     python scripts/train/codreamer.py comm_range=3 drop_prob=0.2
+    python scripts/train/codreamer.py image_key=pixels obs_keys=[direction]   # each agent's RGB view, through the CNNs
     python scripts/train/codreamer.py 'comm={_target_: stable_marl.wm.commnet.NetworkLinks, channel: {_target_: comm_core.ErasureChannel, loss_rate: 0.2}}'
 
 Saves <cache_dir>/checkpoints/<output_model_name>/codreamer.pt (with the env it was trained on and its channel),
@@ -35,12 +36,14 @@ def run(cfg):
     world.reset(seed=cfg.seed)
     env = world.envs.envs[0].unwrapped
     columns = {k: v[:, -1] for k, v in world.infos.items() if not k.startswith('_')}
-    obs_dim = commnet_features(columns, cfg.obs_keys, env.width, cfg.goal).shape[-1]
+    vector = list(cfg.obs_keys) or cfg.goal                          # vector observations, besides an image
+    obs_dim = commnet_features(columns, cfg.obs_keys, env.width, cfg.goal).shape[-1] if vector else 0
     device = cfg.device or ('cuda' if torch.cuda.is_available() else 'cpu')
     overrides = {k: v for k, v in OmegaConf.to_container(cfg.model.overrides).items() if v is not None}
     config = dreamer_config(cfg.model.size, cfg.model.rep_loss, device, **overrides)
     model = CoDreamerAgents(config, obs_dim, world.num_agents, num_actions=int(env.action_space[0].n),
                             obs_keys=list(cfg.obs_keys), goal=cfg.goal, grid_size=env.width, team_reward=cfg.team_reward,
+                            image_key=cfg.image_key, image_size=cfg.image_size,
                             comm_range=cfg.comm_range, drop_prob=cfg.drop_prob, gnn_dim=cfg.gnn_dim)
     if cfg.comm is not None:                                     # messages over comm-core networks
         model.links = hydra.utils.instantiate(cfg.comm, num_agents=world.num_agents)
