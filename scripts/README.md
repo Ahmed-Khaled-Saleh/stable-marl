@@ -45,6 +45,10 @@ Hydra scripts, as in stable-worldmodel; any config key can be overridden on the 
     python scripts/plan/eval_ff.py policy=mappo_concat
     python scripts/train/tarmac.py                          # TarMAC, online (targeted, multi-round communication) -> checkpoints/tarmac/
     python scripts/plan/eval_ff.py policy=tarmac
+    python scripts/train/dreamer.py                         # DreamerV3 (r2dreamer, vendored), online -> checkpoints/dreamer/
+    python scripts/plan/eval_ff.py policy=dreamer
+    python scripts/train/codreamer.py                       # CoDreamer: DreamerV3 with GATv2 communication -> checkpoints/codreamer/
+    python scripts/plan/eval_ff.py policy=codreamer
     python scripts/train/commnet.py --config-name commnet_gc  # goal-conditioned CommNet (hindsight goals; shares latents, observations, poses)
     python scripts/plan/eval_ff.py policy=commnet_gc_supervised goal_modalities=[image]
 
@@ -58,8 +62,10 @@ Hydra scripts, as in stable-worldmodel; any config key can be overridden on the 
 | `train/commnet.py` | `train/config/commnet.yaml` | CommNet (communication by averaging hidden states, one network for all agents): `mode` (`online`: REINFORCE with a baseline in `env.*`, the paper; `supervised`: the expert's actions on `dataset_name`), `gc.*` (`mode=gc_supervised`, `--config-name commnet_gc`: goals per agent, hindsight, `gc.share` of `latent` (quantized: `gc.latent_bits`), `observation`, `pose`), `model.comm_steps` (1: no communication), `model.comm_range`, `model.drop_prob` (lost messages), `comm` (messages over comm-core networks, `NetworkLinks`: `--config-name commnet_erasure`), `obs_keys`, `goal`, `online.*`, `supervised.*` |
 | `train/mappo.py` | `train/config/mappo.yaml` | MAPPO (torch only): decentralized shared actor, centralized critic (`critic`: `concat` all observations, `state` the env's state, `local` = IPPO; `agent_specific`), value normalization, death masking, `train.*` (PPO), `model.comm_range` / `model.drop_prob` / `comm` (the critics' observations over comm-core) |
 | `train/tarmac.py` | `train/config/tarmac.yaml` | TarMAC (torch only): recurrent agents, messages with a signature and a value attended to by queries, `model.rounds`, `model.latent_bits` (quantized messages), `model.comm_range` / `model.drop_prob` / `comm` (comm-core); the paper's actor-critic with a centralized critic (`train.*`) |
+| `train/dreamer.py` | `train/config/dreamer.yaml` | DreamerV3 from r2dreamer's PyTorch code (vendored in `stable_marl/wm/dreamer/r2dreamer`): every agent a row (shared weights), `model.size` / `model.rep_loss` (`dreamer`, `r2dreamer`) / `model.overrides`, `team_reward`, `train.*` (r2dreamer's `train_ratio`, `batch_length`) |
+| `train/codreamer.py` | `train/config/codreamer.yaml` (on `dreamer.yaml`) | CoDreamer: DreamerV3 with GATv2 communication in the RSSM, the reward / continuation heads and the actor-critic, `comm_range` (the paper's C), `drop_prob`, `gnn_dim`, `comm` (comm-core: two rounds per step) |
 | `train/mamba.py` | `train/config/mamba.yaml` | `goal_conditioned` (false: MAMBA with its Flatland-style shaped reward; true: GC-MAMBA with goal offsets and hindsight relabelling), `env.*` (trained online, no dataset), `train.episodes`, `rewards.*`, `mamba_config.*` (MAMBA's settings) |
-| `plan/eval_ff.py` | `plan/config/eval_ff.yaml` | `policy` (a checkpoint of `train/gcrl.py`, `train/mamba.py`, `train/omnivla.py`, `train/commnet.py`, `train/mappo.py` or `train/tarmac.py`), `temperature`, `goal_modalities` (OmniVLA, GCCommNet), `comm` (CommNet, TarMAC: another comm-core channel when acting), `eval.*` (incl. shifts from the training settings: `eval.env_kwargs`, `eval.options`, `eval.wrappers`) |
+| `plan/eval_ff.py` | `plan/config/eval_ff.yaml` | `policy` (a checkpoint of `train/gcrl.py`, `train/mamba.py`, `train/omnivla.py`, `train/commnet.py`, `train/mappo.py`, `train/tarmac.py`, `train/dreamer.py` or `train/codreamer.py`), `temperature`, `goal_modalities` (OmniVLA, GCCommNet), `comm` (CommNet, TarMAC, CoDreamer: another comm-core channel when acting), `eval.*` (incl. shifts from the training settings: `eval.env_kwargs`, `eval.options`, `eval.wrappers`) |
 | `plan/eval_wm.py` | `plan/config/findgoal.yaml`, `solver/`, `objective/` | `policy` (a checkpoint, `random` or `expert`), `mode` (`per_agent` or `joint`), `solver=categorical_cem` / `categorical_mppi`, `plan_config.*`, `eval.*` |
 
 Generated videos (`examples/videos/`) and results (`plan/outputs/`) are not tracked by git.

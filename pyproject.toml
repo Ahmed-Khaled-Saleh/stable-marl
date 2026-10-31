@@ -89,7 +89,8 @@ version = {attr = "stable_marl.__version__"}
 include = ["stable_marl*"]
 
 [tool.setuptools.package-data]
-stable_marl = ["configs/**/*.yaml", "envs/robofactory/upstream/configs/**/*.yaml"]
+stable_marl = ["configs/**/*.yaml", "envs/robofactory/upstream/configs/**/*.yaml", "wm/dreamer/r2dreamer/configs/**/*.yaml",
+               "wm/dreamer/r2dreamer/LICENSE"]
 
 [tool.nbdev]
 branch = "master"

@@ -1,0 +1,15 @@
+# CoDreamer on FindGoal, online (python scripts/train/codreamer.py [key=value ...]): DreamerV3's settings
+# (config/dreamer.yaml) and the communication's
+defaults:
+  - dreamer
+  - _self_
+
+output_model_name: codreamer
+
+comm_range: null                # the paper's C: agents hear the agents within this many cells (null: all)
+drop_prob: 0.0                  # probability that a message is lost (each pair and round)
+gnn_dim: null                   # width of the GATv2 layers (null: the MLPs' units)
+
+# messages over comm-core networks (stable_marl.wm.commnet.NetworkLinks): each step, two rounds (the recurrent
+# states, then the features), e.g. {_target_: stable_marl.wm.commnet.NetworkLinks, radius: 3, channel: {...}}
+comm: null

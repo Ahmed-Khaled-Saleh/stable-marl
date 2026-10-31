@@ -2,8 +2,9 @@
 Evaluate a feed-forward policy, i.e. one forward pass per step without planning (stable-worldmodel's
 plan/eval_ff.py): the goal-conditioned baselines of scripts/train/gcrl.py (`gcrl.pkl` checkpoints),
 MAMBA of scripts/train/mamba.py (`mamba.pt`), CommNet of scripts/train/commnet.py (`commnet.pt`), MAPPO of
-scripts/train/mappo.py (`mappo.pt`) and TarMAC of scripts/train/tarmac.py (`tarmac.pt`), each evaluated on the
-env it was trained on, and OmniVLA-edge of scripts/train/omnivla.py (`omnivla.pt`).
+scripts/train/mappo.py (`mappo.pt`), TarMAC of scripts/train/tarmac.py (`tarmac.pt`), DreamerV3 of
+scripts/train/dreamer.py (`dreamer.pt`) and CoDreamer of scripts/train/codreamer.py (`codreamer.pt`), each
+evaluated on the env it was trained on, and OmniVLA-edge of scripts/train/omnivla.py (`omnivla.pt`).
 
     python scripts/plan/eval_ff.py                                # GCBC
     python scripts/plan/eval_ff.py policy=hiql_findgoal temperature=0.3
@@ -12,6 +13,8 @@ env it was trained on, and OmniVLA-edge of scripts/train/omnivla.py (`omnivla.pt
     python scripts/plan/eval_ff.py policy=commnet_online
     python scripts/plan/eval_ff.py policy=mappo_concat
     python scripts/plan/eval_ff.py policy=tarmac
+    python scripts/plan/eval_ff.py policy=dreamer
+    python scripts/plan/eval_ff.py policy=codreamer
 
 Each agent acts on its own view (or features) and its own goal. The results (and the config) are
 appended to a text file next to the checkpoint, and a few episodes are saved as videos.
@@ -62,6 +65,25 @@ def run(cfg):
         import torch
         from stable_marl.wm.tarmac import TarMAC
         model = TarMAC.load(checkpoint / 'tarmac.pt').to('cuda' if torch.cuda.is_available() else 'cpu')
+        env_name, env_kwargs = model.checkpoint['env_name'], model.checkpoint['env_kwargs']
+        model.temperature = cfg.temperature
+        comm = cfg.comm if cfg.comm is not None else model.checkpoint.get('comm')   # comm-core links when acting
+        if comm:
+            model.links = hydra.utils.instantiate(comm, num_agents=int(env_kwargs['agents']))
+        torch.manual_seed(cfg.seed)
+        policy = sm.FeedForwardPolicy(model)
+    elif (checkpoint / 'dreamer.pt').exists():                   # DreamerV3: its checkpoint holds its env
+        import torch
+        from stable_marl.wm.dreamer import DreamerAgents
+        model = DreamerAgents.load(checkpoint / 'dreamer.pt')
+        env_name, env_kwargs = model.checkpoint['env_name'], model.checkpoint['env_kwargs']
+        model.temperature = cfg.temperature
+        torch.manual_seed(cfg.seed)
+        policy = sm.FeedForwardPolicy(model)
+    elif (checkpoint / 'codreamer.pt').exists():                 # CoDreamer: its checkpoint holds its env and channel
+        import torch
+        from stable_marl.wm.codreamer import CoDreamerAgents
+        model = CoDreamerAgents.load(checkpoint / 'codreamer.pt')
         env_name, env_kwargs = model.checkpoint['env_name'], model.checkpoint['env_kwargs']
         model.temperature = cfg.temperature
         comm = cfg.comm if cfg.comm is not None else model.checkpoint.get('comm')   # comm-core links when acting

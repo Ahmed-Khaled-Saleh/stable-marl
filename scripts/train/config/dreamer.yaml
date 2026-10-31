@@ -1,0 +1,43 @@
+# DreamerV3 on FindGoal, online (python scripts/train/dreamer.py [key=value ...])
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+cache_dir: null                 # checkpoints to <cache_dir>/checkpoints/
+output_model_name: dreamer
+seed: 0
+num_envs: 8
+device: null                    # null: cuda if available
+
+env:                            # the setting of scripts/data/config/default.yaml
+  name: MultiGrid-FindGoal-15x15-v0
+  agents: 2
+  size: 7
+  num_obstacles: 0
+  n_clutter: 0
+  min_goal_spawn_distance: 1
+  tile_size: 8
+  obs_mode: allo
+  max_steps: 25
+
+obs_keys: [image, direction]    # each agent's symbolic local view and heading
+goal: true                      # and its offset to its goal cell
+team_reward: false              # every agent's reward is the sum of the agents' rewards
+
+model:                          # r2dreamer's model configuration (configs/model/*.yaml in the vendored code)
+  size: 12M                     # 12M, 25M, 50M, 100M, 200M, 400M
+  rep_loss: dreamer             # dreamer (DreamerV3), r2dreamer, infonce
+  overrides:                    # smaller than 12M, for a CPU; null: the size's own value (r2dreamer's)
+    deter: 512
+    hidden: 128
+    units: 128
+    discrete: null
+
+train:
+  steps: 200000                 # env steps (of every env together)
+  batch_size: 16                # windows per update (each gives a row per agent)
+  batch_length: 64
+  train_ratio: 64               # replayed agent-steps per collected agent-step (r2dreamer: 512 on DMC)
+  capacity: 100000              # steps kept per env
+  log_every: 5000               # env steps
