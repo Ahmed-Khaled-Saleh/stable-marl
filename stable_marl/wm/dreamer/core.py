@@ -105,7 +105,7 @@ class DreamerAgents(torch.nn.Module):
         goal: bool = True, # Observe the offset to the goal cell
         grid_size: int = 15,
         team_reward: bool = False, # Every agent's reward is the sum of the agents' rewards
-        image_key: str | None = None, # An image observation (e.g. 'pixels', each agent's RGB view), for the CNNs
+        image_key: str | Sequence[str] | None = None, # Image observations for the CNNs (e.g. 'pixels', each agent's RGB view; several, e.g. ['pixels', 'goal'], stacked on the channels)
         image_size: int = 64, # Side the image is resized to (the CNN decoder needs a multiple of 16)
     ):
         super().__init__()
@@ -115,10 +115,11 @@ class DreamerAgents(torch.nn.Module):
         self.num_agents, self.num_actions, self.obs_dim = num_agents, num_actions, obs_dim
         self.obs_keys, self.goal, self.grid_size, self.team_reward = tuple(obs_keys), goal, grid_size, team_reward
         self.image_key, self.image_size = image_key, image_size
+        self.image_keys = [image_key] if isinstance(image_key, str) else list(image_key or [])
         spaces = {'obs': SimpleNamespace(shape=(obs_dim,))} if obs_dim else {}
         config = copy.deepcopy(config)
-        if image_key is not None:                                   # r2dreamer's CNN encoder and decoder take it
-            spaces['image'] = SimpleNamespace(shape=(image_size, image_size, 3))
+        if self.image_keys:                                         # r2dreamer's CNN encoder and decoder take it
+            spaces['image'] = SimpleNamespace(shape=(image_size, image_size, 3 * len(self.image_keys)))
             config.encoder.cnn_keys = config.decoder.cnn_keys = '^image$'
         if not spaces:
             raise ValueError("no observations: give obs_keys (or goal) and/or an image_key")
@@ -140,18 +141,21 @@ class DreamerAgents(torch.nn.Module):
         "Called when `envs` start a new episode (with their `seeds`); a subclass can reset what it keeps per env."
 
     def info_keys(self) -> list[str]:
-        keys = [*self.obs_keys, 'terminated', 'position'] + ([self.image_key] if self.image_key else [])
+        keys = [*self.obs_keys, 'terminated', 'position'] + self.image_keys
         return list(dict.fromkeys(keys + (['goal_position'] if self.goal else [])))
 
     def image(self, columns: dict[str, np.ndarray]) -> torch.Tensor:
-        "Each agent's image (E, N, image_size, image_size, 3), uint8."
-        x = torch.as_tensor(np.asarray(columns[self.image_key]))
-        lead = x.shape[:-3]
-        if x.shape[-3:-1] != (self.image_size, self.image_size):
-            x = F.interpolate(x.reshape(-1, *x.shape[-3:]).permute(0, 3, 1, 2).float(), size=(self.image_size,) * 2,
-                              mode='bilinear', antialias=True, align_corners=False)
-            x = x.round().clamp(0, 255).to(torch.uint8).permute(0, 2, 3, 1)
-        return x.reshape(*lead, self.image_size, self.image_size, 3)
+        "Each agent's images (E, N, image_size, image_size, 3 per image key), uint8, stacked on the channels."
+        out = []
+        for key in self.image_keys:
+            x = torch.as_tensor(np.asarray(columns[key]))
+            lead = x.shape[:-3]
+            if x.shape[-3:-1] != (self.image_size, self.image_size):
+                x = F.interpolate(x.reshape(-1, *x.shape[-3:]).permute(0, 3, 1, 2).float(), size=(self.image_size,) * 2,
+                                  mode='bilinear', antialias=True, align_corners=False)
+                x = x.round().clamp(0, 255).to(torch.uint8).permute(0, 2, 3, 1)
+            out.append(x.reshape(*lead, self.image_size, self.image_size, 3))
+        return torch.cat(out, -1)
 
     def transitions(
         self,
@@ -175,7 +179,7 @@ class DreamerAgents(torch.nn.Module):
         if self.obs_dim:
             obs = commnet_features(columns, self.obs_keys, self.grid_size, self.goal)
             trans['obs'] = torch.from_numpy(obs * mask[..., None])
-        if self.image_key is not None:
+        if self.image_keys:
             trans['image'] = self.image(columns) * torch.from_numpy(mask).to(torch.uint8)[..., None, None, None]
         return trans
 

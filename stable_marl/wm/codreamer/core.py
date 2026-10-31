@@ -258,7 +258,7 @@ class CoDreamerAgents(DreamerAgents):
         goal: bool = True,
         grid_size: int = 15,
         team_reward: bool = False,
-        image_key: str | None = None, # An image observation (e.g. 'pixels'), for r2dreamer's CNNs (see `DreamerAgents`)
+        image_key: str | Sequence[str] | None = None, # Image observations (e.g. 'pixels', or ['pixels', 'goal']), for r2dreamer's CNNs (see `DreamerAgents`)
         image_size: int = 64,
         comm_range: int | None = None, # The paper's C: agents hear the agents within this many cells (None: all)
         drop_prob: float = 0.0, # Probability that a message is lost (each pair and round)
