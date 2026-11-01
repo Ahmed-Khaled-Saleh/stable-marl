@@ -67,6 +67,7 @@ class Mamba:
         grid_size: int = 15, # Size of the grid (scales positions and goal offsets)
         finish_value: float = 10.0, # Reward for reaching the goal (MAMBA's Flatland `FinishRewardConfig(finish_value=10)`)
         near_coeff: float = 0.01, # Reward per cell of progress towards the goal (`NearRewardConfig(coeff=0.01)`; MAMBA only)
+        progress: str = 'step', # step: MAMBA's, each step's change in distance (+ closer, - farther); best: only a new closest distance of the episode (never negative)
         relabel_k: int = 4, # Hindsight copies of each episode (GC-MAMBA only)
         seed: int = 0, # Seed of torch and numpy (MAMBA samples with their global generators)
         obs_dim: int | None = None,
@@ -76,11 +77,14 @@ class Mamba:
         from stable_marl.wm.mamba.mamba_marl.configs.dreamer.DreamerLearnerConfig import DreamerLearnerConfig
         from stable_marl.wm.mamba.mamba_marl.environments import Env
         self.kwargs = dict(num_agents=num_agents, num_actions=num_actions, goal_conditioned=goal_conditioned,
-                           obs_keys=list(obs_keys), grid_size=grid_size, finish_value=finish_value, near_coeff=near_coeff,
+                           obs_keys=list(obs_keys), grid_size=grid_size, finish_value=finish_value, near_coeff=near_coeff, progress=progress,
                            relabel_k=relabel_k, seed=seed, obs_dim=obs_dim, **config)
         self.num_agents, self.num_actions, self.goal_conditioned = num_agents, num_actions, goal_conditioned
         self.obs_keys, self.grid_size = list(obs_keys), grid_size
         self.finish_value, self.near_coeff, self.relabel_k = finish_value, near_coeff, relabel_k
+        if progress not in ('step', 'best'):
+            raise ValueError(f"progress: step or best, not {progress!r}")
+        self.progress = progress
         self.obs_dim = obs_dim
         self.config = config
         self.seed = seed
@@ -195,6 +199,7 @@ def _play(self: Mamba, world, controller, seed: int):
     controller.init_rnns()
     finished = np.zeros(A, bool)
     distance = _shaping_distances(env) if not self.goal_conditioned else None
+    best = distance                                                 # each agent's closest so far (progress='best')
     episode = {'base': [], 'position': [], 'action': [], 'achieved': [], 'finished': []}
     total, length, success = 0.0, 0, False
     for _ in itertools.count():
@@ -211,7 +216,11 @@ def _play(self: Mamba, world, controller, seed: int):
         reward = self.finish_value * reached.astype(np.float32)
         if not self.goal_conditioned:                                    # MAMBA's Flatland rewards
             new_distance = _shaping_distances(env)
-            reward = reward + env_reward + self.near_coeff * (distance - new_distance)
+            if self.progress == 'best':                                  # only a new closest distance pays
+                gain, best = np.maximum(best - new_distance, 0.0), np.minimum(best, new_distance)
+            else:
+                gain = distance - new_distance
+            reward = reward + env_reward + self.near_coeff * gain
             distance = new_distance
         controller.update_buffer({'observation': torch.as_tensor(obs)[None], 'action': action[None],
                                   'reward': torch.as_tensor(reward, dtype=torch.float32)[None, :, None],
