@@ -69,6 +69,7 @@ class GraphContext:
         self.hears: dict[str, torch.Tensor] = {}
         self.edges: torch.Tensor | None = None
         self.timed, self.step = False, None
+        self.swap, self.listener = None, None                # an intervention (`CoDreamerModel.action_probs`)
 
     def set(self, hears: dict[str, torch.Tensor], edges: torch.Tensor, timed: bool):
         "`hears` per round and `edges` (`(G, N, N[, 1])`, or `(G, T, N, N[, 1])` with `timed`)."
@@ -82,6 +83,12 @@ class GraphContext:
         if not self.timed or self.step is not None:                          # rows: group, agent
             if self.step is not None:
                 hears, edges = hears[:, self.step], edges[:, self.step]
+            if self.swap is not None:                                        # the senders' rows from the groups `swap`
+                grouped = x.reshape(-1, N, x.shape[-1])
+                others = [k for k in range(N) if k != self.listener]
+                swapped = grouped.clone()
+                swapped[:, others] = grouped[self.swap][:, others]
+                x = swapped.reshape(x.shape)
             out = gnn(x.reshape(-1, N, x.shape[-1]), hears, edges)
             return out.reshape(*x.shape[:-1], out.shape[-1])
         G, T = hears.shape[:2]
@@ -230,6 +237,34 @@ class CoDreamerModel(Dreamer):
     def update(self, replay_buffer):
         "`Dreamer.update` with the graphs of the sampled batch."
         return super().update(_WithGraph(replay_buffer, self))
+
+    @torch.no_grad()
+    def action_probs(self, obs, state, listener: int | None = None, swap: torch.Tensor | None = None,
+                     silent: bool = False) -> torch.Tensor:
+        """The actor's action probabilities (B, A) at this step (`act`'s, without acting or advancing `state`), under an
+        intervention on agent `listener`'s messages, both rounds: `silent`, none from the others; `swap` (G,), the
+        others' recurrent states and features from the groups `swap` (as if they had sent those). For the causal
+        influence of communication; the posterior's sample is random: call each variant with the same seed."""
+        from torch.amp import autocast
+        from stable_marl.wm.dreamer.r2dreamer.dreamer import COMPUTE_DTYPE
+        obs = dict(obs)
+        if silent:
+            N = self.ctx.num_agents
+            hears = obs['hears'].clone().reshape(-1, N, *obs['hears'].shape[1:])          # (G, N, R, N)
+            others = torch.tensor([k != listener for k in range(N)], device=hears.device)
+            hears[:, listener] = hears[:, listener] & ~others
+            obs['hears'] = hears.reshape(obs['hears'].shape)
+        self.set_graph(obs, timed=False)
+        self.ctx.swap, self.ctx.listener = swap, listener
+        try:
+            with autocast(device_type=self.device.type, dtype=COMPUTE_DTYPE):
+                embed = self._frozen_encoder(self.preprocess(obs))
+                stoch, deter, _ = self._frozen_rssm.obs_step(state['stoch'], state['deter'], state['prev_action'], embed,
+                                                             obs['is_first'])
+                logits = self._frozen_actor(self._frozen_rssm.get_feat(stoch, deter)).logits
+        finally:
+            self.ctx.swap, self.ctx.listener = None, None
+        return logits.float().softmax(-1)
 
 
 class _WithGraph:
