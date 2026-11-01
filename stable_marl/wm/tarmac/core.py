@@ -126,10 +126,11 @@ class TarMAC(nn.Module):
         x = torch.cat([h.detach() * live, F.one_hot(action.long(), self.num_actions).float() * live, live], -1)
         return self.critic(x.flatten(1)).squeeze(-1)
 
-    def initial_state(self, B: int, device=None) -> tuple[torch.Tensor, torch.Tensor]:
-        "Hidden states and aggregated messages at the start of an episode (zeros)."
-        return (torch.zeros(B, self.num_agents, self.hidden_dim, device=device),
-                torch.zeros(B, self.num_agents, self.value_dim, device=device))
+    def initial_state(self, B: int, device=None, num_agents: int | None = None) -> tuple[torch.Tensor, torch.Tensor]:
+        """Hidden states and aggregated messages at the start of an episode (zeros); `num_agents` (the trained by default):
+        the actor and its messages are per agent, so it acts with any number (the critic only with the trained)."""
+        N = num_agents or self.num_agents
+        return (torch.zeros(B, N, self.hidden_dim, device=device), torch.zeros(B, N, self.value_dim, device=device))
 
 # %% ../../../nbs/wm/tarmac/00_core.ipynb #fce8d61a
 @patch
@@ -158,12 +159,12 @@ def observe(self: TarMAC, columns: dict[str, np.ndarray]) -> tuple[torch.Tensor,
 def get_action(self: TarMAC, info: dict) -> torch.Tensor:
     "Actions (num_envs, num_agents) for the info dict of a pool of envs, carrying every env's hidden states and messages."
     columns = {k: torch.as_tensor(info[k])[:, -1].cpu().numpy() for k in self._info_keys()}
-    E = len(columns['terminated'])
+    E, N = np.shape(columns['terminated'])
     device = next(self.parameters()).device
     flush = info.get('_needs_flush')
     flush = np.ones(E, bool) if flush is None else torch.as_tensor(flush).cpu().numpy().astype(bool)
-    if self._state is None or len(self._state[0]) != E or self._state[0].device != device:
-        self._state, flush = self.initial_state(E, device), np.ones(E, bool)
+    if self._state is None or self._state[0].shape[:2] != (E, N) or self._state[0].device != device:
+        self._state, flush = self.initial_state(E, device, N), np.ones(E, bool)
     if self.links is not None and flush.any():
         seeds = torch.as_tensor(info['seed'])[:, -1].cpu().numpy() if 'seed' in info else None
         envs = np.flatnonzero(flush)
