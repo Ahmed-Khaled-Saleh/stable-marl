@@ -125,6 +125,7 @@ class DreamerAgents(torch.nn.Module):
             raise ValueError("no observations: give obs_keys (or goal) and/or an image_key")
         act_space = SimpleNamespace(n=num_actions, discrete=True, shape=(num_actions,))
         self.agent = self._build(config, SimpleNamespace(spaces=spaces), act_space)
+        self.agent.to(self.agent.device)                            # r2dreamer builds on the CPU: its .to() moves the networks and re-shares the frozen copies
         self.temperature = 0.0
         self.checkpoint: dict = {}
         self._state: dict | None = None
